@@ -133,8 +133,8 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 
 Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) Enclave/filesystem.o Enclave/metadata.o
 
-Enclave_Name := enclave.so
-Signed_Enclave_Name := enclave.signed.so
+Enclave_Name := .nexus/enclave.so
+Signed_Enclave_Name := .nexus/enclave.signed.so
 Enclave_Config_File := Enclave/Enclave.config.xml
 
 ifeq ($(SGX_MODE), HW)

@@ -17,6 +17,7 @@
 static sgx_enclave_id_t ENCLAVE_ID;
 static const char* BINARY_NAME;
 static const char BUFFER_SEPARATOR = 0x1C;
+static std::string NEXUS_DIR, META_PATH, ENCR_PATH;
 
 
 // OCall implementations
@@ -28,8 +29,8 @@ void ocall_print(const char* str) {
 
 static void* nexus_init(struct fuse_conn_info *conn) {
   std::string binary_directory = get_directory(std::string(BINARY_NAME));
-  std::string path_token = binary_directory + "/enclave.token";
-  std::string path_so = binary_directory + "/enclave.signed.so";
+  std::string path_token = NEXUS_DIR + "/enclave.token";
+  std::string path_so = NEXUS_DIR + "/enclave.signed.so";
   if (initialize_enclave(&ENCLAVE_ID, path_token, path_so) < 0) {
     std::cout << "Fail to initialize enclave." << std::endl;
     exit(1);
@@ -126,7 +127,11 @@ static int nexus_create(const char *filepath, mode_t mode, struct fuse_file_info
     return -EEXIST;
 
   sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  return ret;
+  sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
+  sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+  dump(META_PATH + "/" + filename, buffer_size, buffer);
+  return 0;
 }
 
 static int nexus_read(const char *filepath, char *buf, size_t size, off_t offset,
@@ -169,6 +174,12 @@ static struct fuse_operations nexus_oper;
 
 int main(int argc, char **argv) {
   BINARY_NAME = argv[0];
+  NEXUS_DIR = get_directory(std::string(BINARY_NAME)) + "/.nexus";
+  META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers";
+  if (system((char*)("mkdir " + META_PATH).c_str()) < 0)
+    exit(1);
+  if (system((char*)("mkdir " + ENCR_PATH).c_str()) < 0)
+    exit(1);
 
   int ret;
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
