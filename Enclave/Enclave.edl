@@ -1,0 +1,27 @@
+enclave {
+    from "Sealing/Sealing.edl" import *;
+
+    trusted {
+        /* define ECALLs here. */
+        public int sgx_init_filesystem([in, string] const char *pathname);
+        public int sgx_destroy_filesystem();
+
+        public int sgx_ls_buffer_size();
+        public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
+
+        public int sgx_isfile([in, string] const char *filename);
+        public int sgx_file_size([in, string] const char *filename);
+        public int sgx_create_file([in, string] const char *filename);
+        public int sgx_read_file([in, string] const char *filename, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_write_file([in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
+        public int sgx_unlink([in, string] const char *filename);
+
+        public int sgx_metadata_size([in, string] const char *filename);
+        public int sgx_dump_metadata([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
+    };
+
+    untrusted {
+        /* define OCALLs here. */
+        void ocall_print([in, string] const char* str);
+    };
+};

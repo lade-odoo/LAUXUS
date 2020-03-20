@@ -1,0 +1,43 @@
+why need to be in debug mode ?
+must keep the system in foreground
+
+
+
+
+
+commencer par hierarchie platte seul mount dir
+
+
+objections
+  bullet points
+
+structurer inntro avec bullet points
+
+
+c'est quoi la motivaition ?
+  qu'est ce qui est bien / important
+    hierearchique moins important
+    crypto bcp plus important
+
+    plus un poc, pas trop grave si mega performance
+
+
+    purpose pour acceder aux donnees dans les logs
+
+    support visuel avec schema pour comprendre mieux de quoi on parle
+    typiquement ou le clées sont stockées, etc
+    support visuel
+    document à lire
+
+    si grosse difficulté sur le code, demander aide mémorant
+
+
+
+    partie secu plus importante
+
+
+
+
+    file system déjà existant, pas inventer la roue
+
+    surtout important secu donc pas grave si pour le 
