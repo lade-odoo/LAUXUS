@@ -125,8 +125,8 @@ static int nexus_create(const char *filepath, mode_t mode, struct fuse_file_info
   sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == EEXIST)
     return -EEXIST;
-
   sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str());
+
   sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
   sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
@@ -149,13 +149,18 @@ static int nexus_read(const char *filepath, char *buf, size_t size, off_t offset
 static int nexus_write(const char *filepath, const char *data, size_t size, off_t offset,
                 struct fuse_file_info *) {
   std::string filename = get_filename(filepath);
-  int ret;
+  int written, ret;
   sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
+  sgx_write_file(ENCLAVE_ID, &written, (char*)filename.c_str(), (long)offset, size, data);
 
-  sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, data);
-  return ret;
+  sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
+  sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+  dump(META_PATH + "/" + filename, buffer_size, buffer);
+
+  return written;
 }
 
 static int nexus_unlink(const char *filepath) {
@@ -166,6 +171,7 @@ static int nexus_unlink(const char *filepath) {
     return -ENOENT;
 
   sgx_unlink(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  delete_file(META_PATH + "/" + filename);
   return ret;
 }
 
