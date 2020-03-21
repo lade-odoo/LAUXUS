@@ -27,6 +27,24 @@ void ocall_print(const char* str) {
 
 
 
+static int nexus_write_metadata(const std::string &filename) {
+  int ret;
+  sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
+
+  sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+  dump(META_PATH + "/" + filename, buffer_size, buffer);
+
+  free(buffer);
+  return ret;
+}
+
+static int nexus_write_encryption(const std::string &filename) {
+  return 0;
+}
+
+
+
 static void* nexus_init(struct fuse_conn_info *conn) {
   std::string binary_directory = get_directory(std::string(BINARY_NAME));
   std::string path_token = NEXUS_DIR + "/enclave.token";
@@ -127,10 +145,8 @@ static int nexus_create(const char *filepath, mode_t mode, struct fuse_file_info
     return -EEXIST;
   sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str());
 
-  sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
-  sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
-  dump(META_PATH + "/" + filename, buffer_size, buffer);
+  nexus_write_metadata(filename);
+
   return 0;
 }
 
@@ -149,18 +165,16 @@ static int nexus_read(const char *filepath, char *buf, size_t size, off_t offset
 static int nexus_write(const char *filepath, const char *data, size_t size, off_t offset,
                 struct fuse_file_info *) {
   std::string filename = get_filename(filepath);
-  int written, ret;
+  int ret;
   sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
-  sgx_write_file(ENCLAVE_ID, &written, (char*)filename.c_str(), (long)offset, size, data);
+  sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, data);
 
-  sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
-  sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
-  dump(META_PATH + "/" + filename, buffer_size, buffer);
+  nexus_write_metadata(filename);
+  nexus_write_encryption(filename);
 
-  return written;
+  return ret;
 }
 
 static int nexus_unlink(const char *filepath) {
@@ -174,6 +188,7 @@ static int nexus_unlink(const char *filepath) {
   delete_file(META_PATH + "/" + filename);
   return ret;
 }
+
 
 
 static struct fuse_operations nexus_oper;
