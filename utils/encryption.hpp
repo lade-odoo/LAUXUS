@@ -11,6 +11,7 @@ class AES_CTR_context {
     uint8_t *p_ctr;
 
     AES_CTR_context();
+    explicit AES_CTR_context(uint8_t *key, uint8_t *ctr0);
     ~AES_CTR_context();
 
 

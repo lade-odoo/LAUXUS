@@ -125,6 +125,17 @@ size_t Filenode::dump_metadata(const size_t buffer_size, char *buffer) {
   return written;
 }
 
+size_t Filenode::load_metadata(const size_t buffer_size, const char *buffer) {
+  size_t read = 0, ctx_size=AES_CTR_context::size();
+  for (size_t index = 0; read+ctx_size <= buffer_size; index++) {
+    AES_CTR_context *context = new AES_CTR_context((uint8_t*)buffer+read, (uint8_t*)buffer+read+16);
+    this->aes_ctr_ctxs->push_back(context);
+    read += ctx_size;
+  }
+
+  return read;
+}
+
 
 size_t Filenode::encryption_size(const long up_offset, const size_t up_size) {
   size_t written = 0;
@@ -134,7 +145,7 @@ size_t Filenode::encryption_size(const long up_offset, const size_t up_size) {
   size_t end_index = (size_t)((up_offset+up_size-offset_in_block)/this->block_size);
 
   if (offset_in_block > 0)
-    return (end_index-start_index+1) * this->cipher->at(end_index)->size();
+    return (end_index-start_index) * this->block_size + this->cipher->at(end_index)->size();
   return (end_index-start_index) * this->block_size;
 }
 
@@ -158,15 +169,26 @@ size_t Filenode::dump_encryption(const long up_offset, const size_t up_size, con
   return start_index * this->block_size; // return the offset on which it should editing the file
 }
 
+size_t Filenode::load_encryption(const long offset, const size_t buffer_size, const char *buffer) {
+  size_t block_index = (size_t)(offset/this->block_size);
+
+  std::vector<char> *block = new std::vector<char>(buffer_size);
+  std::memcpy(&(*block)[0], buffer, buffer_size);
+  this->cipher->push_back(block);
+  Filenode::decrypt_block(block_index);
+  return buffer_size;
+}
+
 size_t Filenode::encrypt_block(const size_t block_index) {
+  std::vector<char> *plain_block = this->plain->at(block_index);
   if (block_index < this->aes_ctr_ctxs->size()) { // already exists
+    this->cipher->at(block_index)->resize(plain_block->size());
     delete this->aes_ctr_ctxs->at(block_index);
     this->aes_ctr_ctxs->at(block_index) = new AES_CTR_context();
   } else {
-    this->cipher->push_back(new std::vector<char>(this->plain->back()->size()));
+    this->cipher->push_back(new std::vector<char>(plain_block->size()));
     this->aes_ctr_ctxs->push_back(new AES_CTR_context());
   }
-  std::vector<char> *plain_block = this->plain->at(block_index);
   std::vector<char> *cipher_block = this->cipher->at(block_index);
 
   AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
@@ -174,9 +196,14 @@ size_t Filenode::encrypt_block(const size_t block_index) {
 }
 
 size_t Filenode::decrypt_block(const size_t block_index) {
-  std::vector<char> *plain_block = this->plain->at(block_index);
   std::vector<char> *cipher_block = this->cipher->at(block_index);
-
   AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
+
+  if (block_index < this->plain->size()) // already exists
+    this->plain->at(block_index)->resize(cipher_block->size());
+  else
+    this->plain->push_back(new std::vector<char>(cipher_block->size()));
+
+  std::vector<char> *plain_block = this->plain->at(block_index);
   return ctx->decrypt((uint8_t*)&(*cipher_block)[0], cipher_block->size(), (uint8_t*)&(*plain_block)[0]);
 }

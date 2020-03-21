@@ -1,5 +1,6 @@
 #include "../utils/encryption.hpp"
 
+#include "sgx_tcrypto.h"
 #include <string>
 #include <cstring>
 
@@ -20,6 +21,14 @@ AES_CTR_context::AES_CTR_context() {
                   0xbb, 0xaa, 0x99, 0x88,
                   0x77, 0x66, 0x55, 0x44,
                   0x33, 0x22, 0x11, 0x00};
+  std::memcpy(this->p_key, key, 16);
+  std::memcpy(this->p_ctr, ctr0, 16);
+}
+
+AES_CTR_context::AES_CTR_context(uint8_t *key, uint8_t *ctr0) {
+  this->p_key = (sgx_aes_ctr_128bit_key_t*) malloc(16);
+  this->p_ctr = (uint8_t*) malloc(16);
+
   std::memcpy(this->p_key, key, 16);
   std::memcpy(this->p_ctr, ctr0, 16);
 }

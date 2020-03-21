@@ -28,9 +28,11 @@ class FileSystem {
 
     int metadata_size(const std::string &filename);
     int dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer);
+    int load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer);
 
     int encryption_size(const std::string &filename, const long up_offset, const size_t up_size);
     int dump_encryption(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
+    int load_encryption(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer);
 
   private:
     size_t block_size;

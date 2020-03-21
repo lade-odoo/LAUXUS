@@ -46,7 +46,11 @@ size_t FileSystem::file_size(const std::string &filename) {
 }
 
 int FileSystem::create_file(const std::string &filename) {
-  Filenode *node = new Filenode(filename, this->block_size);
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node != NULL)
+    return -EEXIST;
+
+  node = new Filenode(filename, this->block_size);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
   return 0;
 }
@@ -89,6 +93,16 @@ int FileSystem::dump_metadata(const std::string &filename, const size_t buffer_s
   return node->dump_metadata(buffer_size, buffer);
 }
 
+int FileSystem::load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer) {
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node != NULL)
+    return -EEXIST;
+
+  node = new Filenode(filename, this->block_size);
+  node->load_metadata(buffer_size, buffer);
+  this->files->insert(std::pair<std::string, Filenode*>(filename, node));
+}
+
 
 int FileSystem::encryption_size(const std::string &filename, const long up_offset, const size_t up_size) {
   Filenode *node = FileSystem::retrieve_node(filename);
@@ -102,4 +116,11 @@ int FileSystem::dump_encryption(const std::string &filename, const long up_offse
   if (node == NULL)
     return -ENOENT;
   return node->dump_encryption(up_offset, up_size, buffer_size, buffer);
+}
+
+int FileSystem::load_encryption(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer) {
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node == NULL)
+    return -ENOENT;
+  return node->load_encryption(offset, buffer_size, buffer);
 }

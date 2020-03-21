@@ -18,6 +18,7 @@ static sgx_enclave_id_t ENCLAVE_ID;
 static const char* BINARY_NAME;
 static const char BUFFER_SEPARATOR = 0x1C;
 static std::string NEXUS_DIR, META_PATH, ENCR_PATH;
+static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
 
 // OCall implementations
@@ -53,6 +54,28 @@ static int nexus_write_encryption(const std::string &filename, long offset, size
 
 
 
+static void retrieve_nexus() {
+  std::vector<std::string> files = read_directory(META_PATH);
+  for(auto itr = files.begin(); itr != files.end(); ++itr) {
+    std::string filename = *itr; int ret; size_t buffer_size; char *buffer = NULL;
+
+    // retrieve metadata in one batch
+    buffer_size = load(META_PATH + "/" + filename, &buffer);
+    sgx_load_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+
+
+    // retrieve encryption in multiple batch
+    if (buffer_size > 0) {
+      for (size_t read = 0; read % DEFAULT_BLOCK_SIZE == 0; ) {
+        buffer_size = load_with_offset(ENCR_PATH + "/" + filename, read, DEFAULT_BLOCK_SIZE, &buffer);
+        sgx_load_encryption(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
+        read += buffer_size;
+      }
+    }
+  }
+}
+
+// the dump is done incrementally -> only dump on destroy final for last metadata info
 static void* nexus_init(struct fuse_conn_info *conn) {
   std::string binary_directory = get_directory(std::string(BINARY_NAME));
   std::string path_token = NEXUS_DIR + "/enclave.token";
@@ -68,10 +91,12 @@ static void* nexus_init(struct fuse_conn_info *conn) {
     std::cout << "Fail to initialize file system." << std::endl;
     exit(1);
   }
+  retrieve_nexus();
 
   return &ENCLAVE_ID;
 }
 
+// retrieve all structure and decrypt everything
 static void nexus_destroy(void* private_data) {
   int ret;
 
