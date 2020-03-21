@@ -1,35 +1,10 @@
 #include "../utils/metadata.hpp"
+#include "../utils/encryption.hpp"
 
 #include <cerrno>
 #include <string>
 #include <cstring>
 #include <vector>
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////////    Filenode     //////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-AES_CTR_context::AES_CTR_context() {
-  this->p_key = (sgx_aes_ctr_128bit_key_t*) malloc(16);
-  this->p_ctr = (uint8_t*) malloc(16);
-
-  uint8_t key[] = {0x00, 0x01, 0x02, 0x03,
-                  0x04, 0x05, 0x06, 0x07,
-                  0x08, 0x09, 0x0a, 0x0b,
-                  0x0c, 0x0d, 0x0e, 0x0f};
-  uint8_t ctr0[] = {0xff, 0xee, 0xdd, 0xcc,
-                  0xbb, 0xaa, 0x99, 0x88,
-                  0x77, 0x66, 0x55, 0x44,
-                  0x33, 0x22, 0x11, 0x00};
-  std::memcpy(this->p_key, key, 16);
-  std::memcpy(this->p_ctr, ctr0, 16);
-}
-
-AES_CTR_context::~AES_CTR_context() {
-  free(this->p_key);
-  free(this->p_ctr);
-}
 
 
 
@@ -137,15 +112,51 @@ size_t Filenode::read(const long offset, const size_t buffer_size, char *buffer)
 
 
 size_t Filenode::metadata_size() {
-  return 36;
+  return AES_CTR_context::size() * this->aes_ctr_ctxs->size();
 }
 
 size_t Filenode::dump_metadata(const size_t buffer_size, char *buffer) {
-  std::string text = "This is a metadata file in plaintext"; // must be encryption key
-  memcpy(buffer, (char*)text.c_str(), buffer_size);
-  return buffer_size;
+  size_t written = 0, ctx_size=AES_CTR_context::size();
+  for (size_t index = 0; index < this->aes_ctr_ctxs->size() && written+ctx_size <= buffer_size; index++) {
+    AES_CTR_context *context = this->aes_ctr_ctxs->at(index);
+    written += context->dump(written, buffer);
+  }
+
+  return written;
 }
 
+
+size_t Filenode::encryption_size(const long up_offset, const size_t up_size) {
+  size_t written = 0;
+  size_t offset_in_block = up_offset % this->block_size;
+  size_t start_index = (size_t)((up_offset-offset_in_block)/this->block_size);
+  offset_in_block = (up_offset+up_size) % this->block_size;
+  size_t end_index = (size_t)((up_offset+up_size-offset_in_block)/this->block_size);
+
+  if (offset_in_block > 0)
+    return (end_index-start_index+1) * this->cipher->at(end_index)->size();
+  return (end_index-start_index) * this->block_size;
+}
+
+size_t Filenode::dump_encryption(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
+  size_t written = 0;
+  size_t offset_in_block = up_offset % this->block_size;
+  size_t start_index = (size_t)((up_offset-offset_in_block)/this->block_size);
+
+  if (this->cipher->size() <= start_index)
+    return -1;
+
+  std::vector<char> *block = this->cipher->at(start_index);
+  for (size_t index = start_index; written+block->size() <= buffer_size; index++) {
+    std::memcpy(buffer + written, &(*block)[0], block->size());
+    written += block->size();
+    if (this->cipher->size() <= index + 1)
+      break;
+    block = this->cipher->at(index + 1);
+  }
+
+  return start_index * this->block_size; // return the offset on which it should editing the file
+}
 
 size_t Filenode::encrypt_block(const size_t block_index) {
   if (block_index < this->aes_ctr_ctxs->size()) { // already exists
@@ -157,26 +168,15 @@ size_t Filenode::encrypt_block(const size_t block_index) {
   }
   std::vector<char> *plain_block = this->plain->at(block_index);
   std::vector<char> *cipher_block = this->cipher->at(block_index);
-  AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
 
-  uint8_t ctr[16];
-  std::memcpy(ctr, ctx->p_ctr, sizeof(ctx->p_ctr));
-  sgx_aes_ctr_encrypt(ctx->p_key, (uint8_t*)&(*plain_block)[0], plain_block->size(),
-                        ctr, 64, (uint8_t*)&(*cipher_block)[0]);
+  AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
+  return ctx->encrypt((uint8_t*)&(*plain_block)[0], plain_block->size(), (uint8_t*)&(*cipher_block)[0]);
 }
 
-// size_t Filenode::dump_encryption(const size_t buffer_size, char *buffer) {
-//   size_t encrypted = 0;
-//   for (size_t index = 0;
-//         index < this->plain->size() && encrypted < buffer_size; index++) {
-//     std::vector<char> *block = this->plain->at(index);
-//     auto size_to_encrypt = buffer_size - encrypted;
-//     if (size_to_encrypt > block->size()) {
-//       size_to_encrypt = block->size();
-//     }
-//     std::memcpy(buffer + read, &(*block)[0] + offset_in_block, size_to_copy);
-//     read += size_to_encrypt + /*overhead*/;
-//   }
-//
-//   return (int)read;
-// }
+size_t Filenode::decrypt_block(const size_t block_index) {
+  std::vector<char> *plain_block = this->plain->at(block_index);
+  std::vector<char> *cipher_block = this->cipher->at(block_index);
+
+  AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
+  return ctx->decrypt((uint8_t*)&(*cipher_block)[0], cipher_block->size(), (uint8_t*)&(*plain_block)[0]);
+}

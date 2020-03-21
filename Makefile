@@ -131,7 +131,7 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 	-Wl,--defsym,__ImageBase=0
 	# -Wl,--version-script=Enclave/Enclave.lds
 
-Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) Enclave/filesystem.o Enclave/metadata.o
+Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) Enclave/filesystem.o Enclave/metadata.o Enclave/encryption.o
 
 Enclave_Name := .nexus/enclave.so
 Signed_Enclave_Name := .nexus/enclave.signed.so
@@ -215,6 +215,10 @@ Enclave/filesystem.o: utils/filesystem.cpp
 	@echo "CXX  <=  $<"
 
 Enclave/metadata.o: utils/metadata.cpp
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
+Enclave/encryption.o: utils/encryption.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 

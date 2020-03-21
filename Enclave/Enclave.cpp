@@ -81,3 +81,12 @@ int sgx_metadata_size(const char *filename) {
 int sgx_dump_metadata(const char *filename, size_t buffer_size, char *buffer) {
   return FILE_SYSTEM->dump_metadata(filename, buffer_size, buffer);
 }
+
+
+int sgx_encryption_size(const char *filename, long up_offset, size_t up_size) {
+  return FILE_SYSTEM->encryption_size(filename, up_offset, up_size);
+}
+
+int sgx_dump_encryption(const char *filename, long up_offset, size_t up_size, size_t buffer_size, char *buffer) {
+  return FILE_SYSTEM->dump_encryption(filename, up_offset, up_size, buffer_size, buffer);
+}

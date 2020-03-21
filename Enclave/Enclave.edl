@@ -18,6 +18,9 @@ enclave {
 
         public int sgx_metadata_size([in, string] const char *filename);
         public int sgx_dump_metadata([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
+
+        public int sgx_encryption_size([in, string] const char *filename, long up_offset, size_t up_size);
+        public int sgx_dump_encryption([in, string] const char *filename, long up_offset, size_t up_size, size_t buffer_size, [out, size=buffer_size] char *buffer);
     };
 
     untrusted {

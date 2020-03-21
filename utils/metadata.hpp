@@ -1,19 +1,9 @@
 #ifndef __METADATA_HPP__
 #define __METADATA_HPP__
 
-#include "sgx_tcrypto.h"
+#include "../utils/encryption.hpp"
 #include <string>
 #include <vector>
-
-
-class AES_CTR_context {
-  public:
-    sgx_aes_ctr_128bit_key_t *p_key;
-    uint8_t *p_ctr;
-
-    AES_CTR_context();
-    ~AES_CTR_context();
-};
 
 
 class Filenode {
@@ -30,12 +20,16 @@ class Filenode {
     size_t metadata_size();
     size_t dump_metadata(const size_t buffer_size, char *buffer);
 
+    size_t encryption_size(const long up_offset, const size_t up_size);
+    size_t dump_encryption(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
+
   private:
     size_t block_size;
     std::vector<std::vector<char>*> *plain, *cipher;
     std::vector<AES_CTR_context*> *aes_ctr_ctxs;
 
     size_t encrypt_block(const size_t block_index);
+    size_t decrypt_block(const size_t block_index);
 };
 
 #endif /*__METADATA_HPP__*/

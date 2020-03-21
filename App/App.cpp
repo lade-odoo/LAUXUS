@@ -39,8 +39,16 @@ static int nexus_write_metadata(const std::string &filename) {
   return ret;
 }
 
-static int nexus_write_encryption(const std::string &filename) {
-  return 0;
+static int nexus_write_encryption(const std::string &filename, long offset, size_t updated_size) {
+  int ret;
+  sgx_encryption_size(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size);
+  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
+
+  sgx_dump_encryption(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size, buffer_size, buffer);
+  dump_with_offset(ENCR_PATH + "/" + filename, ret, buffer_size, buffer); // dump with return offset
+
+  free(buffer);
+  return ret;
 }
 
 
@@ -172,7 +180,7 @@ static int nexus_write(const char *filepath, const char *data, size_t size, off_
   sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, data);
 
   nexus_write_metadata(filename);
-  nexus_write_encryption(filename);
+  nexus_write_encryption(filename, (long)offset, size);
 
   return ret;
 }

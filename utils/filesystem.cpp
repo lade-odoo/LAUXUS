@@ -88,3 +88,18 @@ int FileSystem::dump_metadata(const std::string &filename, const size_t buffer_s
     return -ENOENT;
   return node->dump_metadata(buffer_size, buffer);
 }
+
+
+int FileSystem::encryption_size(const std::string &filename, const long up_offset, const size_t up_size) {
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node == NULL)
+    return -ENOENT;
+  return node->encryption_size(up_offset, up_size);
+}
+
+int FileSystem::dump_encryption(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node == NULL)
+    return -ENOENT;
+  return node->dump_encryption(up_offset, up_size, buffer_size, buffer);
+}
