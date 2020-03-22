@@ -80,6 +80,7 @@ size_t Filenode::write(const long offset, const size_t data_size, const char *da
     std::vector<char> *block = new std::vector<char>(bytes_to_write);
     std::memcpy(&(*block)[0], data + written, bytes_to_write);
     this->plain->push_back(block);
+    this->aes_ctr_ctxs->push_back(new AES_CTR_context());
     Filenode::encrypt_block(this->plain->size()-1);
     written += bytes_to_write;
   }
@@ -181,15 +182,11 @@ size_t Filenode::load_encryption(const long offset, const size_t buffer_size, co
 
 size_t Filenode::encrypt_block(const size_t block_index) {
   std::vector<char> *plain_block = this->plain->at(block_index);
-  if (block_index < this->aes_ctr_ctxs->size()) { // already exists
-    this->cipher->at(block_index)->resize(plain_block->size());
-    delete this->aes_ctr_ctxs->at(block_index);
-    this->aes_ctr_ctxs->at(block_index) = new AES_CTR_context();
-  } else {
-    this->cipher->push_back(new std::vector<char>(plain_block->size()));
-    this->aes_ctr_ctxs->push_back(new AES_CTR_context());
-  }
   std::vector<char> *cipher_block = this->cipher->at(block_index);
+  if (block_index < this->aes_ctr_ctxs->size()) // already exists
+    this->cipher->at(block_index)->resize(plain_block->size());
+  else
+    this->cipher->push_back(new std::vector<char>(plain_block->size()));
 
   AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
   return ctx->encrypt((uint8_t*)&(*plain_block)[0], plain_block->size(), (uint8_t*)&(*cipher_block)[0]);
