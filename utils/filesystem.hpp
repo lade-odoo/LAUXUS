@@ -20,7 +20,7 @@ class FileSystem {
     std::vector<std::string> readdir();
 
     bool isfile(const std::string &filename);
-    size_t file_size(const std::string &filename);
+    int file_size(const std::string &filename);
     int create_file(const std::string &filename);
     int read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer);
     int write_file(const std::string &filename, const long offset, const size_t data_size, const char *data);
@@ -38,7 +38,7 @@ class FileSystem {
     size_t block_size;
     const char* mount_dir;
 
-    std::map<std::string, Filenode*> *files; // key = metapath
+    std::map<std::string, Filenode*> *files;
 
 
     Filenode* retrieve_node(const std::string &filename);

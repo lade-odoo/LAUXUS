@@ -15,10 +15,10 @@ class AES_CTR_context {
     ~AES_CTR_context();
 
 
-    size_t dump(const size_t offset, char *buffer);
+    size_t dump(char *buffer);
 
-    size_t encrypt(const uint8_t *p_src, const uint32_t src_len, uint8_t *p_dst);
-    size_t decrypt(const uint8_t *p_src, const uint32_t src_len, uint8_t *p_dst);
+    int encrypt(const uint8_t *p_plain, const uint32_t plain_len, uint8_t *p_cypher);
+    int decrypt(const uint8_t *p_cypher, const uint32_t cypher_len, uint8_t *p_plain);
 
 
     static size_t dump_size();
@@ -35,12 +35,12 @@ class AES_GCM_context {
     ~AES_GCM_context();
 
 
-    size_t dump(const size_t offset, char *buffer);
+    size_t dump(char *buffer);
 
-    size_t encrypt(const uint8_t *p_src, const uint32_t src_len,
-                    const uint8_t *p_aad, const uint32_t add_len, uint8_t *p_dst);
-    size_t decrypt(const uint8_t *p_src, const uint32_t src_len,
-                    const uint8_t *p_aad, const uint32_t add_len, uint8_t *p_dst);
+    int encrypt(const uint8_t *p_plain, const uint32_t plain_len,
+                    const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_cypher);
+    int decrypt(const uint8_t *p_cypher, const uint32_t cypher_len,
+                    const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_plain);
 
 
     static size_t dump_size();

@@ -7,6 +7,7 @@
 #include <map>
 
 
+
 FileSystem::FileSystem(const char* mount_dir, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
   this->block_size = block_size;
   this->mount_dir = mount_dir;
@@ -38,7 +39,7 @@ bool FileSystem::isfile(const std::string &filename) {
   return this->files->find(filename) != this->files->end();
 }
 
-size_t FileSystem::file_size(const std::string &filename) {
+int FileSystem::file_size(const std::string &filename) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;

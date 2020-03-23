@@ -9,10 +9,8 @@ std::vector<std::string> tokenize(const char *entries, const char separator) {
   std::vector<std::string> tokens;
   size_t pos = 0, found = std::string::npos;
 
-  while (true) {
+  do {
     found = str_entries.find(separator, pos);
-    if (found == std::string::npos)
-      break;
     size_t length = found - pos;
     if (length == 0) {
       pos = found + 1;
@@ -21,7 +19,7 @@ std::vector<std::string> tokenize(const char *entries, const char separator) {
     std::string filename = str_entries.substr(pos, length);
     tokens.push_back(filename);
     pos = found + 1;
-  }
+  } while(found != std::string::npos);
 
   return tokens;
 }

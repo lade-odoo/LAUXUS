@@ -9,53 +9,57 @@
 #include <dirent.h>
 
 
-void dump(const std::string &dumppath, const size_t size, const char *buffer) {
-  std::ofstream stream;
-  stream.open(dumppath, std::ios::out | std::ios::binary);
-  stream.write(buffer, size);
-  stream.close();
+int dump(const std::string &dumppath, const size_t size, const char *buffer) {
+  std::ofstream stream(dumppath, std::ios::out | std::ios::binary);
+  if (stream.is_open()) {
+    stream.write(buffer, size);
+    stream.close();
+    return size;
+  }
+  return -1;
 }
 
-void dump_with_offset(const std::string &dumppath, const long offset, const size_t size, const char *buffer) {
+int dump_with_offset(const std::string &dumppath, const long offset, const size_t size, const char *buffer) {
   std::ofstream stream(dumppath,  std::ios::out | std::ios::binary);
-  stream.seekp(offset, std::ios::beg);
-  stream.write(buffer, size);
-  stream.close();
+  if (stream.is_open() && (long)file_size(dumppath) >= offset) {
+    stream.seekp(offset, std::ios::beg);
+    stream.write(buffer, size);
+    stream.close();
+    return size;
+  }
+  return -1;
 }
 
-size_t load(const std::string &loadpath, char **buffer) {
-  std::ifstream stream;
-  stream.open(loadpath, std::ios::binary);
-  long begin = stream.tellg();
-  stream.seekg(0, std::ios::end);
-  size_t size = stream.tellg() - begin;
-  stream.seekg(stream.beg);
-
-  *buffer = new char[size];
-  stream.read(*buffer, size);
-  stream.close();
-  return size;
+int load(const std::string &loadpath, char **buffer) {
+  std::ifstream stream(loadpath, std::ios::binary);
+  if (stream.is_open()) {
+    size_t size = file_size(loadpath);
+    *buffer = new char[size];
+    stream.read(*buffer, size);
+    stream.close();
+    return size;
+  }
+  return -1;
 }
 
-size_t load_with_offset(const std::string &loadpath, const long offset, const size_t size, char **buffer) {
-  std::ifstream stream;
-  stream.open(loadpath, std::ios::binary);
-  long begin = stream.tellg();
-  stream.seekg(0, std::ios::end);
-  size_t size_to_copy = stream.tellg() - begin;
-  stream.seekg(stream.beg);
-  if (size_to_copy > size)
-    size_to_copy = size;
-
-  *buffer = new char[size_to_copy];
-  stream.read(*buffer, size_to_copy);
-  stream.close();
-  return size_to_copy;
+int load_with_offset(const std::string &loadpath, const long offset, const size_t size, char **buffer) {
+  std::ifstream stream(loadpath, std::ios::binary);
+  if (stream.is_open() && (long)file_size(loadpath) >= offset) {
+    size_t size_to_copy = file_size(loadpath);
+    if (size_to_copy > size)
+      size_to_copy = size;
+    *buffer = new char[size_to_copy];
+    stream.read(*buffer, size_to_copy);
+    stream.close();
+    return size_to_copy;
+  }
+  return -1;
 }
 
-
-int delete_file(const std::string &path) {
-  return remove((char*)path.c_str());
+bool delete_file(const std::string &path) {
+  if (remove((char*)path.c_str()) == 0)
+    return true;
+  return false;
 }
 
 
@@ -70,4 +74,15 @@ std::vector<std::string> read_directory(const std::string& dirpath) {
 
   closedir(dirp);
   return files;
+}
+
+
+size_t file_size(const std::string &path) {
+  std::ifstream stream(path, std::ios::binary);
+  long begin = stream.tellg();
+  stream.seekg(0, std::ios::end);
+  size_t size = stream.tellg() - begin;
+  stream.seekg(stream.beg);
+  stream.close();
+  return size;
 }
