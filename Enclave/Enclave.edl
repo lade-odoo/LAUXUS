@@ -3,7 +3,7 @@ enclave {
 
     trusted {
         /* define ECALLs here. */
-        public int sgx_init_filesystem([in, string] const char *pathname);
+        public int sgx_init_filesystem();
         public int sgx_destroy_filesystem();
 
         public int sgx_ls_buffer_size();

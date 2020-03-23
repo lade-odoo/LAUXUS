@@ -15,7 +15,6 @@
 
 /* Global EID shared by multiple threads */
 static sgx_enclave_id_t ENCLAVE_ID;
-static const char* BINARY_NAME;
 static const char BUFFER_SEPARATOR = 0x1C;
 static std::string NEXUS_DIR, META_PATH, ENCR_PATH;
 static const size_t DEFAULT_BLOCK_SIZE = 4096;
@@ -86,7 +85,6 @@ static void retrieve_nexus() {
 
 // the dump is done incrementally -> only dump on destroy final for last metadata info
 static void* nexus_init(struct fuse_conn_info *conn) {
-  std::string binary_directory = get_directory(std::string(BINARY_NAME));
   std::string path_token = NEXUS_DIR + "/enclave.token";
   std::string path_so = NEXUS_DIR + "/enclave.signed.so";
   if (initialize_enclave(&ENCLAVE_ID, path_token, path_so) < 0) {
@@ -95,7 +93,7 @@ static void* nexus_init(struct fuse_conn_info *conn) {
   }
 
   int ret;
-  sgx_status_t status = sgx_init_filesystem(ENCLAVE_ID, &ret, (char*)binary_directory.c_str());
+  sgx_status_t status = sgx_init_filesystem(ENCLAVE_ID, &ret);
   if (status != SGX_SUCCESS) {
     std::cout << "Fail to initialize file system." << std::endl;
     exit(1);
@@ -236,8 +234,7 @@ static int nexus_unlink(const char *filepath) {
 static struct fuse_operations nexus_oper;
 
 int main(int argc, char **argv) {
-  BINARY_NAME = argv[0];
-  NEXUS_DIR = get_directory(std::string(BINARY_NAME)) + "/.nexus";
+  NEXUS_DIR = get_directory(std::string(argv[0])) + "/.nexus";
   META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers";
   if (system((char*)("mkdir " + META_PATH).c_str()) < 0)
     exit(1);

@@ -26,14 +26,6 @@ AES_CTR_context::AES_CTR_context() {
   std::memcpy(this->p_ctr, ctr0, 16);
 }
 
-AES_CTR_context::AES_CTR_context(uint8_t *buffer) {
-  this->p_key = (sgx_aes_ctr_128bit_key_t*) malloc(16);
-  this->p_ctr = (uint8_t*) malloc(16);
-
-  std::memcpy(this->p_key, buffer, 16);
-  std::memcpy(this->p_ctr, buffer + 16, 16);
-}
-
 AES_CTR_context::~AES_CTR_context() {
   free(this->p_key);
   free(this->p_ctr);
@@ -43,6 +35,12 @@ AES_CTR_context::~AES_CTR_context() {
 size_t AES_CTR_context::dump(char *buffer) {
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer + 16, this->p_ctr, 16);
+  return 32;
+}
+
+size_t AES_CTR_context::load(const char *buffer) {
+  std::memcpy(this->p_key, buffer, 16);
+  std::memcpy(this->p_ctr, buffer+16, 16);
   return 32;
 }
 
@@ -65,7 +63,7 @@ int AES_CTR_context::decrypt(const uint8_t *p_cypher, const uint32_t cypher_len,
 
 
 // Static functions
-size_t AES_CTR_context::dump_size() { return 32; }
+size_t AES_CTR_context::size() { return 32; }
 
 
 
@@ -88,16 +86,6 @@ AES_GCM_context::AES_GCM_context() {
   std::memcpy(this->p_iv, iv, 12);
 }
 
-AES_GCM_context::AES_GCM_context(uint8_t *buffer) {
-  this->p_key = (sgx_aes_gcm_128bit_key_t*) malloc(16);
-  this->p_iv = (uint8_t*) malloc(12);
-  this->p_mac = (sgx_aes_gcm_128bit_tag_t*) malloc(16);
-
-  std::memcpy(this->p_key, buffer, 16);
-  std::memcpy(this->p_iv, buffer+16, 12);
-  std::memcpy(this->p_mac, buffer+28, 16);
-}
-
 AES_GCM_context::~AES_GCM_context() {
   free(this->p_key);
   free(this->p_iv);
@@ -109,11 +97,21 @@ AES_GCM_context::~AES_GCM_context() {
 size_t AES_GCM_context::dump(char *buffer) {
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer+16, this->p_iv, 12);
-  if (this->p_mac != NULL) {
-    std::memcpy(buffer+28, this->p_mac, 16);
-    return 44;
-  }
+  std::memcpy(buffer+28, this->p_mac, 16);
+  return 44;
+}
+
+size_t AES_GCM_context::dump_aad(char *buffer) {
+  std::memcpy(buffer, this->p_key, 16);
+  std::memcpy(buffer+16, this->p_iv, 12);
   return 28;
+}
+
+size_t AES_GCM_context::load(const char *buffer) {
+  std::memcpy(this->p_key, buffer, 16);
+  std::memcpy(this->p_iv, buffer+16, 12);
+  std::memcpy(this->p_mac, buffer+28, 16);
+  return 44;
 }
 
 
@@ -137,5 +135,5 @@ int AES_GCM_context::decrypt(const uint8_t *p_cypher, const uint32_t cypher_len,
 
 
 // Static functions
-size_t AES_GCM_context::dump_size() { return 16 + 12 + 16; }
-size_t AES_GCM_context::dump_size_no_auth() { return 28; }
+size_t AES_GCM_context::size() { return 44; }
+size_t AES_GCM_context::size_aad() { return 28; }

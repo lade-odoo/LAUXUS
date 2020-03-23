@@ -11,17 +11,17 @@ class AES_CTR_context {
     uint8_t *p_ctr;
 
     AES_CTR_context();
-    explicit AES_CTR_context(uint8_t *buffer);
     ~AES_CTR_context();
 
 
     size_t dump(char *buffer);
+    size_t load(const char *buffer);
 
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len, uint8_t *p_cypher);
     int decrypt(const uint8_t *p_cypher, const uint32_t cypher_len, uint8_t *p_plain);
 
 
-    static size_t dump_size();
+    static size_t size();
 };
 
 class AES_GCM_context {
@@ -31,11 +31,12 @@ class AES_GCM_context {
     sgx_aes_gcm_128bit_tag_t *p_mac;
 
     AES_GCM_context();
-    explicit AES_GCM_context(uint8_t *buffer);
     ~AES_GCM_context();
 
 
     size_t dump(char *buffer);
+    size_t dump_aad(char *buffer);
+    size_t load(const char *buffer);
 
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len,
                     const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_cypher);
@@ -43,8 +44,8 @@ class AES_GCM_context {
                     const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_plain);
 
 
-    static size_t dump_size();
-    static size_t dump_size_no_auth();
+    static size_t size();
+    static size_t size_aad();
 };
 
 

@@ -15,7 +15,7 @@ class FileSystem {
   public:
     static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
-    FileSystem(const char* mount_dir, size_t block_size);
+    FileSystem(size_t block_size);
 
     std::vector<std::string> readdir();
 
@@ -36,7 +36,6 @@ class FileSystem {
 
   private:
     size_t block_size;
-    const char* mount_dir;
 
     std::map<std::string, Filenode*> *files;
 

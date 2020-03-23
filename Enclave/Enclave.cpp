@@ -8,8 +8,8 @@
 static FileSystem* FILE_SYSTEM;
 
 
-int sgx_init_filesystem(const char* pathname) {
-  FILE_SYSTEM = new FileSystem(pathname, FileSystem::DEFAULT_BLOCK_SIZE);
+int sgx_init_filesystem() {
+  FILE_SYSTEM = new FileSystem(FileSystem::DEFAULT_BLOCK_SIZE);
   return 0;
 }
 

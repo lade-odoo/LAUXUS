@@ -1,4 +1,5 @@
 #include "../../utils/metadata/filenode.hpp"
+#include "../../utils/metadata/node.hpp"
 #include "../../utils/encryption.hpp"
 
 #include <cerrno>
@@ -11,14 +12,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////    Filenode     //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-Filenode::Filenode(const std::string &filename, const size_t block_size) {
-  this->filename = filename;
+Filenode::Filenode(const std::string &filename, const size_t block_size):Node::Node(filename) {
   this->block_size = block_size;
 
   this->plain = new std::vector<std::vector<char>*>();
   this->cipher = new std::vector<std::vector<char>*>();
   this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
-  this->aes_gcm_ctx = new AES_GCM_context();
 }
 
 Filenode::~Filenode() {
@@ -35,7 +34,7 @@ Filenode::~Filenode() {
   }
 
   delete this->plain; delete this->cipher;
-  delete this->aes_ctr_ctxs; delete this->aes_gcm_ctx;
+  delete this->aes_ctr_ctxs;
 }
 
 
@@ -114,54 +113,41 @@ int Filenode::read(const long offset, const size_t buffer_size, char *buffer) {
 
 
 size_t Filenode::metadata_size() {
-  size_t size = AES_GCM_context::dump_size();
-  size += AES_CTR_context::dump_size() * this->aes_ctr_ctxs->size();
+  size_t size = Node::metadata_size();
+  size += AES_CTR_context::size() * this->aes_ctr_ctxs->size();
   return size;
 }
 
-int Filenode::dump_metadata(const size_t buffer_size, char *buffer) {
-  size_t ctr_written = 0;
-  size_t ctr_size=AES_CTR_context::dump_size();
-  size_t gcm_size=AES_GCM_context::dump_size(), gcm_size_no_auth=AES_GCM_context::dump_size_no_auth();
-  char tmp_buffer[buffer_size - gcm_size + gcm_size_no_auth];
-
-  this->aes_gcm_ctx->dump(tmp_buffer); // not yet auth tag
-  for (size_t index = 0; index < this->aes_ctr_ctxs->size() && ctr_written+gcm_size_no_auth+ctr_size <= buffer_size; index++) {
-    AES_CTR_context *context = this->aes_ctr_ctxs->at(index);
-    ctr_written += context->dump(tmp_buffer + ctr_written + gcm_size_no_auth);
-  }
-
-  if (this->aes_gcm_ctx->encrypt((uint8_t*)tmp_buffer + gcm_size_no_auth, ctr_written,
-                                            (uint8_t*)tmp_buffer, gcm_size_no_auth, (uint8_t*)buffer + gcm_size) < 0) {
-    return -1;
-  }
-
-  this->aes_gcm_ctx->dump(buffer); // with auth tag
-  return gcm_size + ctr_written;
+size_t Filenode::size_sensitive() {
+  return AES_CTR_context::size() * this->aes_ctr_ctxs->size();
 }
 
-int Filenode::load_metadata(const size_t buffer_size, const char *buffer) {
-  size_t ctr_read = 0;
-  size_t ctr_size=AES_CTR_context::dump_size();
-  size_t gcm_size=AES_GCM_context::dump_size(), gcm_size_no_auth=AES_GCM_context::dump_size_no_auth();
-  size_t tmp_buffer_size = buffer_size - gcm_size; char tmp_buffer[tmp_buffer_size];
-
-  if (this->aes_gcm_ctx != NULL)
-    delete this->aes_gcm_ctx;
-  this->aes_gcm_ctx = new AES_GCM_context((uint8_t*)buffer); // loading the auth tag
-  if (this->aes_gcm_ctx->decrypt((uint8_t*)buffer + gcm_size, buffer_size - gcm_size,
-                                  (uint8_t*)buffer, gcm_size_no_auth, (uint8_t*)tmp_buffer) < 0) {
-    delete this->aes_gcm_ctx;
-    return -1;
+int Filenode::dump_sensitive(char *buffer) {
+  size_t written = 0;
+  for (size_t index = 0; index < this->aes_ctr_ctxs->size(); index++) {
+    AES_CTR_context *context = this->aes_ctr_ctxs->at(index);
+    written += context->dump(buffer+written);
   }
+  return written;
+}
 
-  for (size_t index = 0; ctr_read+ctr_size <= tmp_buffer_size; index++) {
-    AES_CTR_context *context = new AES_CTR_context((uint8_t*)tmp_buffer + ctr_read);
+int Filenode::load_sensitive(const size_t buffer_size, const char *buffer) {
+  size_t read = 0;
+  for (size_t index = 0; read < buffer_size; index++) {
+    AES_CTR_context *context = new AES_CTR_context();
+    context->load(buffer+read);
     this->aes_ctr_ctxs->push_back(context);
-    ctr_read += ctr_size;
+    read += AES_CTR_context::size();
   }
+  return read;
+}
 
-  return gcm_size + ctr_read;
+size_t Filenode::size_aad() {
+  return 0;
+}
+
+int Filenode::dump_aad(char *buffer) {
+  return 0;
 }
 
 

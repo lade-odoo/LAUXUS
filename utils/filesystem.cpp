@@ -8,9 +8,8 @@
 
 
 
-FileSystem::FileSystem(const char* mount_dir, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
+FileSystem::FileSystem(size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
   this->block_size = block_size;
-  this->mount_dir = mount_dir;
 
   this->files = new std::map<std::string, Filenode*>();
 }
