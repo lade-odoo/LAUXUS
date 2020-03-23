@@ -1,5 +1,5 @@
 #include "../utils/filesystem.hpp"
-#include "../utils/metadata.hpp"
+#include "../utils/metadata/filenode.hpp"
 
 #include <cerrno>
 #include <string>

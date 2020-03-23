@@ -1,7 +1,7 @@
-#ifndef __METADATA_HPP__
-#define __METADATA_HPP__
+#ifndef __FILENODE_HPP__
+#define __FILENODE_HPP__
 
-#include "../utils/encryption.hpp"
+#include "../../utils/encryption.hpp"
 #include <string>
 #include <vector>
 
@@ -35,4 +35,4 @@ class Filenode {
     int decrypt_block(const size_t block_index);
 };
 
-#endif /*__METADATA_HPP__*/
+#endif /*__FILENODE_HPP__*/
