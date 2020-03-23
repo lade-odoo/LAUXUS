@@ -18,27 +18,26 @@ Filenode::Filenode(const std::string &filename, const size_t block_size) {
   this->plain = new std::vector<std::vector<char>*>();
   this->cipher = new std::vector<std::vector<char>*>();
   this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
+  this->aes_gcm_ctx = new AES_GCM_context();
 }
 
 Filenode::~Filenode() {
   for (auto it = this->plain->begin(); it != this->plain->end(); ) {
-    delete * it;
-    it = this->plain->erase(it);
+    delete * it; it = this->plain->erase(it);
   }
   delete this->plain;
 
   for (auto it = this->cipher->begin(); it != this->cipher->end(); ) {
-    delete * it;
-    it = this->cipher->erase(it);
+    delete * it; it = this->cipher->erase(it);
   }
   delete this->cipher;
 
-
   for (auto it = this->aes_ctr_ctxs->begin(); it != this->aes_ctr_ctxs->end(); ) {
-    delete * it;
-    it = this->aes_ctr_ctxs->erase(it);
+    delete * it; it = this->aes_ctr_ctxs->erase(it);
   }
   delete this->aes_ctr_ctxs;
+
+  delete this->aes_gcm_ctx;
 }
 
 
@@ -67,8 +66,9 @@ size_t Filenode::write(const long offset, const size_t data_size, const char *da
       block->resize(offset_in_block + data_size);
     }
     std::memcpy(&(*block)[0] + offset_in_block, data, bytes_to_write);
-    Filenode::encrypt_block(block_index);
     written += bytes_to_write;
+
+    Filenode::encrypt_block(block_index);
   }
 
   // Create new blocks from scratch for extra
@@ -81,8 +81,9 @@ size_t Filenode::write(const long offset, const size_t data_size, const char *da
     std::memcpy(&(*block)[0], data + written, bytes_to_write);
     this->plain->push_back(block);
     this->aes_ctr_ctxs->push_back(new AES_CTR_context());
-    Filenode::encrypt_block(this->plain->size()-1);
     written += bytes_to_write;
+
+    Filenode::encrypt_block(this->plain->size()-1);
   }
 
   return written;
@@ -113,28 +114,48 @@ size_t Filenode::read(const long offset, const size_t buffer_size, char *buffer)
 
 
 size_t Filenode::metadata_size() {
-  return AES_CTR_context::size() * this->aes_ctr_ctxs->size();
+  size_t size = AES_GCM_context::dump_size();
+  size += AES_CTR_context::dump_size() * this->aes_ctr_ctxs->size();
+  return size;
 }
 
 size_t Filenode::dump_metadata(const size_t buffer_size, char *buffer) {
-  size_t written = 0, ctx_size=AES_CTR_context::size();
-  for (size_t index = 0; index < this->aes_ctr_ctxs->size() && written+ctx_size <= buffer_size; index++) {
+  size_t ctr_written = 0;
+  size_t ctr_size=AES_CTR_context::dump_size();
+  size_t gcm_size=AES_GCM_context::dump_size(), gcm_size_no_auth=AES_GCM_context::dump_size_no_auth();
+  char tmp_buffer[buffer_size - gcm_size + gcm_size_no_auth];
+
+  this->aes_gcm_ctx->dump(0, tmp_buffer); // not yet auth tag
+  for (size_t index = 0; index < this->aes_ctr_ctxs->size() && ctr_written+gcm_size_no_auth+ctr_size <= buffer_size; index++) {
     AES_CTR_context *context = this->aes_ctr_ctxs->at(index);
-    written += context->dump(written, buffer);
+    ctr_written += context->dump(ctr_written+gcm_size_no_auth, tmp_buffer);
   }
 
-  return written;
+  ctr_written = this->aes_gcm_ctx->encrypt((uint8_t*)tmp_buffer + gcm_size_no_auth, ctr_written,
+                                            (uint8_t*)tmp_buffer, gcm_size_no_auth, (uint8_t*)buffer + gcm_size);
+  this->aes_gcm_ctx->dump(0, buffer); // with auth tag
+  return gcm_size + ctr_written;
 }
 
 size_t Filenode::load_metadata(const size_t buffer_size, const char *buffer) {
-  size_t read = 0, ctx_size=AES_CTR_context::size();
-  for (size_t index = 0; read+ctx_size <= buffer_size; index++) {
-    AES_CTR_context *context = new AES_CTR_context((uint8_t*)buffer+read, (uint8_t*)buffer+read+16);
+  size_t ctr_read = 0;
+  size_t ctr_size=AES_CTR_context::dump_size();
+  size_t gcm_size=AES_GCM_context::dump_size(), gcm_size_no_auth=AES_GCM_context::dump_size_no_auth();
+  size_t tmp_buffer_size = buffer_size - gcm_size; char tmp_buffer[tmp_buffer_size];
+
+  if (this->aes_gcm_ctx != NULL)
+    delete this->aes_gcm_ctx;
+  this->aes_gcm_ctx = new AES_GCM_context((uint8_t*)buffer); // loading the auth tag
+  this->aes_gcm_ctx->decrypt((uint8_t*)buffer + gcm_size, buffer_size - gcm_size,
+                              (uint8_t*)buffer, gcm_size_no_auth, (uint8_t*)tmp_buffer);
+
+  for (size_t index = 0; ctr_read+ctr_size <= tmp_buffer_size; index++) {
+    AES_CTR_context *context = new AES_CTR_context((uint8_t*)tmp_buffer + ctr_read);
     this->aes_ctr_ctxs->push_back(context);
-    read += ctx_size;
+    ctr_read += ctr_size;
   }
 
-  return read;
+  return gcm_size + ctr_read;
 }
 
 
@@ -182,13 +203,13 @@ size_t Filenode::load_encryption(const long offset, const size_t buffer_size, co
 
 size_t Filenode::encrypt_block(const size_t block_index) {
   std::vector<char> *plain_block = this->plain->at(block_index);
-  std::vector<char> *cipher_block = this->cipher->at(block_index);
-  if (block_index < this->aes_ctr_ctxs->size()) // already exists
+  AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
+  if (block_index < this->cipher->size()) // already exists
     this->cipher->at(block_index)->resize(plain_block->size());
   else
     this->cipher->push_back(new std::vector<char>(plain_block->size()));
 
-  AES_CTR_context *ctx = this->aes_ctr_ctxs->at(block_index);
+  std::vector<char> *cipher_block = this->cipher->at(block_index);
   return ctx->encrypt((uint8_t*)&(*plain_block)[0], plain_block->size(), (uint8_t*)&(*cipher_block)[0]);
 }
 

@@ -5,10 +5,8 @@ must keep the system in foreground
 
 
 
-commencer par hierarchie platte seul mount dir
 
-
-objections
+objectifs
   bullet points
 
 structurer inntro avec bullet points
@@ -30,14 +28,3 @@ c'est quoi la motivaition ?
     document à lire
 
     si grosse difficulté sur le code, demander aide mémorant
-
-
-
-    partie secu plus importante
-
-
-
-
-    file system déjà existant, pas inventer la roue
-
-    surtout important secu donc pas grave si pour le 

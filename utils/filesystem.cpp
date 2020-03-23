@@ -101,6 +101,7 @@ int FileSystem::load_metadata(const std::string &filename, const size_t buffer_s
   node = new Filenode(filename, this->block_size);
   node->load_metadata(buffer_size, buffer);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
+  return 0;
 }
 
 

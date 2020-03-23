@@ -34,6 +34,8 @@ static int nexus_write_metadata(const std::string &filename) {
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
   sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+  std::cout << std::to_string(buffer_size) << std::endl;
+  std::cout << buffer << std::endl;
   dump(META_PATH + "/" + filename, buffer_size, buffer);
 
   free(buffer);
@@ -53,8 +55,7 @@ static int nexus_write_encryption(const std::string &filename, long offset, size
 }
 
 
-
-static void retrieve_nexus() {
+static void retrieve_nexus_meta() {
   std::vector<std::string> files = read_directory(META_PATH);
   for(auto itr = files.begin(); itr != files.end(); ++itr) {
     std::string filename = *itr; int ret; size_t buffer_size; char *buffer = NULL;
@@ -62,17 +63,25 @@ static void retrieve_nexus() {
     // retrieve metadata in one batch
     buffer_size = load(META_PATH + "/" + filename, &buffer);
     sgx_load_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+    free(buffer);
+  }
+}
+static void retrieve_nexus_ciphers() {
+  std::vector<std::string> files = read_directory(ENCR_PATH);
 
+  for(auto itr = files.begin(); itr != files.end(); ++itr) {
+    std::string filename = *itr; int ret; size_t buffer_size; char *buffer = NULL;
 
-    // retrieve encryption in multiple batch
-    if (buffer_size > 0) {
-      for (size_t read = 0; read % DEFAULT_BLOCK_SIZE == 0; ) {
-        buffer_size = load_with_offset(ENCR_PATH + "/" + filename, read, DEFAULT_BLOCK_SIZE, &buffer);
-        sgx_load_encryption(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
-        read += buffer_size;
-      }
+    for (size_t read = 0; read % DEFAULT_BLOCK_SIZE == 0; read += buffer_size) {
+      buffer_size = load_with_offset(ENCR_PATH + "/" + filename, read, DEFAULT_BLOCK_SIZE, &buffer);
+      sgx_load_encryption(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
+      free(buffer);
     }
   }
+}
+static void retrieve_nexus() {
+  retrieve_nexus_meta();
+  retrieve_nexus_ciphers();
 }
 
 // the dump is done incrementally -> only dump on destroy final for last metadata info

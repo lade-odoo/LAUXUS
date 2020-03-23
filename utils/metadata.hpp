@@ -29,6 +29,7 @@ class Filenode {
     size_t block_size;
     std::vector<std::vector<char>*> *plain, *cipher;
     std::vector<AES_CTR_context*> *aes_ctr_ctxs;
+    AES_GCM_context *aes_gcm_ctx;
 
     size_t encrypt_block(const size_t block_index);
     size_t decrypt_block(const size_t block_index);
