@@ -16,7 +16,7 @@
 /* Global EID shared by multiple threads */
 static sgx_enclave_id_t ENCLAVE_ID;
 static const char BUFFER_SEPARATOR = 0x1C;
-static std::string NEXUS_DIR, META_PATH, ENCR_PATH;
+static std::string NEXUS_DIR, META_PATH, ENCR_PATH, RK_PATH;
 static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
 
@@ -33,8 +33,6 @@ static int nexus_write_metadata(const std::string &filename) {
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
   sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
-  std::cout << std::to_string(buffer_size) << std::endl;
-  std::cout << buffer << std::endl;
   dump(META_PATH + "/" + filename, buffer_size, buffer);
 
   free(buffer);
@@ -65,6 +63,7 @@ static void retrieve_nexus_meta() {
     free(buffer);
   }
 }
+
 static void retrieve_nexus_ciphers() {
   std::vector<std::string> files = read_directory(ENCR_PATH);
 
@@ -78,27 +77,44 @@ static void retrieve_nexus_ciphers() {
     }
   }
 }
+
 static void retrieve_nexus() {
   retrieve_nexus_meta();
   retrieve_nexus_ciphers();
 }
 
+
 // the dump is done incrementally -> only dump on destroy final for last metadata info
 static void* nexus_init(struct fuse_conn_info *conn) {
   std::string path_token = NEXUS_DIR + "/enclave.token";
   std::string path_so = NEXUS_DIR + "/enclave.signed.so";
-  if (initialize_enclave(&ENCLAVE_ID, path_token, path_so) < 0) {
+  int initialized = initialize_enclave(&ENCLAVE_ID, path_token, path_so);
+  if (initialized < 0) {
     std::cout << "Fail to initialize enclave." << std::endl;
     exit(1);
   }
 
-  int ret;
-  sgx_status_t status = sgx_init_filesystem(ENCLAVE_ID, &ret);
+  int ret; sgx_status_t status;
+  if (initialized == 0) {
+    std::cout << "Loading existing FS" << std::endl;
+    size_t rk_sealed_size; char *sealed_rk = NULL;
+    rk_sealed_size = load(RK_PATH, &sealed_rk);
+    status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk);
+    free(sealed_rk);
+  } else { // newly created token => new FS
+    std::cout << "Creating new FS" << std::endl;
+    if (system((char*)("mkdir "+META_PATH).c_str()) < 0 || system((char*)("mkdir "+ENCR_PATH).c_str()) < 0)
+      status = SGX_ERROR_UNEXPECTED;
+    else
+      status = sgx_init_filesystem(ENCLAVE_ID, &ret);
+  }
+
   if (status != SGX_SUCCESS) {
     std::cout << "Fail to initialize file system." << std::endl;
     exit(1);
   }
-  retrieve_nexus();
+  if (initialized == 0)
+    retrieve_nexus();
 
   return &ENCLAVE_ID;
 }
@@ -106,13 +122,18 @@ static void* nexus_init(struct fuse_conn_info *conn) {
 // retrieve all structure and decrypt everything
 static void nexus_destroy(void* private_data) {
   int ret;
+  size_t rk_sealed_size = /*AES_GCM_context::size()*/44+sizeof(sgx_sealed_data_t);
+  char *sealed_rk = (char*) malloc(rk_sealed_size);
 
-  sgx_status_t status = sgx_destroy_filesystem(ENCLAVE_ID, &ret);
-  if (status != SGX_SUCCESS) {
+  sgx_status_t status = sgx_destroy_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk);
+  if (status != SGX_SUCCESS || ret < 0) {
     std::cout << "Fail to destroy the file system." << std::endl;
     exit(1);
   }
   sgx_destroy_enclave(ENCLAVE_ID);
+
+  dump(RK_PATH, rk_sealed_size, sealed_rk);
+  free(sealed_rk);
 }
 
 
@@ -236,10 +257,7 @@ static struct fuse_operations nexus_oper;
 int main(int argc, char **argv) {
   NEXUS_DIR = get_directory(std::string(argv[0])) + "/.nexus";
   META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers";
-  if (system((char*)("mkdir " + META_PATH).c_str()) < 0)
-    exit(1);
-  if (system((char*)("mkdir " + ENCR_PATH).c_str()) < 0)
-    exit(1);
+  RK_PATH = NEXUS_DIR + "/.sealed_rk";
 
   int ret;
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);

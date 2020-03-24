@@ -12,7 +12,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////    Filenode     //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-Filenode::Filenode(const std::string &filename, const size_t block_size):Node::Node(filename) {
+Filenode::Filenode(const std::string &filename, AES_GCM_context *root_key, const size_t block_size):Node::Node(filename, root_key) {
   this->block_size = block_size;
 
   this->plain = new std::vector<std::vector<char>*>();
@@ -140,14 +140,6 @@ int Filenode::load_sensitive(const size_t buffer_size, const char *buffer) {
     read += AES_CTR_context::size();
   }
   return read;
-}
-
-size_t Filenode::size_aad() {
-  return 0;
-}
-
-int Filenode::dump_aad(char *buffer) {
-  return 0;
 }
 
 

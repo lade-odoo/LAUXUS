@@ -25,7 +25,7 @@ int initialize_enclave(sgx_enclave_id_t* eid, const std::string& launch_token_pa
     const char* token_path = launch_token_path.c_str();
     sgx_launch_token_t token = {0};
     sgx_status_t ret = SGX_ERROR_UNEXPECTED;
-    int updated = 0;
+    int updated = 0; bool is_token_present = false;
 
     /* Step 1: try to retrieve the launch token saved by last transaction
      *         if there is no token, then create a new one.
@@ -44,6 +44,8 @@ int initialize_enclave(sgx_enclave_id_t* eid, const std::string& launch_token_pa
             memset(&token, 0x0, sizeof(sgx_launch_token_t));
             printf("Warning: Invalid launch token read from \"%s\".\n", token_path);
         }
+        if (read_num != 0)
+            is_token_present = true;
     }
     /* Step 2: call sgx_create_enclave to initialize an enclave instance */
     /* Debug Support: set 2nd parameter to 1 */
@@ -58,7 +60,7 @@ int initialize_enclave(sgx_enclave_id_t* eid, const std::string& launch_token_pa
     if (updated == FALSE || fp == NULL) {
         /* if the token is not updated, or file handler is invalid, do not perform saving */
         if (fp != NULL) fclose(fp);
-        return 0;
+        return is_token_present ? 0 : 1;
     }
 
     /* reopen the file with write capablity */
@@ -68,7 +70,7 @@ int initialize_enclave(sgx_enclave_id_t* eid, const std::string& launch_token_pa
     if (write_num != sizeof(sgx_launch_token_t))
         printf("Warning: Failed to save launch token to \"%s\".\n", token_path);
     fclose(fp);
-    return 0;
+    return is_token_present ? 0 : 1;
 }
 
 bool is_ecall_successful(sgx_status_t sgx_status, const std::string& err_msg,

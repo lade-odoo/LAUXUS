@@ -1,4 +1,5 @@
 #include "../utils/filesystem.hpp"
+#include "../utils/encryption.hpp"
 #include "../utils/metadata/filenode.hpp"
 
 #include <cerrno>
@@ -8,7 +9,8 @@
 
 
 
-FileSystem::FileSystem(size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
+FileSystem::FileSystem(AES_GCM_context *root_key, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
+  this->root_key = root_key;
   this->block_size = block_size;
 
   this->files = new std::map<std::string, Filenode*>();
@@ -50,7 +52,7 @@ int FileSystem::create_file(const std::string &filename) {
   if (node != NULL)
     return -EEXIST;
 
-  node = new Filenode(filename, this->block_size);
+  node = new Filenode(filename, this->root_key, this->block_size);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
   return 0;
 }
@@ -98,7 +100,7 @@ int FileSystem::load_metadata(const std::string &filename, const size_t buffer_s
   if (node != NULL)
     return -EEXIST;
 
-  node = new Filenode(filename, this->block_size);
+  node = new Filenode(filename, this->root_key, this->block_size);
   node->load_metadata(buffer_size, buffer);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
   return 0;

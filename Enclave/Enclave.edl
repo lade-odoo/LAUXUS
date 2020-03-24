@@ -4,7 +4,8 @@ enclave {
     trusted {
         /* define ECALLs here. */
         public int sgx_init_filesystem();
-        public int sgx_destroy_filesystem();
+        public int sgx_init_existing_filesystem(size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk);
+        public int sgx_destroy_filesystem(size_t rk_sealed_size, [out, size=rk_sealed_size] char *sealed_rk);
 
         public int sgx_ls_buffer_size();
         public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);

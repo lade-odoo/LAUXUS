@@ -4,20 +4,46 @@
 #include "sgx_tseal.h"
 #include "Enclave_t.h"
 #include "../utils/filesystem.hpp"
+#include "../utils/encryption.hpp"
 
 static FileSystem* FILE_SYSTEM;
 
 
 int sgx_init_filesystem() {
-  FILE_SYSTEM = new FileSystem(FileSystem::DEFAULT_BLOCK_SIZE);
+  AES_GCM_context *root_key = new AES_GCM_context();
+  FILE_SYSTEM = new FileSystem(root_key, FileSystem::DEFAULT_BLOCK_SIZE);
+  return 0;
+}
+int sgx_init_existing_filesystem(size_t rk_sealed_size, const char *sealed_rk) {
+  if (rk_sealed_size != AES_GCM_context::size()+sizeof(sgx_sealed_data_t))
+    return -1;
+
+  size_t plain_size = rk_sealed_size - sizeof(sgx_sealed_data_t);
+  char plaintext[plain_size];
+  sgx_status_t status = sgx_unseal_data((sgx_sealed_data_t*)sealed_rk, NULL, NULL, (uint8_t*)plaintext, (uint32_t*)&plain_size);
+  if (status != SGX_SUCCESS)
+    return -1;
+
+  AES_GCM_context *root_key = new AES_GCM_context();
+  root_key->load(plaintext);
+  FILE_SYSTEM = new FileSystem(root_key, FileSystem::DEFAULT_BLOCK_SIZE);
   return 0;
 }
 
-int sgx_destroy_filesystem() {
-  if (FILE_SYSTEM != NULL) {
-    delete FILE_SYSTEM;
-  }
-  return -1;
+
+int sgx_destroy_filesystem(size_t rk_sealed_size, char *sealed_rk) {
+  if (FILE_SYSTEM == NULL || rk_sealed_size != AES_GCM_context::size()+sizeof(sgx_sealed_data_t))
+    return -1;
+
+  size_t plain_size = AES_GCM_context::size(); size_t seal_size = plain_size+sizeof(sgx_sealed_data_t);
+  char plaintext[plain_size];
+  FILE_SYSTEM->root_key->dump(plaintext);
+  sgx_status_t status = sgx_seal_data(0, NULL, plain_size, (uint8_t*)plaintext, seal_size, (sgx_sealed_data_t*)sealed_rk);
+  if (status != SGX_SUCCESS)
+    return -1;
+
+  delete FILE_SYSTEM;
+  return 0;
 }
 
 
