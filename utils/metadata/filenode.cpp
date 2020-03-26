@@ -9,9 +9,6 @@
 
 
 
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////////    Filenode     //////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 Filenode::Filenode(const std::string &filename, AES_GCM_context *root_key, const size_t block_size):Node::Node(filename, root_key) {
   this->block_size = block_size;
 
@@ -112,12 +109,6 @@ int Filenode::read(const long offset, const size_t buffer_size, char *buffer) {
 }
 
 
-size_t Filenode::metadata_size() {
-  size_t size = Node::metadata_size();
-  size += AES_CTR_context::size() * this->aes_ctr_ctxs->size();
-  return size;
-}
-
 size_t Filenode::size_sensitive() {
   return AES_CTR_context::size() * this->aes_ctr_ctxs->size();
 }
@@ -132,12 +123,12 @@ int Filenode::dump_sensitive(char *buffer) {
 }
 
 int Filenode::load_sensitive(const size_t buffer_size, const char *buffer) {
-  size_t read = 0;
-  for (size_t index = 0; read < buffer_size; index++) {
+  size_t read = 0, size_entry = AES_CTR_context::size();
+  for (size_t index = 0; read+size_entry <= buffer_size; index++) {
     AES_CTR_context *context = new AES_CTR_context();
     context->load(buffer+read);
     this->aes_ctr_ctxs->push_back(context);
-    read += AES_CTR_context::size();
+    read += size_entry;
   }
   return read;
 }

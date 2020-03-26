@@ -8,7 +8,7 @@
 
 class Node {
   public:
-    std::string filename;
+    std::string path;
 
     Node(const std::string &filename, AES_GCM_context *root_key);
     ~Node();

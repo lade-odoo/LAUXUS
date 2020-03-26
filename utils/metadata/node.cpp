@@ -4,8 +4,8 @@
 #include <vector>
 
 
-Node::Node(const std::string &filename, AES_GCM_context *root_key) {
-  this->filename = filename;
+Node::Node(const std::string &path, AES_GCM_context *root_key) {
+  this->path = path;
   this->root_key = root_key;
   this->aes_gcm_ctx = new AES_GCM_context();
 }
@@ -16,7 +16,7 @@ Node::~Node() {
 
 
 size_t Node::metadata_size() {
-  return this->preamble_size() + AES_GCM_context::size();
+  return this->preamble_size() + AES_GCM_context::size() + this->size_sensitive();
 }
 
 int Node::dump_metadata(const size_t buffer_size, char *buffer) {
@@ -30,7 +30,7 @@ int Node::dump_metadata(const size_t buffer_size, char *buffer) {
     return -1;
 
   int encrypted = this->aes_gcm_ctx->encrypt((uint8_t*)sensitive_buffer, size_sensitive,
-                    (uint8_t*)aad_buffer, size_preamble+size_aad_crypto_context, (uint8_t*)buffer+this->metadata_size());
+                    (uint8_t*)aad_buffer, size_preamble+size_aad_crypto_context, (uint8_t*)buffer+(buffer_size-size_sensitive));
   std::memcpy(aad_buffer, buffer, size_preamble);
   int ctx_dumped = this->aes_gcm_ctx->encrypt_key_and_dump(this->root_key, buffer+size_preamble);
   if (encrypted < 0 || ctx_dumped < 0)

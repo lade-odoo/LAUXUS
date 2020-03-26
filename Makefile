@@ -131,7 +131,7 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 	-Wl,--defsym,__ImageBase=0
 	# -Wl,--version-script=Enclave/Enclave.lds
 
-Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) Enclave/encryption.o Enclave/node.o Enclave/filenode.o Enclave/filesystem.o
+Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) Enclave/encryption.o Enclave/node.o Enclave/supernode.o Enclave/filenode.o Enclave/filesystem.o
 
 Enclave_Name := .nexus/enclave.so
 Signed_Enclave_Name := .nexus/enclave.signed.so
@@ -180,6 +180,7 @@ utils/misc.o: utils/misc.cpp
 ######## App Objects ########
 
 App/Enclave_u.c: $(SGX_EDGER8R) Enclave/Enclave.edl
+	@mkdir .nexus
 	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include
 	@echo "GEN  =>  $@"
 
@@ -218,6 +219,10 @@ Enclave/node.o: utils/metadata/node.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
+Enclave/supernode.o: utils/metadata/supernode.cpp
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 Enclave/filenode.o: utils/metadata/filenode.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
@@ -238,3 +243,4 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 
 clean:
 	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.*
+	@rm -rf .nexus

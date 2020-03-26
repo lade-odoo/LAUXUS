@@ -1,6 +1,7 @@
 #include "../utils/filesystem.hpp"
 #include "../utils/encryption.hpp"
 #include "../utils/metadata/filenode.hpp"
+#include "../utils/metadata/supernode.hpp"
 
 #include <cerrno>
 #include <string>
@@ -9,10 +10,12 @@
 
 
 
-FileSystem::FileSystem(AES_GCM_context *root_key, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
+FileSystem::FileSystem(AES_GCM_context *root_key, Supernode *supernode, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
   this->root_key = root_key;
+  this->supernode = supernode;
   this->block_size = block_size;
 
+  this->user_id = -1;
   this->files = new std::map<std::string, Filenode*>();
 }
 
@@ -29,7 +32,7 @@ std::vector<std::string> FileSystem::readdir() {
 
   for (auto itr = this->files->begin(); itr != this->files->end(); itr++) {
     Filenode *filenode = itr->second;
-    entries.push_back(filenode->filename);
+    entries.push_back(filenode->path);
   }
 
   return entries;

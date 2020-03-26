@@ -7,6 +7,7 @@
 
 #include "../utils/encryption.hpp"
 #include "../utils/metadata/filenode.hpp"
+#include "../utils/metadata/supernode.hpp"
 
 
 /**
@@ -16,8 +17,10 @@ class FileSystem {
   public:
     static const size_t DEFAULT_BLOCK_SIZE = 4096;
     AES_GCM_context *root_key;
+    Supernode *supernode;
+    int user_id;
 
-    FileSystem(AES_GCM_context *root_key, size_t block_size);
+    FileSystem(AES_GCM_context *root_key, Supernode *supernode, size_t block_size);
 
     std::vector<std::string> readdir();
 

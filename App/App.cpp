@@ -1,6 +1,7 @@
 #define FUSE_USE_VERSION 29
 
 #include <stdio.h>
+#include <cstring>
 #include <vector>
 #include <iostream>
 #include <fuse.h>
@@ -9,6 +10,7 @@
 
 #include "Enclave_u.h"
 #include "sgx_urts.h"
+#include "sgx_tcrypto.h"
 #include "sgx_utils/sgx_utils.h"
 #include "../utils/serialization.hpp"
 #include "../utils/misc.hpp"
@@ -16,7 +18,7 @@
 /* Global EID shared by multiple threads */
 static sgx_enclave_id_t ENCLAVE_ID;
 static const char BUFFER_SEPARATOR = 0x1C;
-static std::string NEXUS_DIR, META_PATH, ENCR_PATH, RK_PATH;
+static std::string NEXUS_DIR, META_PATH, ENCR_PATH, RK_PATH, SUPERNODE_PATH, ECC_PK_PATH, ECC_SK_PATH;
 static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
 
@@ -84,7 +86,74 @@ static void retrieve_nexus() {
 }
 
 
-// the dump is done incrementally -> only dump on destroy final for last metadata info
+static void* nexus_init_existing() {
+  int ret;
+  int rk_sealed_size; char *sealed_rk = NULL;
+  int supernode_size; char *supernode = NULL;
+  int pk_size; char *pk = NULL;
+  int sk_size; char *sk = NULL;
+  size_t nonce_size = 32; char nonce[nonce_size];
+  size_t sig_size = sizeof(sgx_ec256_signature_t); char sig[sig_size];
+
+  rk_sealed_size = load(RK_PATH, &sealed_rk);
+  supernode_size = load(SUPERNODE_PATH, &supernode);
+  pk_size = load(ECC_PK_PATH, &pk);
+  sk_size = load(ECC_SK_PATH, &sk);
+  if (rk_sealed_size < 0 || supernode_size < 0 || pk_size < 0 || sk_size < 0)
+    exit(1);
+
+  sgx_status_t status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str(),
+                                                    rk_sealed_size, sealed_rk,
+                                                    supernode_size, supernode,
+                                                    nonce_size, nonce);
+  if (status != SGX_SUCCESS || ret < 0)
+    exit(1);
+
+  size_t challenge_size = nonce_size + supernode_size; char challenge[challenge_size];
+  std::memcpy(challenge, nonce, nonce_size);
+  std::memcpy(challenge+nonce_size, supernode, supernode_size);
+
+  status = sgx_sign_message(ENCLAVE_ID, &ret, challenge_size, challenge,
+              sk_size, sk, sig_size, sig);
+  if (status != SGX_SUCCESS || ret < 0)
+    exit(1);
+
+  status = sgx_validate_signature(ENCLAVE_ID, &ret, sig_size, sig, pk_size, pk);
+  if (status != SGX_SUCCESS || ret < 0) {
+    std::cout << "Fail to validate PKI signature." << std::endl;
+    exit(1);
+  }
+
+  free(sealed_rk); free(supernode);
+  free(pk); free(sk);
+
+  retrieve_nexus();
+}
+
+static void* nexus_init_new() {
+  int ret;
+  if (system((char*)("mkdir "+META_PATH).c_str()) < 0 || system((char*)("mkdir "+ENCR_PATH).c_str()) < 0)
+    exit(1);
+  else
+    if (sgx_init_new_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str()) != SGX_SUCCESS || ret < 0)
+      exit(1);
+
+  char *pk = (char*) malloc(sizeof(sgx_ec256_public_t));
+  char *sk = (char*) malloc(sizeof(sgx_ec256_private_t));
+  size_t pk_size = sizeof(sgx_ec256_public_t);
+  size_t sk_size = sizeof(sgx_ec256_private_t);
+  sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, pk_size, pk, sk_size, sk);
+  if (status != SGX_SUCCESS || ret < 0)
+    exit(1);
+
+  if (dump(ECC_PK_PATH, pk_size, pk) < 0 ||
+      dump(ECC_SK_PATH, sk_size, sk) < 0)
+    exit(1);
+
+  free(sk); free(pk);
+  return 0;
+}
+
 static void* nexus_init(struct fuse_conn_info *conn) {
   std::string path_token = NEXUS_DIR + "/enclave.token";
   std::string path_so = NEXUS_DIR + "/enclave.signed.so";
@@ -94,38 +163,26 @@ static void* nexus_init(struct fuse_conn_info *conn) {
     exit(1);
   }
 
-  int ret; sgx_status_t status;
-  if (initialized == 0) {
-    std::cout << "Loading existing FS" << std::endl;
-    size_t rk_sealed_size; char *sealed_rk = NULL;
-    rk_sealed_size = load(RK_PATH, &sealed_rk);
-    status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk);
-    free(sealed_rk);
-  } else { // newly created token => new FS
-    std::cout << "Creating new FS" << std::endl;
-    if (system((char*)("mkdir "+META_PATH).c_str()) < 0 || system((char*)("mkdir "+ENCR_PATH).c_str()) < 0)
-      status = SGX_ERROR_UNEXPECTED;
-    else
-      status = sgx_init_filesystem(ENCLAVE_ID, &ret);
-  }
-
-  if (status != SGX_SUCCESS) {
-    std::cout << "Fail to initialize file system." << std::endl;
-    exit(1);
-  }
+  int ret;
   if (initialized == 0)
-    retrieve_nexus();
+    nexus_init_existing();
+  else
+    nexus_init_new();
 
   return &ENCLAVE_ID;
 }
 
-// retrieve all structure and decrypt everything
 static void nexus_destroy(void* private_data) {
   int ret;
-  size_t rk_sealed_size = /*AES_GCM_context::size()*/44+sizeof(sgx_sealed_data_t);
-  char *sealed_rk = (char*) malloc(rk_sealed_size);
+  sgx_supernode_size(ENCLAVE_ID, &ret);
 
-  sgx_status_t status = sgx_destroy_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk);
+  size_t rk_sealed_size = /*AES_GCM_context::size()*/44 + sizeof(sgx_sealed_data_t);
+  size_t supernode_size = ret;
+  char *sealed_rk = (char*) malloc(rk_sealed_size);
+  char *supernode = (char*) malloc(supernode_size);
+
+  sgx_status_t status = sgx_destroy_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk,
+                                                supernode_size, supernode);
   if (status != SGX_SUCCESS || ret < 0) {
     std::cout << "Fail to destroy the file system." << std::endl;
     exit(1);
@@ -133,7 +190,8 @@ static void nexus_destroy(void* private_data) {
   sgx_destroy_enclave(ENCLAVE_ID);
 
   dump(RK_PATH, rk_sealed_size, sealed_rk);
-  free(sealed_rk);
+  dump(SUPERNODE_PATH, supernode_size, supernode);
+  free(sealed_rk); free(supernode);
 }
 
 
@@ -255,9 +313,12 @@ static int nexus_unlink(const char *filepath) {
 static struct fuse_operations nexus_oper;
 
 int main(int argc, char **argv) {
-  NEXUS_DIR = get_directory(std::string(argv[0])) + "/.nexus";
+  std::string binary_path =  get_directory(std::string(argv[0]));
+  NEXUS_DIR = binary_path + "/.nexus";
   META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers";
-  RK_PATH = NEXUS_DIR + "/.sealed_rk";
+  RK_PATH = NEXUS_DIR + "/sealed_rk"; SUPERNODE_PATH = NEXUS_DIR + "/supernode";
+  ECC_PK_PATH = binary_path + "/ecc-256-public-key.spki";
+  ECC_SK_PATH = binary_path + "/ecc-256-private-key.p8";
 
   int ret;
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);

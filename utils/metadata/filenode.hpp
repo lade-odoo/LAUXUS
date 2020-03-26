@@ -17,8 +17,6 @@ class Filenode: public Node {
     int read(const long offset, const size_t buffer_size, char *buffer);
     int write(const long offset, const size_t data_size, const char *data);
 
-    size_t metadata_size();
-
     int load_encryption(const long offset, const size_t buffer_size, const char *buffer);
     int encryption_size(const long up_offset, const size_t up_size);
     int dump_encryption(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
