@@ -7,6 +7,7 @@
 #include <fuse.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "Enclave_u.h"
 #include "sgx_urts.h"
@@ -18,8 +19,33 @@
 /* Global EID shared by multiple threads */
 static sgx_enclave_id_t ENCLAVE_ID;
 static const char BUFFER_SEPARATOR = 0x1C;
-static std::string NEXUS_DIR, META_PATH, ENCR_PATH, RK_PATH, SUPERNODE_PATH, ECC_PK_PATH, ECC_SK_PATH;
+static std::string NEXUS_DIR, META_PATH, ENCR_PATH, RK_PATH, SUPERNODE_PATH;
 static const size_t DEFAULT_BLOCK_SIZE = 4096;
+
+
+static struct options {
+  int new_user, create_fs, show_help;
+	char *user_pk_file, *user_sk_file, *username;
+	char *new_user_pk_file, *new_username;
+} options;
+
+#define OPTION(t, p)                           \
+    { t, offsetof(struct options, p), 1 }
+static const struct fuse_opt option_spec[] = {
+	OPTION("-h", show_help),
+	OPTION("--help", show_help),
+
+	OPTION("--create_fs", create_fs),
+	OPTION("--user_pk_file=%s", user_pk_file),
+	OPTION("--user_sk_file=%s", user_sk_file),
+	OPTION("--username=%s", username),
+
+	OPTION("--new_user", new_user),
+  OPTION("--new_user_pk_file=%s", new_user_pk_file),
+	OPTION("--new_username=%s", new_username),
+	FUSE_OPT_END
+};
+
 
 
 // OCall implementations
@@ -97,8 +123,8 @@ static void* nexus_init_existing() {
 
   rk_sealed_size = load(RK_PATH, &sealed_rk);
   supernode_size = load(SUPERNODE_PATH, &supernode);
-  pk_size = load(ECC_PK_PATH, &pk);
-  sk_size = load(ECC_SK_PATH, &sk);
+  pk_size = load(options.user_pk_file, &pk);
+  sk_size = load(options.user_sk_file, &sk);
   if (rk_sealed_size < 0 || supernode_size < 0 || pk_size < 0 || sk_size < 0)
     exit(1);
 
@@ -118,7 +144,7 @@ static void* nexus_init_existing() {
   if (status != SGX_SUCCESS || ret < 0)
     exit(1);
 
-  status = sgx_validate_signature(ENCLAVE_ID, &ret, sig_size, sig, pk_size, pk);
+  status = sgx_validate_signature(ENCLAVE_ID, &ret, options.username, sig_size, sig, pk_size, pk);
   if (status != SGX_SUCCESS || ret < 0) {
     std::cout << "Fail to validate PKI signature." << std::endl;
     exit(1);
@@ -142,12 +168,12 @@ static void* nexus_init_new() {
   char *sk = (char*) malloc(sizeof(sgx_ec256_private_t));
   size_t pk_size = sizeof(sgx_ec256_public_t);
   size_t sk_size = sizeof(sgx_ec256_private_t);
-  sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, pk_size, pk, sk_size, sk);
+  sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, options.username, pk_size, pk, sk_size, sk);
   if (status != SGX_SUCCESS || ret < 0)
     exit(1);
 
-  if (dump(ECC_PK_PATH, pk_size, pk) < 0 ||
-      dump(ECC_SK_PATH, sk_size, sk) < 0)
+  if (dump(options.user_pk_file, pk_size, pk) < 0 ||
+      dump(options.user_sk_file, sk_size, sk) < 0)
     exit(1);
 
   free(sk); free(pk);
@@ -163,11 +189,10 @@ static void* nexus_init(struct fuse_conn_info *conn) {
     exit(1);
   }
 
-  int ret;
-  if (initialized == 0)
-    nexus_init_existing();
-  else
+  if (options.create_fs)
     nexus_init_new();
+  else
+    nexus_init_existing();
 
   return &ENCLAVE_ID;
 }
@@ -317,11 +342,56 @@ int main(int argc, char **argv) {
   NEXUS_DIR = binary_path + "/.nexus";
   META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers";
   RK_PATH = NEXUS_DIR + "/sealed_rk"; SUPERNODE_PATH = NEXUS_DIR + "/supernode";
-  ECC_PK_PATH = binary_path + "/ecc-256-public-key.spki";
-  ECC_SK_PATH = binary_path + "/ecc-256-private-key.p8";
 
   int ret;
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+
+  /* Set defaults -- we have to use strdup so that
+	   fuse_opt_parse can free the defaults if other
+	   values are specified */
+	options.user_pk_file = strdup((char*)(binary_path + "/ecc-256-public-key.spki").c_str());
+  options.user_sk_file = strdup((char*)(binary_path + "/ecc-256-private-key.p8").c_str());
+
+  /* Parse options */
+	if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
+		return 1;
+
+  /* When --help is specified, first print our own file-system
+	   specific help text, then signal fuse_main to show
+	   additional help (by adding `--help` to the options again)
+	   without usage: line (by setting argv[0] to the empty
+	   string) */
+	if (options.show_help) {
+		assert(fuse_opt_add_arg(&args, "--help") == 0);
+		args.argv[0][0] = '\0';
+	} else if (options.username == NULL && options.new_username == NULL) {
+    std::cout << "Missing username." << std::endl;
+    fuse_opt_free_args(&args);
+    return 0;
+  } else if (options.create_fs && options.username != NULL) {
+    nexus_init(NULL);
+    nexus_destroy(NULL);
+    fuse_opt_free_args(&args);
+    return 0;
+  } else if (options.new_user && options.new_user_pk_file != NULL && options.new_username != NULL) {
+    nexus_init(NULL);
+
+    int ret;
+    int pk_size = sizeof(sgx_ec256_public_t); char *pk = NULL;
+    pk_size = load(options.new_user_pk_file, &pk);
+    if (pk_size < 0)
+      exit(1);
+
+    sgx_status_t status = sgx_add_user(ENCLAVE_ID, &ret, options.new_username, pk_size, pk);
+    if (status != SGX_SUCCESS || ret < 0) {
+      std::cout << "Impossible to add a new user." << std::endl;
+      exit(1);
+    }
+
+    nexus_destroy(NULL);
+    fuse_opt_free_args(&args);
+    return 0;
+  }
 
 
   nexus_oper.init = nexus_init;

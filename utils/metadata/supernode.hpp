@@ -13,11 +13,11 @@ class Supernode: public Node {
     Supernode(const std::string &filename, AES_GCM_context *root_key);
     ~Supernode();
 
-    int create_user(sgx_ec256_public_t *p_public);
-    int check_user(sgx_ec256_public_t *p_public);
+    int create_user(const std::string &username, sgx_ec256_public_t *p_public);
+    int check_user(const std::string &username, sgx_ec256_public_t *p_public);
 
   private:
-    std::map<int, sgx_ec256_public_t*> *allowed_users;
+    std::map<int, std::pair<std::string, sgx_ec256_public_t*>> *allowed_users;
 
   protected:
     size_t size_sensitive();

@@ -7,6 +7,7 @@
 #include "../utils/filesystem.hpp"
 #include "../utils/encryption.hpp"
 
+
 static FileSystem* FILE_SYSTEM;
 size_t pki_challenge_size; char *pki_challenge;
 
@@ -77,7 +78,8 @@ int sgx_supernode_size() {
   return FILE_SYSTEM->supernode->metadata_size();
 }
 
-int sgx_create_user(size_t pk_size, char *pk,
+int sgx_create_user(const char *username,
+                    size_t pk_size, char *pk,
                     size_t sk_size, char *sk) {
   sgx_ecc_state_handle_t handle;
 	sgx_status_t status = sgx_ecc256_open_context(&handle);
@@ -90,7 +92,14 @@ int sgx_create_user(size_t pk_size, char *pk,
   if (status != SGX_SUCCESS)
     return -1;
 
-  FILE_SYSTEM->user_id = FILE_SYSTEM->supernode->create_user((sgx_ec256_public_t*)pk);
+  FILE_SYSTEM->user_id = FILE_SYSTEM->supernode->create_user(username, (sgx_ec256_public_t*)pk);
+  return FILE_SYSTEM->user_id;
+}
+
+int sgx_add_user(const char *username, size_t pk_size, const char *pk) {
+  if (FILE_SYSTEM->user_id != 0)
+    return -1;
+  FILE_SYSTEM->user_id = FILE_SYSTEM->supernode->create_user(username, (sgx_ec256_public_t*)pk);
   return FILE_SYSTEM->user_id;
 }
 
@@ -112,12 +121,13 @@ int sgx_sign_message(size_t challenge_size, const char *challenge,
   return 0;
 }
 
-int sgx_validate_signature(size_t sig_size, const char *sig,
+int sgx_validate_signature(const char *username,
+                          size_t sig_size, const char *sig,
                           size_t pk_size, const char *pk) {
   if (sig_size != sizeof(sgx_ec256_signature_t) || pk_size != sizeof(sgx_ec256_public_t))
     return -1;
 
-  int user_id = FILE_SYSTEM->supernode->check_user((sgx_ec256_public_t*)pk);
+  int user_id = FILE_SYSTEM->supernode->check_user(username, (sgx_ec256_public_t*)pk);
   if (user_id < 0)
     return -1;
 
@@ -127,7 +137,7 @@ int sgx_validate_signature(size_t sig_size, const char *sig,
     return -1;
   status = sgx_ecdsa_verify((uint8_t*)pki_challenge, pki_challenge_size,
                   (sgx_ec256_public_t*)pk, (sgx_ec256_signature_t*)sig, &result, handle);
-  if (status != SGX_SUCCESS || result == SGX_EC_INVALID_SIGNATURE)
+  if (status != SGX_SUCCESS || result == SGX_EC_INVALID_SIGNATURE)
     return -1;
   status = sgx_ecc256_close_context(handle);
   if (status != SGX_SUCCESS)
@@ -135,7 +145,7 @@ int sgx_validate_signature(size_t sig_size, const char *sig,
 
   free(pki_challenge);
   FILE_SYSTEM->user_id = user_id;
-  return 0;
+  return user_id;
 }
 
 
