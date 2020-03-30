@@ -20,9 +20,10 @@ enclave {
         public int sgx_sign_message(size_t challenge_size, [in, size=challenge_size] const char *challenge,
                                     size_t sk_size, [in, size=sk_size] const char *sk,
                                     size_t sig_size, [out, size=sig_size] char *sig);
-        public int sgx_validate_signature([in, string] const char *username,
-                                          size_t sig_size, [in, size=sig_size] const char *sig,
+        public int sgx_validate_signature(int user_id, size_t sig_size, [in, size=sig_size] const char *sig,
                                           size_t pk_size, [in, size=sig_size] const char *pk);
+
+        public int sgx_edit_user_policy([in, string] const char *filename, unsigned char policy, int user_id);
 
         public int sgx_ls_buffer_size();
         public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);

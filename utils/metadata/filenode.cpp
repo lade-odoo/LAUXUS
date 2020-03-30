@@ -1,16 +1,21 @@
 #include "../../utils/metadata/filenode.hpp"
+#include "../../utils/metadata/supernode.hpp"
 #include "../../utils/metadata/node.hpp"
 #include "../../utils/encryption.hpp"
+#include "../../utils/users/user.hpp"
 
 #include <cerrno>
 #include <string>
 #include <cstring>
+#include <map>
 #include <vector>
 
 
 
-Filenode::Filenode(const std::string &filename, AES_GCM_context *root_key, const size_t block_size):Node::Node(filename, root_key) {
+Filenode::Filenode(const std::string &filename, AES_GCM_context *root_key,
+                    const size_t block_size):Node::Node(filename, root_key) {
   this->block_size = block_size;
+  this->allowed_users = new std::map<User*, unsigned char>();
 
   this->plain = new std::vector<std::vector<char>*>();
   this->cipher = new std::vector<std::vector<char>*>();
@@ -31,7 +36,41 @@ Filenode::~Filenode() {
   }
 
   delete this->plain; delete this->cipher;
-  delete this->aes_ctr_ctxs;
+  delete this->aes_ctr_ctxs; delete this->allowed_users;
+}
+
+
+bool Filenode::is_user_allowed(const unsigned char required_policy, User *user) {
+  if (user->is_root())
+    return true;
+
+  auto it = this->allowed_users->find(user);
+  if (it == this->allowed_users->end())
+    return false;
+
+  unsigned char policy = it->second;
+  return required_policy == (required_policy & policy);
+}
+
+int Filenode::edit_user_policy(const unsigned char policy, User *user) {
+  if (user->is_root())
+    return -1;
+
+  unsigned char effective_policy = policy;
+  if (policy == Filenode::OWNER_POLICY)
+    effective_policy = Filenode::OWNER_POLICY | Filenode::READ_POLICY | Filenode::WRITE_POLICY | Filenode::EXEC_POLICY;
+
+  auto it = this->allowed_users->find(user);
+  if (it == this->allowed_users->end() && policy != 0) {
+    this->allowed_users->insert(std::pair<User*, unsigned char>(user, effective_policy));
+    return 0;
+  }
+
+  if (policy == 0)
+    this->allowed_users->erase(it);
+  else
+    it->second = policy;
+  return 0;
 }
 
 
@@ -110,25 +149,59 @@ int Filenode::read(const long offset, const size_t buffer_size, char *buffer) {
 
 
 size_t Filenode::size_sensitive() {
-  return AES_CTR_context::size() * this->aes_ctr_ctxs->size();
+  size_t size = 2 * sizeof(int);
+  size += this->allowed_users->size() * (sizeof(int) + sizeof(unsigned char));
+  return size + AES_CTR_context::size() * this->aes_ctr_ctxs->size();
 }
 
 int Filenode::dump_sensitive(const size_t buffer_size, char *buffer) {
   size_t written = 0;
-  for (size_t index = 0; index < this->aes_ctr_ctxs->size(); index++) {
+  size_t users_len = this->allowed_users->size(), keys_len = this->aes_ctr_ctxs->size();
+
+  std::memcpy(buffer, &users_len, sizeof(int)); written += sizeof(int);
+  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
+    int user_id = it->first->id;
+    unsigned char policy = it->second;
+
+    std::memcpy(buffer+written, &user_id, sizeof(int)); written += sizeof(int);
+    std::memcpy(buffer+written, &policy, sizeof(unsigned char)); written += sizeof(unsigned char);
+  }
+
+  std::memcpy(buffer+written, &keys_len, sizeof(int)); written += sizeof(int);
+  for (size_t index = 0; index < keys_len; index++) {
     AES_CTR_context *context = this->aes_ctr_ctxs->at(index);
-    written += context->dump(buffer+written);
+    size_t step = context->dump(buffer+written);
+    if (step < 0)
+      return -1;
+    written += step;
   }
   return written;
 }
 
-int Filenode::load_sensitive(const size_t buffer_size, const char *buffer) {
-  size_t read = 0, size_entry = AES_CTR_context::size();
-  for (size_t index = 0; read+size_entry <= buffer_size; index++) {
+int Filenode::load_sensitive(Node *parent, const size_t buffer_size, const char *buffer) {
+  size_t read = 0, users_len = 0, keys_len = 0;
+
+  std::memcpy(&users_len, buffer, sizeof(int)); read += sizeof(int);
+  for (size_t index = 0; index < users_len; index++) {
+    int user_id = 0;
+    unsigned char policy = 0;
+
+    std::memcpy(&user_id, buffer+read, sizeof(int)); read += sizeof(int);
+    std::memcpy(&policy, buffer+read, sizeof(unsigned char)); read += sizeof(unsigned char);
+
+    User *user = ((Supernode*)parent)->retrieve_user(user_id);
+    this->allowed_users->insert(std::pair<User*, unsigned char>(user, policy));
+  }
+
+  std::memcpy(&keys_len, buffer+read, sizeof(int)); read += sizeof(int);
+  for (size_t index = 0; index <= keys_len; index++) {
     AES_CTR_context *context = new AES_CTR_context();
-    context->load(buffer+read);
+    size_t step = context->load(buffer+read);
+    if (step < 0)
+      return -1;
+    read += step;
+
     this->aes_ctr_ctxs->push_back(context);
-    read += size_entry;
   }
   return read;
 }

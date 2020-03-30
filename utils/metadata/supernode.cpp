@@ -25,6 +25,16 @@ Supernode::~Supernode() {
 }
 
 
+User *Supernode::root_user() {
+  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
+    User *current = it->second;
+    if (current->is_root())
+      return current;
+  }
+  return NULL;
+}
+
+
 User *Supernode::add_user(User *user) {
   if (check_user(user) != NULL)
     return NULL;
@@ -42,6 +52,14 @@ User *Supernode::check_user(User *user) {
       return current;
   }
   return NULL;
+}
+
+User *Supernode::retrieve_user(int user_id) {
+  auto it = this->allowed_users->find(user_id);
+  if (it == this->allowed_users->end())
+    return NULL;
+
+  return it->second;
 }
 
 
@@ -66,7 +84,7 @@ int Supernode::dump_sensitive(const size_t buffer_size, char *buffer) {
   return written;
 }
 
-int Supernode::load_sensitive(const size_t buffer_size, const char *buffer) {
+int Supernode::load_sensitive(Node *parent, const size_t buffer_size, const char *buffer) {
   size_t read = 0;
   for (size_t index = 0; read < buffer_size; index++) {
     User *user = new User();

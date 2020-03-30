@@ -23,6 +23,8 @@ class FileSystem {
 
     FileSystem(AES_GCM_context *root_key, Supernode *supernode, size_t block_size);
 
+    int edit_user_policy(const std::string &filename, const unsigned char policy, const int user_id);
+
     std::vector<std::string> readdir();
 
     bool isfile(const std::string &filename);

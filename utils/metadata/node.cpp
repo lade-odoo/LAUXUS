@@ -39,7 +39,7 @@ int Node::dump_metadata(const size_t buffer_size, char *buffer) {
   return size_preamble+ctx_dumped+encrypted;
 }
 
-int Node::load_metadata(const size_t buffer_size, const char *buffer) {
+int Node::load_metadata(Node *parent, const size_t buffer_size, const char *buffer) {
   size_t size_preamble = this->load_preamble(buffer_size, buffer);
   size_t gcm_size = this->aes_gcm_ctx->decrypt_key_and_load(this->root_key, buffer+size_preamble);
   size_t size_sensitive = buffer_size-size_preamble-gcm_size;
@@ -52,7 +52,7 @@ int Node::load_metadata(const size_t buffer_size, const char *buffer) {
 
   size_t decrypted = this->aes_gcm_ctx->decrypt((uint8_t*)buffer+size_preamble+gcm_size, size_sensitive,
                       (uint8_t*)aad_buffer, size_preamble+size_aad_crypto_context, (uint8_t*)sensitive_buffer);
-  size_t loaded = this->load_sensitive(size_sensitive, sensitive_buffer);
+  size_t loaded = this->load_sensitive(parent, size_sensitive, sensitive_buffer);
   if (decrypted < 0 || loaded < 0)
     return -1;
 

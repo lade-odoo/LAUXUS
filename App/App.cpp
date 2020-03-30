@@ -24,9 +24,12 @@ static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
 
 static struct options {
-  int new_user, create_fs, show_help;
-	char *user_pk_file, *user_sk_file, *username;
+  int new_user, create_fs, show_help, edit_policies_user;
+  int edit_policies_user_id, user_id;
+  unsigned char new_policy;
+	char *user_pk_file, *user_sk_file;
 	char *new_user_pk_file, *new_username;
+  char *new_policy_filename;
 } options;
 
 #define OPTION(t, p)                           \
@@ -35,14 +38,20 @@ static const struct fuse_opt option_spec[] = {
 	OPTION("-h", show_help),
 	OPTION("--help", show_help),
 
-	OPTION("--create_fs", create_fs),
 	OPTION("--user_pk_file=%s", user_pk_file),
 	OPTION("--user_sk_file=%s", user_sk_file),
-	OPTION("--username=%s", username),
+	OPTION("--user_id=%d", user_id),
+
+	OPTION("--create_fs", create_fs),
 
 	OPTION("--new_user", new_user),
   OPTION("--new_user_pk_file=%s", new_user_pk_file),
 	OPTION("--new_username=%s", new_username),
+
+	OPTION("--edit_policies_user", edit_policies_user),
+	OPTION("--new_policy=%d", new_policy),
+	OPTION("--new_policy_filename=%s", new_policy_filename),
+	OPTION("--edit_policies_user_id=%d", edit_policies_user_id),
 	FUSE_OPT_END
 };
 
@@ -144,7 +153,7 @@ static void* nexus_init_existing() {
   if (status != SGX_SUCCESS || ret < 0)
     exit(1);
 
-  status = sgx_validate_signature(ENCLAVE_ID, &ret, options.username, sig_size, sig, pk_size, pk);
+  status = sgx_validate_signature(ENCLAVE_ID, &ret, options.user_id, sig_size, sig, pk_size, pk);
   if (status != SGX_SUCCESS || ret < 0) {
     std::cout << "Fail to validate PKI signature." << std::endl;
     exit(1);
@@ -169,7 +178,7 @@ static void* nexus_init_new() {
   size_t pk_size = sizeof(sgx_ec256_public_t);
   size_t sk_size = sizeof(sgx_ec256_private_t);
 
-  sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, options.username, pk_size, pk, sk_size, sk);
+  sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, options.new_username, pk_size, pk, sk_size, sk);
   if (status != SGX_SUCCESS || ret < 0)
     exit(1);
 
@@ -290,7 +299,8 @@ static int nexus_create(const char *filepath, mode_t mode, struct fuse_file_info
     return -EEXIST;
   sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str());
 
-  nexus_write_metadata(filename);
+  if (ret != -EEXIST && ret != -EACCES)
+    nexus_write_metadata(filename);
 
   return 0;
 }
@@ -316,8 +326,10 @@ static int nexus_write(const char *filepath, const char *data, size_t size, off_
     return -ENOENT;
   sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, data);
 
-  nexus_write_metadata(filename);
-  nexus_write_encryption(filename, (long)offset, size);
+  if (ret != -ENOENT && ret != -EACCES) {
+    nexus_write_metadata(filename);
+    nexus_write_encryption(filename, (long)offset, size);
+  }
 
   return ret;
 }
@@ -330,7 +342,8 @@ static int nexus_unlink(const char *filepath) {
     return -ENOENT;
 
   sgx_unlink(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  delete_file(META_PATH + "/" + filename);
+  if (ret != -ENOENT && ret != -EACCES)
+    delete_file(META_PATH + "/" + filename);
   return ret;
 }
 
@@ -365,16 +378,16 @@ int main(int argc, char **argv) {
 	if (options.show_help) {
 		assert(fuse_opt_add_arg(&args, "--help") == 0);
 		args.argv[0][0] = '\0';
-	} else if (options.username == NULL && options.new_username == NULL) {
+	} else if (options.user_id < 0 && options.new_username == NULL) {
     std::cout << "Missing username." << std::endl;
     fuse_opt_free_args(&args);
     return 0;
-  } else if (options.create_fs && options.username != NULL) {
+  } else if (options.create_fs && options.new_username != NULL) {
     nexus_init(NULL);
     nexus_destroy(NULL);
     fuse_opt_free_args(&args);
     return 0;
-  } else if (options.new_user && options.new_user_pk_file != NULL && options.new_username != NULL) {
+  } else if (options.new_user && options.new_user_pk_file != NULL && options.new_username != NULL && options.user_id >= 0) {
     nexus_init(NULL);
 
     int ret;
@@ -389,6 +402,19 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
+    nexus_destroy(NULL);
+    fuse_opt_free_args(&args);
+    return 0;
+  } else if (options.edit_policies_user && options.new_policy_filename != NULL && options.edit_policies_user_id > 0 && options.user_id >= 0) {
+    nexus_init(NULL);
+
+    sgx_status_t status = sgx_edit_user_policy(ENCLAVE_ID, &ret, options.new_policy_filename, options.new_policy, options.edit_policies_user_id);
+    if (status != SGX_SUCCESS || ret < 0) {
+      std::cout << "Impossible to edit this user policies." << std::endl;
+      exit(1);
+    }
+
+    nexus_write_metadata(options.new_policy_filename);
     nexus_destroy(NULL);
     fuse_opt_free_args(&args);
     return 0;

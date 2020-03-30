@@ -27,6 +27,18 @@ Filenode* FileSystem::retrieve_node(const std::string &filename) {
 }
 
 
+int FileSystem::edit_user_policy(const std::string &filename, const unsigned char policy, const int user_id) {
+  Filenode *node = FileSystem::retrieve_node(filename);
+  User *user = this->supernode->retrieve_user(user_id);
+  if (node == NULL || user == NULL)
+    return -ENOENT;
+  if (!node->is_user_allowed(Filenode::OWNER_POLICY, this->current_user))
+    return -EACCES;
+
+  return node->edit_user_policy(policy, user);
+}
+
+
 std::vector<std::string> FileSystem::readdir() {
   std::vector<std::string> entries;
 
@@ -56,6 +68,7 @@ int FileSystem::create_file(const std::string &filename) {
     return -EEXIST;
 
   node = new Filenode(filename, this->root_key, this->block_size);
+  node->edit_user_policy(Filenode::OWNER_POLICY, this->current_user);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
   return 0;
 }
@@ -64,6 +77,9 @@ int FileSystem::read_file(const std::string &filename, const long offset, const 
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
+  if (!node->is_user_allowed(Filenode::READ_POLICY, this->current_user))
+    return -EACCES;
+
   return node->read(offset, buffer_size, buffer);
 }
 
@@ -71,6 +87,9 @@ int FileSystem::write_file(const std::string &filename, const long offset, const
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
+  if (!node->is_user_allowed(Filenode::WRITE_POLICY, this->current_user))
+    return -EACCES;
+
   return node->write(offset, data_size, data);
 }
 
@@ -78,6 +97,9 @@ int FileSystem::unlink(const std::string &filename) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
+  if (!node->is_user_allowed(Filenode::OWNER_POLICY, this->current_user))
+    return -EACCES;
+
   delete node;
   this->files->erase(filename);
   return 0;
@@ -104,7 +126,7 @@ int FileSystem::load_metadata(const std::string &filename, const size_t buffer_s
     return -EEXIST;
 
   node = new Filenode(filename, this->root_key, this->block_size);
-  node->load_metadata(buffer_size, buffer);
+  node->load_metadata(this->supernode, buffer_size, buffer);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
   return 0;
 }

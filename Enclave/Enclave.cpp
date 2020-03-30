@@ -40,7 +40,7 @@ int sgx_init_existing_filesystem(const char *supernode_path,
   // Create the file system
   AES_GCM_context *root_key = new AES_GCM_context();
   Supernode *node = new Supernode(supernode_path, root_key);
-  if (root_key->load(plaintext) < 0 || node->load_metadata(supernode_size, supernode) < 0)
+  if (root_key->load(plaintext) < 0 || node->load_metadata(NULL, supernode_size, supernode) < 0)
     return -1;
   FILE_SYSTEM = new FileSystem(root_key, node, FileSystem::DEFAULT_BLOCK_SIZE);
 
@@ -117,22 +117,25 @@ int sgx_sign_message(size_t challenge_size, const char *challenge,
                     sig_size, (sgx_ec256_signature_t*)sig);
 }
 
-int sgx_validate_signature(const char *username,
+int sgx_validate_signature(const int user_id,
                           size_t sig_size, const char *sig,
                           size_t pk_size, const char *pk) {
-  User *tmp_user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
-  User *user = FILE_SYSTEM->supernode->check_user(tmp_user);
-  delete tmp_user;
+  User *user = FILE_SYSTEM->supernode->retrieve_user(user_id);
   if (user == NULL)
     return -1;
 
   if (user->validate_signature(pki_challenge_size, (uint8_t*)pki_challenge, sig_size, (sgx_ec256_signature_t*)sig) < 0)
-    return -2;
+    return -1;
 
   free(pki_challenge);
   pki_challenge = NULL;
   FILE_SYSTEM->current_user = user;
   return user->id;
+}
+
+
+int sgx_edit_user_policy(const char *filename, const unsigned char policy, const int user_id) {
+  return FILE_SYSTEM->edit_user_policy(filename, policy, user_id);
 }
 
 
