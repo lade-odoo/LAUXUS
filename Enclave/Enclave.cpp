@@ -6,6 +6,7 @@
 #include "sgx_tcrypto.h"
 #include "../utils/filesystem.hpp"
 #include "../utils/encryption.hpp"
+#include "../utils/users/user.hpp"
 
 
 static FileSystem* FILE_SYSTEM;
@@ -23,13 +24,16 @@ int sgx_init_existing_filesystem(const char *supernode_path,
                                 size_t rk_sealed_size, const char *sealed_rk,
                                 size_t supernode_size, const char *supernode,
                                 size_t nonce_size, char *nonce) {
-  if (rk_sealed_size != AES_GCM_context::size()+sizeof(sgx_sealed_data_t))
+  size_t plain_size = AES_GCM_context::size();
+  size_t seal_size = plain_size + sizeof(sgx_sealed_data_t);
+  char plaintext[plain_size];
+
+  if (rk_sealed_size != seal_size)
     return -1;
 
   // unseal the rootkey
-  size_t plain_size = rk_sealed_size - sizeof(sgx_sealed_data_t);
-  char plaintext[plain_size];
-  sgx_status_t status = sgx_unseal_data((sgx_sealed_data_t*)sealed_rk, NULL, NULL, (uint8_t*)plaintext, (uint32_t*)&plain_size);
+  sgx_status_t status = sgx_unseal_data((sgx_sealed_data_t*)sealed_rk, NULL,
+                            NULL, (uint8_t*)plaintext, (uint32_t*)&plain_size);
   if (status != SGX_SUCCESS)
     return -1;
 
@@ -46,7 +50,8 @@ int sgx_init_existing_filesystem(const char *supernode_path,
     std::memcpy(nonce+i, &nonce_char, 1);
 
   // Create the challenge
-  pki_challenge_size = nonce_size+supernode_size; pki_challenge = (char*) malloc(pki_challenge_size);
+  pki_challenge_size = nonce_size + supernode_size;
+  pki_challenge = (char*) malloc(pki_challenge_size);
   std::memcpy(pki_challenge, nonce, nonce_size);
   std::memcpy(pki_challenge+nonce_size, supernode, supernode_size);
 
@@ -55,14 +60,19 @@ int sgx_init_existing_filesystem(const char *supernode_path,
 
 int sgx_destroy_filesystem(size_t rk_sealed_size, char *sealed_rk,
                           size_t supernode_size, char* supernode) {
-  if (rk_sealed_size != AES_GCM_context::size()+sizeof(sgx_sealed_data_t) ||
-      supernode_size != FILE_SYSTEM->supernode->metadata_size())
+  size_t plain_size = AES_GCM_context::size();
+  size_t seal_size = plain_size + sizeof(sgx_sealed_data_t);
+  size_t meta_size = FILE_SYSTEM->supernode->metadata_size();
+  char plaintext[plain_size];
+
+  if (rk_sealed_size != seal_size || supernode_size != meta_size)
     return -1;
 
-  size_t plain_size = AES_GCM_context::size(); size_t seal_size = plain_size+sizeof(sgx_sealed_data_t);
-  char plaintext[plain_size];
-  FILE_SYSTEM->root_key->dump(plaintext);
-  sgx_status_t status = sgx_seal_data(0, NULL, plain_size, (uint8_t*)plaintext, seal_size, (sgx_sealed_data_t*)sealed_rk);
+  if (FILE_SYSTEM->root_key->dump(plaintext) < 0)
+    return -1;
+
+  sgx_status_t status = sgx_seal_data(0, NULL, plain_size, (uint8_t*)plaintext,
+                                      seal_size, (sgx_sealed_data_t*)sealed_rk);
   if (status != SGX_SUCCESS)
     return -1;
 
@@ -81,71 +91,48 @@ int sgx_supernode_size() {
 int sgx_create_user(const char *username,
                     size_t pk_size, char *pk,
                     size_t sk_size, char *sk) {
-  sgx_ecc_state_handle_t handle;
-	sgx_status_t status = sgx_ecc256_open_context(&handle);
-  if (status != SGX_SUCCESS)
-    return -1;
-	status = sgx_ecc256_create_key_pair((sgx_ec256_private_t*)sk, (sgx_ec256_public_t*)pk, handle);
-  if (status != SGX_SUCCESS)
-    return -1;
-  status = sgx_ecc256_close_context(handle);
-  if (status != SGX_SUCCESS)
+  if (User::generate_keys(pk_size, (sgx_ec256_public_t*)pk, sk_size, (sgx_ec256_private_t*)sk) < 0)
     return -1;
 
-  FILE_SYSTEM->user_id = FILE_SYSTEM->supernode->create_user(username, (sgx_ec256_public_t*)pk);
-  return FILE_SYSTEM->user_id;
+  User *user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
+  FILE_SYSTEM->current_user = FILE_SYSTEM->supernode->add_user(user);
+  return FILE_SYSTEM->current_user->id;
 }
 
 int sgx_add_user(const char *username, size_t pk_size, const char *pk) {
-  if (FILE_SYSTEM->user_id != 0)
+  if (FILE_SYSTEM->current_user == NULL || !FILE_SYSTEM->current_user->is_root())
     return -1;
-  FILE_SYSTEM->user_id = FILE_SYSTEM->supernode->create_user(username, (sgx_ec256_public_t*)pk);
-  return FILE_SYSTEM->user_id;
+
+  User *user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
+  if (FILE_SYSTEM->supernode->add_user(user) < 0)
+    return -1;
+  return FILE_SYSTEM->current_user->id;
 }
 
 int sgx_sign_message(size_t challenge_size, const char *challenge,
                     size_t sk_size, const char *sk,
                     size_t sig_size, char *sig) {
-  sgx_ecc_state_handle_t handle;
-  sgx_status_t status = sgx_ecc256_open_context(&handle);
-  if (status != SGX_SUCCESS)
-    return -1;
-  status = sgx_ecdsa_sign((uint8_t*)challenge, challenge_size,
-                    (sgx_ec256_private_t*)sk, (sgx_ec256_signature_t*)sig, handle);
-  if (status != SGX_SUCCESS)
-    return -1;
-  status = sgx_ecc256_close_context(handle);
-  if (status != SGX_SUCCESS)
-    return -1;
-
-  return 0;
+  return User::sign(challenge_size, (uint8_t*)challenge,
+                    sk_size, (sgx_ec256_private_t*)sk,
+                    sig_size, (sgx_ec256_signature_t*)sig);
 }
 
 int sgx_validate_signature(const char *username,
                           size_t sig_size, const char *sig,
                           size_t pk_size, const char *pk) {
-  if (sig_size != sizeof(sgx_ec256_signature_t) || pk_size != sizeof(sgx_ec256_public_t))
+  User *tmp_user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
+  User *user = FILE_SYSTEM->supernode->check_user(tmp_user);
+  delete tmp_user;
+  if (user == NULL)
     return -1;
 
-  int user_id = FILE_SYSTEM->supernode->check_user(username, (sgx_ec256_public_t*)pk);
-  if (user_id < 0)
-    return -1;
-
-  sgx_ecc_state_handle_t handle; uint8_t result;
-  sgx_status_t status = sgx_ecc256_open_context(&handle);
-  if (status != SGX_SUCCESS)
-    return -1;
-  status = sgx_ecdsa_verify((uint8_t*)pki_challenge, pki_challenge_size,
-                  (sgx_ec256_public_t*)pk, (sgx_ec256_signature_t*)sig, &result, handle);
-  if (status != SGX_SUCCESS || result == SGX_EC_INVALID_SIGNATURE)
-    return -1;
-  status = sgx_ecc256_close_context(handle);
-  if (status != SGX_SUCCESS)
-    return -1;
+  if (user->validate_signature(pki_challenge_size, (uint8_t*)pki_challenge, sig_size, (sgx_ec256_signature_t*)sig) < 0)
+    return -2;
 
   free(pki_challenge);
-  FILE_SYSTEM->user_id = user_id;
-  return user_id;
+  pki_challenge = NULL;
+  FILE_SYSTEM->current_user = user;
+  return user->id;
 }
 
 

@@ -31,7 +31,7 @@ class Filenode: public Node {
 
   protected:
     size_t size_sensitive();
-    int dump_sensitive(char *buffer);
+    int dump_sensitive(const size_t buffer_size, char *buffer);
     int load_sensitive(const size_t buffer_size, const char *buffer);
 };
 

@@ -168,6 +168,7 @@ static void* nexus_init_new() {
   char *sk = (char*) malloc(sizeof(sgx_ec256_private_t));
   size_t pk_size = sizeof(sgx_ec256_public_t);
   size_t sk_size = sizeof(sgx_ec256_private_t);
+
   sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, options.username, pk_size, pk, sk_size, sk);
   if (status != SGX_SUCCESS || ret < 0)
     exit(1);

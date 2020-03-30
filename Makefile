@@ -118,6 +118,9 @@ Crypto_Library_Name := sgx_tcrypto
 
 # Enclave_Cpp_Files := Enclave/Enclave.cpp $(wildcard Enclave/Edger8rSyntax/*.cpp) $(wildcard Enclave/TrustedLibrary/*.cpp)
 Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata/node.cpp Enclave/utils/metadata/supernode.cpp Enclave/utils/metadata/filenode.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files)  Enclave/utils/encryption.cpp Enclave/utils/filesystem.cpp
 # Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 
@@ -131,7 +134,7 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 	-Wl,--defsym,__ImageBase=0
 	# -Wl,--version-script=Enclave/Enclave.lds
 
-Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) Enclave/encryption.o Enclave/node.o Enclave/supernode.o Enclave/filenode.o Enclave/filesystem.o
+Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o)
 
 Enclave_Name := .nexus/enclave.so
 Signed_Enclave_Name := .nexus/enclave.signed.so
@@ -168,11 +171,7 @@ endif
 
 ######## Utils ########
 
-utils/serialization.o: utils/serialization.cpp
-	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-utils/misc.o: utils/misc.cpp
+utils/%.o: utils/%.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
@@ -207,27 +206,22 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@$(CC) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
+Enclave/utils/metadata/%.o: utils/metadata/%.cpp
+	@mkdir -p Enclave/utils/metadata/
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
+Enclave/utils/users/%.o: utils/users/%.cpp
+	@mkdir -p Enclave/utils/users/
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
+Enclave/utils/%.o: utils/%.cpp
+	@mkdir -p Enclave/utils/
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 Enclave/%.o: Enclave/%.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/filesystem.o: utils/filesystem.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/node.o: utils/metadata/node.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/supernode.o: utils/metadata/supernode.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/filenode.o: utils/metadata/filenode.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/encryption.o: utils/encryption.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
@@ -243,4 +237,4 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 
 clean:
 	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.*
-	@rm -rf .nexus
+	@rm -rf .nexus Enclave/utils

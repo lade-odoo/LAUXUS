@@ -27,7 +27,7 @@ class Node {
 
   protected:
     virtual size_t size_sensitive() = 0;
-    virtual int dump_sensitive(char *buffer) = 0;
+    virtual int dump_sensitive(const size_t buffer_size, char *buffer) = 0;
     virtual int load_sensitive(const size_t buffer_size, const char *buffer) = 0;
 };
 

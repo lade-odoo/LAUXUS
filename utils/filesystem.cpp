@@ -15,7 +15,7 @@ FileSystem::FileSystem(AES_GCM_context *root_key, Supernode *supernode, size_t b
   this->supernode = supernode;
   this->block_size = block_size;
 
-  this->user_id = -1;
+  this->current_user = NULL;
   this->files = new std::map<std::string, Filenode*>();
 }
 

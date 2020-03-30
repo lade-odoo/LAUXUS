@@ -113,7 +113,7 @@ size_t Filenode::size_sensitive() {
   return AES_CTR_context::size() * this->aes_ctr_ctxs->size();
 }
 
-int Filenode::dump_sensitive(char *buffer) {
+int Filenode::dump_sensitive(const size_t buffer_size, char *buffer) {
   size_t written = 0;
   for (size_t index = 0; index < this->aes_ctr_ctxs->size(); index++) {
     AES_CTR_context *context = this->aes_ctr_ctxs->at(index);

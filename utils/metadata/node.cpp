@@ -26,7 +26,7 @@ int Node::dump_metadata(const size_t buffer_size, char *buffer) {
 
   if(this->dump_preamble(aad_buffer) < 0 ||
       this->aes_gcm_ctx->dump_aad(aad_buffer+size_preamble) < 0 ||
-      this->dump_sensitive(sensitive_buffer) < 0)
+      this->dump_sensitive(size_sensitive, sensitive_buffer) < 0)
     return -1;
 
   int encrypted = this->aes_gcm_ctx->encrypt((uint8_t*)sensitive_buffer, size_sensitive,

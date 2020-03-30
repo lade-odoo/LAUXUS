@@ -1,6 +1,7 @@
 #ifndef __SUPERNODE_HPP__
 #define __SUPERNODE_HPP__
 
+#include "../../utils/users/user.hpp"
 #include "../../utils/metadata/node.hpp"
 #include "sgx_tcrypto.h"
 #include <string>
@@ -13,15 +14,15 @@ class Supernode: public Node {
     Supernode(const std::string &filename, AES_GCM_context *root_key);
     ~Supernode();
 
-    int create_user(const std::string &username, sgx_ec256_public_t *p_public);
-    int check_user(const std::string &username, sgx_ec256_public_t *p_public);
+    User *add_user(User *user);
+    User *check_user(User *user);
 
   private:
-    std::map<int, std::pair<std::string, sgx_ec256_public_t*>> *allowed_users;
+    std::map<int, User*> *allowed_users;
 
   protected:
     size_t size_sensitive();
-    int dump_sensitive(char *buffer);
+    int dump_sensitive(const size_t buffer_size, char *buffer);
     int load_sensitive(const size_t buffer_size, const char *buffer);
 };
 
