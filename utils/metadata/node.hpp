@@ -18,8 +18,8 @@ class Node {
     int load_metadata(Node *parent, const size_t buffer_size, const char *buffer);
 
     size_t preamble_size();
-    int dump_preamble(char *buffer);
-    int load_preamble(size_t buffer_size, const char *buffer);
+    int dump_preamble(const size_t buffer_size, char *buffer);
+    int load_preamble(const size_t buffer_size, const char *buffer);
 
   private:
     AES_GCM_context *root_key;

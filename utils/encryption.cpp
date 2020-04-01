@@ -32,13 +32,19 @@ AES_CTR_context::~AES_CTR_context() {
 }
 
 
-int AES_CTR_context::dump(char *buffer) {
+int AES_CTR_context::dump(const size_t buffer_size, char *buffer) {
+  if (buffer_size < 32)
+    return -1;
+    
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer + 16, this->p_ctr, 16);
   return 32;
 }
 
-int AES_CTR_context::load(const char *buffer) {
+int AES_CTR_context::load(const size_t buffer_size, const char *buffer) {
+  if (buffer_size < 32)
+    return -1;
+
   std::memcpy(this->p_key, buffer, 16);
   std::memcpy(this->p_ctr, buffer+16, 16);
   return 32;
@@ -94,14 +100,20 @@ AES_GCM_context::~AES_GCM_context() {
 }
 
 
-int AES_GCM_context::dump(char *buffer) {
+int AES_GCM_context::dump(const size_t buffer_size, char *buffer) {
+  if (buffer_size < 44)
+    return -1;
+
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer+16, this->p_iv, 12);
   std::memcpy(buffer+28, this->p_mac, 16);
   return 44;
 }
 
-int AES_GCM_context::encrypt_key_and_dump(AES_GCM_context *root_key, char *buffer) {
+int AES_GCM_context::encrypt_key_and_dump(AES_GCM_context *root_key, const size_t buffer_size, char *buffer) {
+  if (buffer_size < 44)
+    return -1;
+
   if (root_key->encrypt((uint8_t*)this->p_key, 16, (uint8_t*)NULL, 0, (uint8_t*)buffer) < 0)
     return -1;
   std::memcpy(buffer+16, this->p_iv, 12);
@@ -109,13 +121,17 @@ int AES_GCM_context::encrypt_key_and_dump(AES_GCM_context *root_key, char *buffe
   return 44;
 }
 
-int AES_GCM_context::dump_aad(char *buffer) {
+int AES_GCM_context::dump_aad(const size_t buffer_size, char *buffer) {
+  if (buffer_size < 28)
+    return -1;
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer+16, this->p_iv, 12);
   return 28;
 }
 
-int AES_GCM_context::load(const char *buffer) {
+int AES_GCM_context::load(const size_t buffer_size, const char *buffer) {
+  if (buffer_size < 44)
+    return -1;
   std::memcpy(this->p_key, buffer, 16);
   std::memcpy(this->p_iv, buffer+16, 12);
   std::memcpy(this->p_mac, buffer+28, 16);

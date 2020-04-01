@@ -170,7 +170,7 @@ int Filenode::dump_sensitive(const size_t buffer_size, char *buffer) {
   std::memcpy(buffer+written, &keys_len, sizeof(int)); written += sizeof(int);
   for (size_t index = 0; index < keys_len; index++) {
     AES_CTR_context *context = this->aes_ctr_ctxs->at(index);
-    size_t step = context->dump(buffer+written);
+    size_t step = context->dump(buffer_size-written, buffer+written);
     if (step < 0)
       return -1;
     written += step;
@@ -196,7 +196,7 @@ int Filenode::load_sensitive(Node *parent, const size_t buffer_size, const char 
   std::memcpy(&keys_len, buffer+read, sizeof(int)); read += sizeof(int);
   for (size_t index = 0; index <= keys_len; index++) {
     AES_CTR_context *context = new AES_CTR_context();
-    size_t step = context->load(buffer+read);
+    size_t step = context->load(buffer_size-read, buffer+read);
     if (step < 0)
       return -1;
     read += step;

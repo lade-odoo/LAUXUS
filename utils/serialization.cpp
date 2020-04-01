@@ -79,10 +79,13 @@ std::vector<std::string> read_directory(const std::string& dirpath) {
 
 size_t file_size(const std::string &path) {
   std::ifstream stream(path, std::ios::binary);
-  long begin = stream.tellg();
-  stream.seekg(0, std::ios::end);
-  size_t size = stream.tellg() - begin;
-  stream.seekg(stream.beg);
-  stream.close();
-  return size;
+  if (stream.is_open()) {
+    long begin = stream.tellg();
+    stream.seekg(0, std::ios::end);
+    size_t size = stream.tellg() - begin;
+    stream.seekg(stream.beg);
+    stream.close();
+    return size;
+  }
+  return -1;
 }

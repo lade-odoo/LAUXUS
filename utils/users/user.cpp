@@ -115,6 +115,9 @@ int User::generate_keys(const size_t pk_size, sgx_ec256_public_t *pk,
 int User::sign(const size_t challenge_size, const uint8_t *challenge,
                 const size_t sk_size, sgx_ec256_private_t *sk,
                 const size_t sig_size, sgx_ec256_signature_t *sig) {
+  if (sig_size < sizeof(sgx_ec256_signature_t) || sk_size < sizeof(sgx_ec256_private_t))
+    return -1;
+
   sgx_ecc_state_handle_t handle;
   sgx_status_t status = sgx_ecc256_open_context(&handle);
   if (status != SGX_SUCCESS)

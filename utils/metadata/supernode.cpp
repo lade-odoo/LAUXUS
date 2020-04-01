@@ -39,9 +39,8 @@ User *Supernode::add_user(User *user) {
   if (check_user(user) != NULL)
     return NULL;
 
-  int id = this->allowed_users->size();
-  user->id = id;
-  this->allowed_users->insert(std::pair<int, User*>(id, user));
+  user->id = this->allowed_users->size();
+  this->allowed_users->insert(std::pair<int, User*>(user->id, user));
   return user;
 }
 

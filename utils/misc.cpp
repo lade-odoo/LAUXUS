@@ -32,5 +32,5 @@ std::string get_directory(const std::string &filepath) {
 
 std::string get_filename(const std::string &filepath) {
   std::size_t index = filepath.find_last_of("/");
-  return filepath.substr(index + 1);
+  return filepath.substr(index+1);
 }

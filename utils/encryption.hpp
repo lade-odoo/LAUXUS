@@ -14,8 +14,8 @@ class AES_CTR_context {
     ~AES_CTR_context();
 
 
-    int dump(char *buffer);
-    int load(const char *buffer);
+    int dump(const size_t buffer_size, char *buffer);
+    int load(const size_t buffer_size, const char *buffer);
 
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len, uint8_t *p_cypher);
     int decrypt(const uint8_t *p_cypher, const uint32_t cypher_len, uint8_t *p_plain);
@@ -34,10 +34,10 @@ class AES_GCM_context {
     ~AES_GCM_context();
 
 
-    int dump(char *buffer);
-    int encrypt_key_and_dump(AES_GCM_context *root_key, char *buffer);
-    int dump_aad(char *buffer);
-    int load(const char *buffer);
+    int dump(const size_t buffer_size, char *buffer);
+    int encrypt_key_and_dump(AES_GCM_context *root_key, const size_t buffer_size, char *buffer);
+    int dump_aad(const size_t buffer_size, char *buffer);
+    int load(const size_t buffer_size, const char *buffer);
     int decrypt_key_and_load(AES_GCM_context *root_key, const char* buffer);
 
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len,
