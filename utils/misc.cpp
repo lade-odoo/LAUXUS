@@ -4,7 +4,7 @@
 #include <vector>
 
 
-std::vector<std::string> tokenize(const char *entries, const char separator) {
+std::vector<std::string> tokenize(const size_t buffer_size, const char *entries, const char separator) {
   std::string str_entries(entries);
   std::vector<std::string> tokens;
   size_t pos = 0, found = std::string::npos;
@@ -12,6 +12,8 @@ std::vector<std::string> tokenize(const char *entries, const char separator) {
   do {
     found = str_entries.find(separator, pos);
     size_t length = found - pos;
+    if (pos+length > buffer_size)
+      break;
     if (length == 0) {
       pos = found + 1;
       continue;

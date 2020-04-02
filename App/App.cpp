@@ -272,7 +272,7 @@ static int nexus_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
   sgx_ls_buffer_size(ENCLAVE_ID, &ret);
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
   sgx_readdir(ENCLAVE_ID, &ret, BUFFER_SEPARATOR, buffer_size, buffer);
-  std::vector<std::string> files = tokenize(buffer, BUFFER_SEPARATOR);
+  std::vector<std::string> files = tokenize(buffer_size, buffer, BUFFER_SEPARATOR);
   for (auto it = files.begin(); it != files.end(); it++) {
     filler(buf, (char*)it->c_str(), NULL, 0);
   }
