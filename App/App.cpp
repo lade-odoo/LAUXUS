@@ -237,7 +237,7 @@ static int nexus_getattr(const char *path, struct stat *stbuf) {
   stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = time(NULL);
 
 	if (strcmp(path, "/") == 0) {
-		stbuf->st_mode = S_IFDIR | 0777;
+		stbuf->st_mode = S_IFDIR | 00777;
 		stbuf->st_nlink = 2;
     return 0;
 	}
@@ -247,14 +247,16 @@ static int nexus_getattr(const char *path, struct stat *stbuf) {
   sgx_status_t status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
 
   if (ret == EEXIST) {
-    stbuf->st_mode = S_IFREG | 0777;
+    sgx_getattr(ENCLAVE_ID, &ret, (char*)filename.c_str());
+    stbuf->st_mode = S_IFREG | (ret + ret*8 + ret*64); // 3 LSB base 8
     stbuf->st_nlink = 1;
+
     sgx_file_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
     stbuf->st_size = ret;
-  } else {
-    return -ENOENT;
+    return 0;
   }
-  return 0;
+
+  return -ENOENT;
 }
 
 static int nexus_fgetattr(const char *path, struct stat *stbuf,

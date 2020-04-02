@@ -83,6 +83,17 @@ size_t Filenode::size() {
   return size;
 }
 
+int Filenode::getattr(User *user) {
+  if (user->is_root())
+    return READ_POLICY | WRITE_POLICY | EXEC_POLICY;
+
+  auto it = this->allowed_users->find(user);
+  if (it == this->allowed_users->end())
+    return 0;
+
+  return it->second;
+}
+
 int Filenode::write(const long offset, const size_t data_size, const char *data) {
   size_t written = 0;
   size_t offset_in_block = offset % block_size;

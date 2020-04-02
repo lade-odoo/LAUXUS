@@ -29,6 +29,7 @@ class FileSystem {
 
     bool isfile(const std::string &filename);
     int file_size(const std::string &filename);
+    int getattr(const std::string &filename);
     int create_file(const std::string &filename);
     int read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer);
     int write_file(const std::string &filename, const long offset, const size_t data_size, const char *data);

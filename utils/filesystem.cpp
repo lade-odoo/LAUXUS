@@ -62,6 +62,13 @@ int FileSystem::file_size(const std::string &filename) {
   return node->size();
 }
 
+int FileSystem::getattr(const std::string &filename) {
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node == NULL)
+    return -ENOENT;
+  return node->getattr(this->current_user);
+}
+
 int FileSystem::create_file(const std::string &filename) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node != NULL)

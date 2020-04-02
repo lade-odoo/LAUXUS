@@ -24,6 +24,7 @@ class Filenode: public Node {
     int edit_user_policy(const unsigned char required_policy, User *user);
 
     size_t size();
+    int getattr(User *user);
     int read(const long offset, const size_t buffer_size, char *buffer);
     int write(const long offset, const size_t data_size, const char *data);
 

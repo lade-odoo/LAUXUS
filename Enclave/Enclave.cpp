@@ -179,6 +179,10 @@ int sgx_file_size(const char *filename) {
   return FILE_SYSTEM->file_size(filename);
 }
 
+int sgx_getattr(const char *filename) {
+  return FILE_SYSTEM->getattr(filename);
+}
+
 int sgx_create_file(const char *filename) {
   return FILE_SYSTEM->create_file(filename);
 }
