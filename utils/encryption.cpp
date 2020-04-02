@@ -1,10 +1,10 @@
 #include "../utils/encryption.hpp"
 
 #include "sgx_tcrypto.h"
+#include "sgx_trts.h"
 #include "sgx_error.h"
 #include <string>
 #include <cstring>
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -14,16 +14,8 @@ AES_CTR_context::AES_CTR_context() {
   this->p_key = (sgx_aes_ctr_128bit_key_t*) malloc(16);
   this->p_ctr = (uint8_t*) malloc(16);
 
-  uint8_t key[] = {0x11, 0x11, 0x11, 0x11,
-                  0x11, 0x11, 0x11, 0x11,
-                  0x11, 0x11, 0x11, 0x11,
-                  0x11, 0x11, 0x11, 0x11};
-  uint8_t ctr0[] = {0xff, 0xff, 0xff, 0xff,
-                  0xff, 0xff, 0xff, 0xff,
-                  0xff, 0xff, 0xff, 0xff,
-                  0xff, 0xff, 0xff, 0xff};
-  std::memcpy(this->p_key, key, 16);
-  std::memcpy(this->p_ctr, ctr0, 16);
+  sgx_read_rand((uint8_t*)this->p_key, 16);
+  sgx_read_rand((uint8_t*)this->p_ctr, 16);
 }
 
 AES_CTR_context::~AES_CTR_context() {
@@ -35,7 +27,7 @@ AES_CTR_context::~AES_CTR_context() {
 int AES_CTR_context::dump(const size_t buffer_size, char *buffer) {
   if (buffer_size < 32)
     return -1;
-    
+
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer + 16, this->p_ctr, 16);
   return 32;
@@ -81,15 +73,8 @@ AES_GCM_context::AES_GCM_context() {
   this->p_iv = (uint8_t*) malloc(12);
   this->p_mac = (sgx_aes_gcm_128bit_tag_t*) malloc(16);;
 
-  uint8_t key[] = {0x11, 0x11, 0x11, 0x11,
-                  0x11, 0x11, 0x11, 0x11,
-                  0x11, 0x11, 0x11, 0x11,
-                  0x11, 0x11, 0x11, 0x11};
-  uint8_t iv[] = {0x44, 0x44, 0x44, 0x44,
-                  0x44, 0x44, 0x44, 0x44,
-                  0x44, 0x44, 0x44, 0x44};
-  std::memcpy(this->p_key, key, 16);
-  std::memcpy(this->p_iv, iv, 12);
+  sgx_read_rand((uint8_t*)this->p_key, 16);
+  sgx_read_rand((uint8_t*)this->p_iv, 12);
 }
 
 AES_GCM_context::~AES_GCM_context() {
