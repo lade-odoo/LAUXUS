@@ -148,6 +148,10 @@ endif
 endif
 endif
 
+# Tests settings
+
+Tests_Cpp_Flags := -std=c++11 -Wall
+
 
 .PHONY: all run
 
@@ -233,8 +237,18 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 	@$(SGX_ENCLAVE_SIGNER) sign -key Enclave/Enclave_private.pem -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
-.PHONY: clean
 
+######## Test Objects ########
+tests/main.o: tests/main.cpp
+	@$(CXX) $(Tests_Cpp_Flags) -c $< -o $@
+	@echo "Building Catch2"
+
+.PHONY: test
+test: utils/misc.o utils/serialization.o
+	g++ $(Tests_Cpp_Flags) -o tests/utils/misc tests/main.o utils/misc.o tests/utils/misc.cpp
+	g++ $(Tests_Cpp_Flags) -o tests/utils/serialization tests/main.o utils/serialization.o tests/utils/serialization.cpp
+
+.PHONY: clean
 clean:
 	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.*
 	@rm -rf .nexus Enclave/utils

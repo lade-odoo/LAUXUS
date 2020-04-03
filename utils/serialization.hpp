@@ -4,20 +4,22 @@
 #include <string>
 #include <vector>
 
-
-int dump(const std::string &dumppath, const size_t size, const char *buffer);
-int dump_with_offset(const std::string &dumppath, const long offset, const size_t size, const char *buffer);
-
-int load(const std::string &loadpath, char **buffer);
-int load_with_offset(const std::string &loadpath, const long offset, const size_t size, char **buffer);
-
-bool delete_file(const std::string &path);
+using namespace std;
 
 
-std::vector<std::string> read_directory(const std::string& dirpath);
+int dump(const string &dumppath, const size_t size, const char *buffer);
+int dump_with_offset(const string &dumppath, const long offset, const size_t size, const char *buffer);
+
+int load(const string &loadpath, char **buffer);
+int load_with_offset(const string &loadpath, const long offset, const size_t size, char **buffer);
+
+bool delete_file(const string &path);
 
 
-size_t file_size(const std::string &path);
+vector<string> read_directory(const string& dirpath);
+
+
+size_t file_size(const string &path);
 
 
 #endif /*__SERIALIZATION_HPP__*/
