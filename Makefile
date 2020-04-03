@@ -150,6 +150,7 @@ endif
 
 # Tests settings
 
+Tests_Exec_Files := tests/utils/misc tests/utils/serialization
 Tests_Cpp_Flags := -std=c++11 -Wall
 
 
@@ -239,16 +240,21 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 
 
 ######## Test Objects ########
+
 tests/main.o: tests/main.cpp
 	@$(CXX) $(Tests_Cpp_Flags) -c $< -o $@
 	@echo "Building Catch2"
 
+tests/utils/%: tests/utils/%.cpp utils/%.o tests/main.o
+	@$(CXX) $(Tests_Cpp_Flags) $? -o $@
+	@echo "CXX  <=  $<"
+
+
 .PHONY: test
-test: utils/misc.o utils/serialization.o
-	g++ $(Tests_Cpp_Flags) -o tests/utils/misc tests/main.o utils/misc.o tests/utils/misc.cpp
-	g++ $(Tests_Cpp_Flags) -o tests/utils/serialization tests/main.o utils/serialization.o tests/utils/serialization.cpp
+test: $(Tests_Exec_Files)
+
 
 .PHONY: clean
 clean:
-	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.*
+	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Tests_Exec_Files)
 	@rm -rf .nexus Enclave/utils
