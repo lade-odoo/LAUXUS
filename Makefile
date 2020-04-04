@@ -152,7 +152,7 @@ endif
 
 Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
 Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
-Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp')
+Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/metadata -name '*.cpp')
 Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
 
 
@@ -252,6 +252,10 @@ tests/utils/%: tests/utils/%.cpp utils/%.o $(Tests_Emul_Objects) tests/main.o
 	@echo "LINK  =>  $<"
 
 tests/users/%: tests/users/%.cpp utils/users/%.o $(Tests_Emul_Objects) tests/main.o
+	@$(CXX) $(App_Cpp_Flags) $^ -o $@
+	@echo "LINK  =>  $<"
+
+tests/metadata/%: tests/metadata/%.cpp utils/metadata/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata/node.o utils/encryption.o utils/users/user.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 

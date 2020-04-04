@@ -2,6 +2,7 @@
 #define __NODE_HPP__
 
 #include "../../utils/encryption.hpp"
+
 #include <string>
 #include <vector>
 
@@ -13,22 +14,32 @@ class Node {
     Node(const std::string &filename, AES_GCM_context *root_key);
     ~Node();
 
-    size_t metadata_size();
-    int dump_metadata(const size_t buffer_size, char *buffer);
-    int load_metadata(Node *parent, const size_t buffer_size, const char *buffer);
+    size_t e_size();
+    int e_dump(const size_t buffer_size, char *buffer);
+    int e_load(Node *parent, const size_t buffer_size, const char *buffer);
 
-    size_t preamble_size();
-    int dump_preamble(const size_t buffer_size, char *buffer);
-    int load_preamble(const size_t buffer_size, const char *buffer);
+    bool equals(Node *other);
 
   private:
     AES_GCM_context *root_key;
     AES_GCM_context *aes_gcm_ctx;
 
+    size_t p_preamble_size();
+    int p_dump_preamble(const size_t buffer_size, char *buffer);
+    int p_load_preamble(const size_t buffer_size, const char *buffer);
+
+    size_t e_crypto_size();
+    int e_dump_crypto(const size_t buffer_size, char *buffer);
+    int e_load_crypto(const size_t buffer_size, const char *buffer);
+
+    size_t e_sensitive_size();
+    int e_dump_sensitive(const size_t buffer_size, char *buffer);
+    int e_load_sensitive(Node *parent, const size_t buffer_size, const char *buffer);
+
   protected:
-    virtual size_t size_sensitive() = 0;
-    virtual int dump_sensitive(const size_t buffer_size, char *buffer) = 0;
-    virtual int load_sensitive(Node *parent, const size_t buffer_size, const char *buffer) = 0;
+    virtual size_t p_sensitive_size() = 0;
+    virtual int p_dump_sensitive(const size_t buffer_size, char *buffer) = 0;
+    virtual int p_load_sensitive(Node *parent, const size_t buffer_size, const char *buffer) = 0;
 };
 
 #endif /*__NODE_HPP__*/
