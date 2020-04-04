@@ -1,7 +1,13 @@
 #ifndef __ENCRYPTION_HPP__
 #define __ENCRYPTION_HPP__
 
-#include "sgx_tcrypto.h"
+#include "../flag.h"
+#if EMULATING
+#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
+#else
+#   include "sgx_tcrypto.h"
+#endif
+
 #include <string>
 
 
@@ -35,19 +41,21 @@ class AES_GCM_context {
 
 
     int dump(const size_t buffer_size, char *buffer);
-    int encrypt_key_and_dump(AES_GCM_context *root_key, const size_t buffer_size, char *buffer);
-    int dump_aad(const size_t buffer_size, char *buffer);
+    int dump_without_mac(const size_t buffer_size, char *buffer);
     int load(const size_t buffer_size, const char *buffer);
-    int decrypt_key_and_load(AES_GCM_context *root_key, const char* buffer);
+    int load_without_mac(const size_t buffer_size, const char *buffer);
 
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len,
                     const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_cypher);
     int decrypt(const uint8_t *p_cypher, const uint32_t cypher_len,
                     const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_plain);
+    int decrypt_with_mac(const uint8_t *p_cypher, const uint32_t cypher_len,
+                    const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_plain,
+                    const sgx_aes_gcm_128bit_tag_t *mac);
 
 
     static size_t size();
-    static size_t size_aad();
+    static size_t size_without_mac();
 };
 
 

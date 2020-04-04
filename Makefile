@@ -150,8 +150,9 @@ endif
 
 # Tests settings
 
-Tests_Exec_Files := tests/utils/misc tests/utils/serialization
-Tests_Cpp_Flags := -std=c++11 -Wall
+Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
+Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
+Tests_Exec_Files := tests/utils/misc tests/utils/serialization tests/utils/encryption
 
 
 .PHONY: all run
@@ -242,11 +243,15 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 ######## Test Objects ########
 
 tests/main.o: tests/main.cpp
-	@$(CXX) $(Tests_Cpp_Flags) -c $< -o $@
+	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "Building Catch2"
 
-tests/utils/%: tests/utils/%.cpp utils/%.o tests/main.o
-	@$(CXX) $(Tests_Cpp_Flags) $? -o $@
+tests/utils/%: tests/utils/%.cpp utils/%.o $(Tests_Emul_Objects) tests/main.o
+	@$(CXX) $(App_Cpp_Flags) $^ -o $@
+	@echo "LINK  =>  $<"
+
+tests/SGX_Emulator/%.o: tests/SGX_Emulator/%.cpp
+	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
 
@@ -256,5 +261,5 @@ test: $(Tests_Exec_Files)
 
 .PHONY: clean
 clean:
-	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Tests_Exec_Files)
+	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Tests_Exec_Files) $(Tests_Emul_Objects)
 	@rm -rf .nexus Enclave/utils

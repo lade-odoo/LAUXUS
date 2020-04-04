@@ -1,8 +1,16 @@
 #include "../utils/encryption.hpp"
 
-#include "sgx_tcrypto.h"
-#include "sgx_trts.h"
-#include "sgx_error.h"
+#include "../flag.h"
+#if EMULATING
+#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
+#  include "../tests/SGX_Emulator/sgx_trts.hpp"
+#  include "../tests/SGX_Emulator/sgx_error.hpp"
+#else
+#   include "sgx_tcrypto.h"
+#   include "sgx_trts.h"
+#   include "sgx_error.h"
+#endif
+
 #include <string>
 #include <cstring>
 
@@ -71,7 +79,7 @@ size_t AES_CTR_context::size() { return 32; }
 AES_GCM_context::AES_GCM_context() {
   this->p_key = (sgx_aes_gcm_128bit_key_t*) malloc(16);
   this->p_iv = (uint8_t*) malloc(12);
-  this->p_mac = (sgx_aes_gcm_128bit_tag_t*) malloc(16);;
+  this->p_mac = (sgx_aes_gcm_128bit_tag_t*) malloc(16);
 
   sgx_read_rand((uint8_t*)this->p_key, 16);
   sgx_read_rand((uint8_t*)this->p_iv, 12);
@@ -80,8 +88,7 @@ AES_GCM_context::AES_GCM_context() {
 AES_GCM_context::~AES_GCM_context() {
   free(this->p_key);
   free(this->p_iv);
-  if (this->p_mac != NULL)
-    free(this->p_mac);
+  free(this->p_mac);
 }
 
 
@@ -94,21 +101,10 @@ int AES_GCM_context::dump(const size_t buffer_size, char *buffer) {
   std::memcpy(buffer+28, this->p_mac, 16);
   return 44;
 }
-
-int AES_GCM_context::encrypt_key_and_dump(AES_GCM_context *root_key, const size_t buffer_size, char *buffer) {
-  if (buffer_size < 44)
-    return -1;
-
-  if (root_key->encrypt((uint8_t*)this->p_key, 16, (uint8_t*)NULL, 0, (uint8_t*)buffer) < 0)
-    return -1;
-  std::memcpy(buffer+16, this->p_iv, 12);
-  std::memcpy(buffer+28, this->p_mac, 16);
-  return 44;
-}
-
-int AES_GCM_context::dump_aad(const size_t buffer_size, char *buffer) {
+int AES_GCM_context::dump_without_mac(const size_t buffer_size, char *buffer) {
   if (buffer_size < 28)
     return -1;
+
   std::memcpy(buffer, this->p_key, 16);
   std::memcpy(buffer+16, this->p_iv, 12);
   return 28;
@@ -122,13 +118,12 @@ int AES_GCM_context::load(const size_t buffer_size, const char *buffer) {
   std::memcpy(this->p_mac, buffer+28, 16);
   return 44;
 }
-
-int AES_GCM_context::decrypt_key_and_load(AES_GCM_context *root_key, const char* buffer) {
-  if (root_key->decrypt((uint8_t*)buffer, 16, (uint8_t*)NULL, 0, (uint8_t*)this->p_key) < 0)
+int AES_GCM_context::load_without_mac(const size_t buffer_size, const char *buffer) {
+  if (buffer_size < 28)
     return -1;
+  std::memcpy(this->p_key, buffer, 16);
   std::memcpy(this->p_iv, buffer+16, 12);
-  std::memcpy(this->p_mac, buffer+28, 16);
-  return 44;
+  return 28;
 }
 
 
@@ -143,8 +138,18 @@ int AES_GCM_context::encrypt(const uint8_t *p_plain, const uint32_t plain_len,
 
 int AES_GCM_context::decrypt(const uint8_t *p_cypher, const uint32_t cypher_len,
                                 const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_plain) {
-  if (sgx_rijndael128GCM_encrypt(this->p_key, p_cypher, cypher_len, p_plain, this->p_iv, 12,
+  if (sgx_rijndael128GCM_decrypt(this->p_key, p_cypher, cypher_len, p_plain, this->p_iv, 12,
                                   p_aad, aad_len, this->p_mac) != SGX_SUCCESS) {
+    return -1;
+  }
+  return cypher_len;
+}
+
+int AES_GCM_context::decrypt_with_mac(const uint8_t *p_cypher, const uint32_t cypher_len,
+                                const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_plain,
+                                const sgx_aes_gcm_128bit_tag_t *mac) {
+  if (sgx_rijndael128GCM_decrypt(this->p_key, p_cypher, cypher_len, p_plain, this->p_iv, 12,
+                                  p_aad, aad_len, mac) != SGX_SUCCESS) {
     return -1;
   }
   return cypher_len;
@@ -153,4 +158,4 @@ int AES_GCM_context::decrypt(const uint8_t *p_cypher, const uint32_t cypher_len,
 
 // Static functions
 size_t AES_GCM_context::size() { return 44; }
-size_t AES_GCM_context::size_aad() { return 28; }
+size_t AES_GCM_context::size_without_mac() { return 28; }

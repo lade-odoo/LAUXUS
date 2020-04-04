@@ -1,0 +1,1 @@
+#define EMULATING 1
