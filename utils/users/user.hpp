@@ -1,7 +1,13 @@
 #ifndef __USER_HPP__
 #define __USER_HPP__
 
-#include "sgx_tcrypto.h"
+#include "../flag.h"
+#if EMULATING
+#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
+#else
+#   include "sgx_tcrypto.h"
+#endif
+
 #include <string>
 #include <map>
 
@@ -20,7 +26,7 @@ class User {
     int validate_signature(const size_t challenge_size, const uint8_t *challenge,
                           const size_t sig_size, sgx_ec256_signature_t *sig);
 
-    size_t dump_size();
+    size_t size();
     int dump(const size_t buffer_size, char *buffer);
     int load(const size_t buffer_size, const char *buffer);
 

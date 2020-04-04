@@ -3,7 +3,8 @@
 
 typedef enum _status_t {
   SGX_SUCCESS = 0,
-  SGX_ERROR_MAC_MISMATCH = -1
+  SGX_ERROR_MAC_MISMATCH = -1,
+  SGX_ERROR_INVALID_PARAMETER = -2
 } sgx_status_t;
 
 #endif

@@ -1,6 +1,15 @@
 #include "../../utils/users/user.hpp"
-#include "sgx_tcrypto.h"
+
+#include "../flag.h"
+#if EMULATING
+#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
+#else
+#   include "sgx_tcrypto.h"
+#endif
+
 #include <string>
+#include <cstring>
+
 
 
 User::User(const std::string &name, size_t pk_size, sgx_ec256_public_t *pk) {
@@ -28,7 +37,8 @@ bool User::is_root() {
 }
 
 int User::compare(User *other) {
-  return other->name.compare(this->name);
+  return other->name.compare(this->name) && other->id == this->id &&
+      std::memcmp(this->pk, other->pk, this->pk_size) == 0;
 }
 
 
@@ -44,7 +54,7 @@ int User::validate_signature(const size_t challenge_size, const uint8_t *challen
   sgx_status_t status = sgx_ecc256_open_context(&handle);
   if (status != SGX_SUCCESS)
     return -1;
-  status = sgx_ecdsa_verify(challenge, challenge_size, pk, sig, &result, handle);
+  status = sgx_ecdsa_verify(challenge, challenge_size, this->pk, sig, &result, handle);
   if (status != SGX_SUCCESS || result == SGX_EC_INVALID_SIGNATURE)
     return -1;
   status = sgx_ecc256_close_context(handle);
@@ -55,12 +65,12 @@ int User::validate_signature(const size_t challenge_size, const uint8_t *challen
 }
 
 
-size_t User::dump_size() {
+size_t User::size() {
   return 2*sizeof(int) + this->name.length()+1 + this->pk_size;
 }
 
 int User::dump(const size_t buffer_size, char *buffer) {
-  if (buffer_size < this->dump_size())
+  if (buffer_size < this->size())
     return -1;
 
   size_t written = 0; int name_len = this->name.length() + 1;

@@ -152,7 +152,8 @@ endif
 
 Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
 Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
-Tests_Exec_Files := tests/utils/misc tests/utils/serialization tests/utils/encryption
+Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp')
+Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
 
 
 .PHONY: all run
@@ -247,6 +248,10 @@ tests/main.o: tests/main.cpp
 	@echo "Building Catch2"
 
 tests/utils/%: tests/utils/%.cpp utils/%.o $(Tests_Emul_Objects) tests/main.o
+	@$(CXX) $(App_Cpp_Flags) $^ -o $@
+	@echo "LINK  =>  $<"
+
+tests/users/%: tests/users/%.cpp utils/users/%.o $(Tests_Emul_Objects) tests/main.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 
