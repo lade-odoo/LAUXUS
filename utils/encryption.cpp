@@ -51,6 +51,12 @@ int AES_CTR_context::load(const size_t buffer_size, const char *buffer) {
 }
 
 
+bool AES_CTR_context::equals(AES_CTR_context *other) {
+  return std::memcmp(this->p_key, other->p_key, sizeof(sgx_aes_ctr_128bit_key_t)) == 0 &&
+        std::memcmp(this->p_ctr, other->p_ctr, 16) == 0;
+}
+
+
 int AES_CTR_context::encrypt(const uint8_t *p_plain, const uint32_t plain_len, uint8_t *p_cypher) {
   uint8_t ctr[16];
   std::memcpy(ctr, this->p_ctr, 16);
@@ -79,7 +85,7 @@ size_t AES_CTR_context::size() { return 32; }
 AES_GCM_context::AES_GCM_context() {
   this->p_key = (sgx_aes_gcm_128bit_key_t*) malloc(16);
   this->p_iv = (uint8_t*) malloc(12);
-  this->p_mac = (sgx_aes_gcm_128bit_tag_t*) malloc(16);
+  this->p_mac = (sgx_aes_gcm_128bit_tag_t*) calloc(1, 16);
 
   sgx_read_rand((uint8_t*)this->p_key, 16);
   sgx_read_rand((uint8_t*)this->p_iv, 12);
@@ -124,6 +130,13 @@ int AES_GCM_context::load_without_mac(const size_t buffer_size, const char *buff
   std::memcpy(this->p_key, buffer, 16);
   std::memcpy(this->p_iv, buffer+16, 12);
   return 28;
+}
+
+
+bool AES_GCM_context::equals(AES_GCM_context *other) {
+  return std::memcmp(this->p_key, other->p_key, sizeof(sgx_aes_gcm_128bit_key_t)) == 0 &&
+        std::memcmp(this->p_iv, other->p_iv, 12) == 0 &&
+        std::memcmp(this->p_mac, other->p_mac, sizeof(sgx_aes_gcm_128bit_tag_t)) == 0;
 }
 
 

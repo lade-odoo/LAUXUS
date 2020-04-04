@@ -17,10 +17,9 @@ SCENARIO( "CTR encryptions key can be dumped / loaded. They can also use to encr
 
       THEN( "when loading we should obtain the same object" ) {
         AES_CTR_context *loaded = new AES_CTR_context();
-        REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
 
-        REQUIRE( memcmp(loaded->p_key, context->p_key, 16) == 0);
-        REQUIRE( memcmp(loaded->p_ctr, context->p_ctr, 16) == 0);
+        REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
+        REQUIRE( loaded->equals(context) );
         delete loaded;
       }
       delete[] buffer;
@@ -55,10 +54,9 @@ SCENARIO( "GCM encryptions key can be dumped / loaded. They can also use to encr
 
       THEN( "when loading (without mac), we should obtain the same object" ) {
         AES_GCM_context *loaded = new AES_GCM_context();
-        REQUIRE( loaded->load_without_mac(b_size, buffer) == (int)b_size );
 
-        REQUIRE( memcmp(loaded->p_key, context->p_key, 16) == 0);
-        REQUIRE( memcmp(loaded->p_iv, context->p_iv, 12) == 0);
+        REQUIRE( loaded->load_without_mac(b_size, buffer) == (int)b_size );
+        REQUIRE( loaded->equals(context) );
         delete loaded;
       }
       delete[] buffer;
@@ -74,6 +72,7 @@ SCENARIO( "GCM encryptions key can be dumped / loaded. They can also use to encr
       REQUIRE( memcmp(plain, cypher, plain_size) != 0 );
       REQUIRE( context->dump(b_size, buffer) == (int)b_size );
       memcpy(mac, context->p_mac, sizeof(sgx_aes_gcm_128bit_tag_t));
+
       THEN( "when decrypting it, we should obtain the input" ) {
         char *decrypted = new char[plain_size];
 
@@ -91,11 +90,9 @@ SCENARIO( "GCM encryptions key can be dumped / loaded. They can also use to encr
       }
       AND_THEN( "when loaded we should retrieve the same context" ) {
         AES_GCM_context *loaded = new AES_GCM_context();
-        REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
 
-        REQUIRE( memcmp(loaded->p_key, context->p_key, 16) == 0);
-        REQUIRE( memcmp(loaded->p_iv, context->p_iv, 12) == 0);
-        REQUIRE( memcmp(loaded->p_mac, context->p_mac, 16) == 0);
+        REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
+        REQUIRE( loaded->equals(context) );
         delete loaded;
       }
       delete[] cypher;
@@ -131,11 +128,9 @@ SCENARIO( "GCM encryptions key can be dumped / loaded. They can also use to encr
       }
       AND_THEN( "when loaded we should retrieve the same context" ) {
         AES_GCM_context *loaded = new AES_GCM_context();
+        
         REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
-
-        REQUIRE( memcmp(loaded->p_key, context->p_key, 16) == 0);
-        REQUIRE( memcmp(loaded->p_iv, context->p_iv, 12) == 0);
-        REQUIRE( memcmp(loaded->p_mac, context->p_mac, 16) == 0);
+        REQUIRE( loaded->equals(context) );
         delete loaded;
       }
       delete[] cypher;

@@ -23,6 +23,8 @@ class AES_CTR_context {
     int dump(const size_t buffer_size, char *buffer);
     int load(const size_t buffer_size, const char *buffer);
 
+    bool equals(AES_CTR_context *other);
+
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len, uint8_t *p_cypher);
     int decrypt(const uint8_t *p_cypher, const uint32_t cypher_len, uint8_t *p_plain);
 
@@ -44,6 +46,8 @@ class AES_GCM_context {
     int dump_without_mac(const size_t buffer_size, char *buffer);
     int load(const size_t buffer_size, const char *buffer);
     int load_without_mac(const size_t buffer_size, const char *buffer);
+
+    bool equals(AES_GCM_context *other);
 
     int encrypt(const uint8_t *p_plain, const uint32_t plain_len,
                     const uint8_t *p_aad, const uint32_t aad_len, uint8_t *p_cypher);
