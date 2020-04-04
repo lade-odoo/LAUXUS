@@ -21,7 +21,7 @@ class User {
     ~User();
 
     bool is_root();
-    int compare(User *other);
+    bool equals(User *other);
 
     int validate_signature(const size_t challenge_size, const uint8_t *challenge,
                           const size_t sig_size, sgx_ec256_signature_t *sig);

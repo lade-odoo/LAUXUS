@@ -45,7 +45,7 @@ SCENARIO( "A user can dump his keys to a buffer then retrieve them.", "[multi-fi
       THEN( "when loaded, we retrieve the same user" ) {
         User *loaded = new User();
         REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
-        REQUIRE( loaded->compare(user) == 0 );
+        REQUIRE( loaded->equals(user) );
       }
     }
   }

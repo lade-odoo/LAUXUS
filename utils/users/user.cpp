@@ -36,8 +36,8 @@ bool User::is_root() {
   return this->id == 0;
 }
 
-int User::compare(User *other) {
-  return other->name.compare(this->name) && other->id == this->id &&
+bool User::equals(User *other) {
+  return other->name.compare(this->name) == 0 && other->id == this->id &&
       std::memcmp(this->pk, other->pk, this->pk_size) == 0;
 }
 
@@ -76,7 +76,7 @@ int User::dump(const size_t buffer_size, char *buffer) {
   size_t written = 0; int name_len = this->name.length() + 1;
   std::memcpy(buffer, &this->id, sizeof(int)); written += sizeof(int);
   std::memcpy(buffer+written, &name_len, sizeof(int)); written += sizeof(int);
-  std::memcpy(buffer+written, (char*)this->name.c_str(), name_len); written += name_len;
+  std::memcpy(buffer+written, this->name.c_str(), name_len); written += name_len;
   std::memcpy(buffer+written, this->pk, sizeof(sgx_ec256_public_t)); written += sizeof(sgx_ec256_public_t);
 
   return written;
@@ -90,14 +90,13 @@ int User::load(const size_t buffer_size, const char *buffer) {
   std::memcpy(&this->id, buffer, sizeof(int)); read += sizeof(int);
   std::memcpy(&name_len, buffer+read, sizeof(int)); read += sizeof(int);
 
-  char name_buff[name_len];
   if (buffer_size-read < name_len+sizeof(sgx_ec256_public_t)) // change that
     return -1;
 
-  std::memcpy(name_buff, buffer+read, name_len); read += name_len;
+  this->name.resize(name_len-1);
+  std::memcpy(const_cast<char*>(this->name.data()), buffer+read, name_len); read += name_len;
   std::memcpy(this->pk, buffer+read, sizeof(sgx_ec256_public_t)); read += sizeof(sgx_ec256_public_t);
 
-  this->name = std::string(name_buff);
   return read;
 }
 
