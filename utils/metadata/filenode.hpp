@@ -31,9 +31,9 @@ class Filenode: public Node {
     int read(const long offset, const size_t buffer_size, char *buffer);
     int write(const long offset, const size_t data_size, const char *data);
 
-    size_t encryption_size(const long up_offset, const size_t up_size);
-    int load_encryption(const long offset, const size_t buffer_size, const char *buffer);
-    int dump_encryption(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
+    int e_content_size(const long up_offset, const size_t up_size);
+    int e_dump_content(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
+    int e_load_content(const long offset, const size_t buffer_size, const char *buffer);
 
   private:
     size_t block_size;

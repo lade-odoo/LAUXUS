@@ -42,6 +42,10 @@ Filenode::~Filenode() {
 bool Filenode::equals(Filenode *other) {
   if (this->allowed_users->size() != other->allowed_users->size())
     return false;
+  if (this->aes_ctr_ctxs->size() != other->aes_ctr_ctxs->size())
+    return false;
+  if (this->plain->size() != other->plain->size())
+    return false;
 
   // check allowed_users
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
@@ -49,13 +53,25 @@ bool Filenode::equals(Filenode *other) {
       return false;
 
   // check aes_ctr_ctxs
-  for (auto it = this->aes_ctr_ctxs->begin(); it != this->aes_ctr_ctxs->end(); ++it) {
-    bool found = false;
-    for (auto it2 = other->aes_ctr_ctxs->begin(); it2 != other->aes_ctr_ctxs->end(); ++it2)
-      if ((*it)->equals(*it2))
-        found = true;
-    if (!found)
+  for (size_t i = 0; i < this->aes_ctr_ctxs->size(); i++) {
+    auto it = this->aes_ctr_ctxs->at(i);
+    auto it2 = other->aes_ctr_ctxs->at(i);
+    if (!it->equals(it2))
       return false;
+  }
+
+  // check plain
+  for (size_t i = 0; i < this->plain->size(); i++) {
+    std::vector<char> *it = this->plain->at(i);
+    std::vector<char> *it2 = other->plain->at(i);
+    if (it->size() != it2->size())
+      return false;
+    for (size_t j = 0; j < it->size(); j++) {
+      char c1 = it->at(j);
+      char c2 = it2->at(j);
+      if (c1 != c2)
+        return false;
+    }
   }
 
   return Node::equals(other);
@@ -243,7 +259,7 @@ int Filenode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
 }
 
 
-size_t Filenode::encryption_size(const long up_offset, const size_t up_size) {
+int Filenode::e_content_size(const long up_offset, const size_t up_size) {
   size_t written = 0;
   size_t offset_in_block = up_offset % this->block_size;
   size_t start_index = (size_t)((up_offset-offset_in_block)/this->block_size);
@@ -255,7 +271,7 @@ size_t Filenode::encryption_size(const long up_offset, const size_t up_size) {
   return (end_index-start_index) * this->block_size;
 }
 
-int Filenode::dump_encryption(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
+int Filenode::e_dump_content(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
   size_t written = 0;
   size_t offset_in_block = up_offset % this->block_size;
   size_t start_index = (size_t)((up_offset-offset_in_block)/this->block_size);
@@ -275,13 +291,22 @@ int Filenode::dump_encryption(const long up_offset, const size_t up_size, const 
   return start_index * this->block_size; // return the offset on which it should start editing the file
 }
 
-int Filenode::load_encryption(const long offset, const size_t buffer_size, const char *buffer) {
-  size_t block_index = (size_t)(offset/this->block_size);
+int Filenode::e_load_content(const long offset, const size_t buffer_size, const char *buffer) {
+  size_t start_index = (size_t)(offset/this->block_size);
+  size_t size_decrypted = 0;
 
-  std::vector<char> *block = new std::vector<char>(buffer_size);
-  std::memcpy(&(*block)[0], buffer, buffer_size);
-  this->cipher->push_back(block);
-  return Filenode::decrypt_block(block_index);
+  for (int block_index = start_index; size_decrypted != buffer_size; block_index++) {
+    size_t size = this->block_size;
+    if (buffer_size-size_decrypted < size)
+      size = buffer_size;
+
+    std::vector<char> *block = new std::vector<char>(size);
+    std::memcpy(&(*block)[0], buffer, size);
+    this->cipher->push_back(block);
+    size_decrypted += Filenode::decrypt_block(block_index);
+  }
+
+  return size_decrypted;
 }
 
 int Filenode::encrypt_block(const size_t block_index) {
