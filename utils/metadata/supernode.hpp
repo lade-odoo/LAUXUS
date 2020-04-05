@@ -5,13 +5,6 @@
 #include "../../utils/encryption.hpp"
 #include "../../utils/metadata/node.hpp"
 
-#include "../flag.h"
-#if EMULATING
-#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
-#else
-#   include "sgx_tcrypto.h"
-#endif
-
 #include <string>
 #include <map>
 

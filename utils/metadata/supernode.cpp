@@ -3,13 +3,6 @@
 #include "../../utils/users/user.hpp"
 #include "../../utils/encryption.hpp"
 
-#include "../flag.h"
-#if EMULATING
-#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
-#else
-#   include "sgx_tcrypto.h"
-#endif
-
 #include <string>
 #include <cstring>
 #include <map>
@@ -74,9 +67,6 @@ bool Supernode::equals(Supernode *other) {
 
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
     if (other->check_user(it->second) == NULL)
-      return false;
-  for (auto it = other->allowed_users->begin(); it != other->allowed_users->end(); ++it)
-    if (this->check_user(it->second) == NULL)
       return false;
 
   return Node::equals(other);
