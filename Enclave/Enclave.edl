@@ -11,7 +11,7 @@ enclave {
         public int sgx_destroy_filesystem(size_t rk_sealed_size, [out, size=rk_sealed_size] char *sealed_rk,
                                           size_t supernode_size, [out, size=supernode_size] char* supernode);
 
-        public int sgx_supernode_size();
+        public int sgx_supernode_e_size();
         public int sgx_create_user([in, string] const char *username,
                                     size_t pk_size, [out, size=pk_size] char *pk,
                                     size_t sk_size, [out, size=sk_size] char *sk);
@@ -20,8 +20,7 @@ enclave {
         public int sgx_sign_message(size_t challenge_size, [in, size=challenge_size] const char *challenge,
                                     size_t sk_size, [in, size=sk_size] const char *sk,
                                     size_t sig_size, [out, size=sig_size] char *sig);
-        public int sgx_validate_signature(int user_id, size_t sig_size, [in, size=sig_size] const char *sig,
-                                          size_t pk_size, [in, size=sig_size] const char *pk);
+        public int sgx_validate_signature(int user_id, size_t sig_size, [in, size=sig_size] const char *sig);
 
         public int sgx_edit_user_policy([in, string] const char *filename, unsigned char policy, int user_id);
 
@@ -36,13 +35,13 @@ enclave {
         public int sgx_write_file([in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
         public int sgx_unlink([in, string] const char *filename);
 
-        public int sgx_metadata_size([in, string] const char *filename);
-        public int sgx_dump_metadata([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_load_metadata([in, string] const char *filename, size_t buffer_size, [in, size=buffer_size] const char *buffer);
+        public int sgx_e_metadata_size([in, string] const char *filename);
+        public int sgx_e_dump_metadata([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_e_load_metadata([in, string] const char *filename, size_t buffer_size, [in, size=buffer_size] const char *buffer);
 
-        public int sgx_encryption_size([in, string] const char *filename, long up_offset, size_t up_size);
-        public int sgx_dump_encryption([in, string] const char *filename, long up_offset, size_t up_size, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_load_encryption([in, string] const char *filename, long offset, size_t buffer_size, [in, size=buffer_size] const char *buffer);
+        public int sgx_e_file_size([in, string] const char *filename, long up_offset, size_t up_size);
+        public int sgx_e_dump_file([in, string] const char *filename, long up_offset, size_t up_size, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_e_load_file([in, string] const char *filename, long offset, size_t buffer_size, [in, size=buffer_size] const char *buffer);
     };
 
     untrusted {

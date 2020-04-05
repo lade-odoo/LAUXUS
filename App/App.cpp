@@ -66,10 +66,10 @@ void ocall_print(const char* str) {
 
 static int nexus_write_metadata(const std::string &filename) {
   int ret;
-  sgx_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  sgx_e_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
-  sgx_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+  sgx_e_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
   dump(META_PATH + "/" + filename, buffer_size, buffer);
 
   free(buffer);
@@ -77,11 +77,17 @@ static int nexus_write_metadata(const std::string &filename) {
 }
 
 static int nexus_write_encryption(const std::string &filename, long offset, size_t updated_size) {
+  std::cout << "Writing encryption" << std::endl;
   int ret;
-  sgx_encryption_size(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size);
+  sgx_e_file_size(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size);
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
-  sgx_dump_encryption(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size, buffer_size, buffer);
+  sgx_e_dump_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size, buffer_size, buffer);
+  std::cout << std::to_string(offset) << std::endl;
+  std::cout << std::to_string(updated_size) << std::endl;
+  std::cout << std::to_string(buffer_size) << std::endl;
+  std::cout << std::to_string(ret) << std::endl;
+  std::cout << ENCR_PATH << "/" << filename << std::endl;
   dump_with_offset(ENCR_PATH + "/" + filename, ret, buffer_size, buffer); // dump with return offset
 
   free(buffer);
@@ -96,7 +102,7 @@ static void retrieve_nexus_meta() {
 
     // retrieve metadata in one batch
     buffer_size = load(META_PATH + "/" + filename, &buffer);
-    sgx_load_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+    sgx_e_load_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
     free(buffer);
   }
 }
@@ -109,7 +115,7 @@ static void retrieve_nexus_ciphers() {
 
     for (size_t read = 0; read % DEFAULT_BLOCK_SIZE == 0; read += buffer_size) {
       buffer_size = load_with_offset(ENCR_PATH + "/" + filename, read, DEFAULT_BLOCK_SIZE, &buffer);
-      sgx_load_encryption(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
+      sgx_e_load_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
       free(buffer);
     }
   }
@@ -153,7 +159,8 @@ static void* nexus_init_existing() {
   if (status != SGX_SUCCESS || ret < 0)
     exit(1);
 
-  status = sgx_validate_signature(ENCLAVE_ID, &ret, options.user_id, sig_size, sig, pk_size, pk);
+  // must use pk stored inside FS
+  status = sgx_validate_signature(ENCLAVE_ID, &ret, options.user_id, sig_size, sig);
   if (status != SGX_SUCCESS || ret < 0) {
     std::cout << "Fail to validate PKI signature." << std::endl;
     exit(1);
@@ -209,9 +216,10 @@ static void* nexus_init(struct fuse_conn_info *conn) {
 
 static void nexus_destroy(void* private_data) {
   int ret;
-  sgx_supernode_size(ENCLAVE_ID, &ret);
+  sgx_supernode_e_size(ENCLAVE_ID, &ret);
+  std::cout << std::to_string(ret) << std::endl;
 
-  size_t rk_sealed_size = /*AES_GCM_context::size()*/44 + sizeof(sgx_sealed_data_t);
+  size_t rk_sealed_size = /*AES_GCM_context::size_without_mac()*/28 + sizeof(sgx_sealed_data_t);
   size_t supernode_size = ret;
   char *sealed_rk = (char*) malloc(rk_sealed_size);
   char *supernode = (char*) malloc(supernode_size);
@@ -388,6 +396,7 @@ int main(int argc, char **argv) {
     nexus_init(NULL);
     nexus_destroy(NULL);
     fuse_opt_free_args(&args);
+    std::cout << "FS successfully created." << std::endl;
     return 0;
   } else if (options.new_user && options.new_user_pk_file != NULL && options.new_username != NULL && options.user_id >= 0) {
     nexus_init(NULL);
@@ -406,6 +415,7 @@ int main(int argc, char **argv) {
 
     nexus_destroy(NULL);
     fuse_opt_free_args(&args);
+    std::cout << "User successfully created." << std::endl;
     return 0;
   } else if (options.edit_policies_user && options.new_policy_filename != NULL && options.edit_policies_user_id > 0 && options.user_id >= 0) {
     nexus_init(NULL);
@@ -419,6 +429,7 @@ int main(int argc, char **argv) {
     nexus_write_metadata(options.new_policy_filename);
     nexus_destroy(NULL);
     fuse_opt_free_args(&args);
+    std::cout << "User policies successfully updated." << std::endl;
     return 0;
   }
 

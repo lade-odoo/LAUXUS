@@ -35,13 +35,13 @@ class FileSystem {
     int write_file(const std::string &filename, const long offset, const size_t data_size, const char *data);
     int unlink(const std::string &filename);
 
-    int metadata_size(const std::string &filename);
-    int dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer);
-    int load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer);
+    int e_metadata_size(const std::string &filename);
+    int e_dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer);
+    int e_load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer);
 
-    int encryption_size(const std::string &filename, const long up_offset, const size_t up_size);
-    int dump_encryption(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
-    int load_encryption(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer);
+    int e_file_size(const std::string &filename, const long up_offset, const size_t up_size);
+    int e_dump_file(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
+    int e_load_file(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer);
 
   private:
     size_t block_size;

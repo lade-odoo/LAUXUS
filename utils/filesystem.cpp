@@ -59,7 +59,7 @@ int FileSystem::file_size(const std::string &filename) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->size();
+  return node->file_size();
 }
 
 int FileSystem::getattr(const std::string &filename) {
@@ -113,49 +113,49 @@ int FileSystem::unlink(const std::string &filename) {
 }
 
 
-int FileSystem::metadata_size(const std::string &filename) {
+int FileSystem::e_metadata_size(const std::string &filename) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->metadata_size();
+  return node->e_size();
 }
 
-int FileSystem::dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer) {
+int FileSystem::e_dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->dump_metadata(buffer_size, buffer);
+  return node->e_dump(buffer_size, buffer);
 }
 
-int FileSystem::load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer) {
+int FileSystem::e_load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node != NULL)
     return -EEXIST;
 
   node = new Filenode(filename, this->root_key, this->block_size);
-  node->load_metadata(this->supernode, buffer_size, buffer);
+  node->e_load(buffer_size, buffer);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
   return 0;
 }
 
 
-int FileSystem::encryption_size(const std::string &filename, const long up_offset, const size_t up_size) {
+int FileSystem::e_file_size(const std::string &filename, const long up_offset, const size_t up_size) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->encryption_size(up_offset, up_size);
+  return node->e_content_size(up_offset, up_size);
 }
 
-int FileSystem::dump_encryption(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
+int FileSystem::e_dump_file(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->dump_encryption(up_offset, up_size, buffer_size, buffer);
+  return node->e_dump_content(up_offset, up_size, buffer_size, buffer);
 }
 
-int FileSystem::load_encryption(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer) {
+int FileSystem::e_load_file(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->load_encryption(offset, buffer_size, buffer);
+  return node->e_load_content(offset, buffer_size, buffer);
 }

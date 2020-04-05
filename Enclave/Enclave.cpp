@@ -1,12 +1,11 @@
-#include <cerrno>
-
-#include "sgx_trts.h"
-#include "sgx_tseal.h"
-#include "Enclave_t.h"
-#include "sgx_tcrypto.h"
 #include "../utils/filesystem.hpp"
 #include "../utils/encryption.hpp"
 #include "../utils/users/user.hpp"
+
+#include "sgx_tseal.h"
+#include "Enclave_t.h"
+
+#include <cerrno>
 
 
 static FileSystem* FILE_SYSTEM;
@@ -24,23 +23,23 @@ int sgx_init_existing_filesystem(const char *supernode_path,
                                 size_t rk_sealed_size, const char *sealed_rk,
                                 size_t supernode_size, const char *supernode,
                                 size_t nonce_size, char *nonce) {
-  size_t plain_size = AES_GCM_context::size();
-  size_t seal_size = plain_size + sizeof(sgx_sealed_data_t);
-  char plaintext[plain_size];
+  size_t rk_plain_size = AES_GCM_context::size_without_mac();
+  char rk_plaintext[rk_plain_size];
 
-  if (rk_sealed_size != seal_size)
+  if (rk_sealed_size != rk_plain_size+sizeof(sgx_sealed_data_t))
     return -EPROTO;
 
   // unseal the rootkey
   sgx_status_t status = sgx_unseal_data((sgx_sealed_data_t*)sealed_rk, NULL,
-                            NULL, (uint8_t*)plaintext, (uint32_t*)&plain_size);
+                            NULL, (uint8_t*)rk_plaintext, (uint32_t*)&rk_plain_size);
   if (status != SGX_SUCCESS)
     return -EPROTO;
 
   // Create the file system
   AES_GCM_context *root_key = new AES_GCM_context();
   Supernode *node = new Supernode(supernode_path, root_key);
-  if (root_key->load(plain_size, plaintext) < 0 || node->load_metadata(NULL, supernode_size, supernode) < 0)
+  if (root_key->load_without_mac(rk_plain_size, rk_plaintext) < 0 ||
+        node->e_load(supernode_size, supernode) < 0)
     return -EPROTO;
   FILE_SYSTEM = new FileSystem(root_key, node, FileSystem::DEFAULT_BLOCK_SIZE);
 
@@ -60,23 +59,22 @@ int sgx_init_existing_filesystem(const char *supernode_path,
 
 int sgx_destroy_filesystem(size_t rk_sealed_size, char *sealed_rk,
                           size_t supernode_size, char* supernode) {
-  size_t plain_size = AES_GCM_context::size();
-  size_t seal_size = plain_size + sizeof(sgx_sealed_data_t);
-  size_t meta_size = FILE_SYSTEM->supernode->metadata_size();
-  char plaintext[plain_size];
+  size_t rk_plain_size = AES_GCM_context::size_without_mac();
+  size_t seal_size = rk_plain_size + sizeof(sgx_sealed_data_t);
+  char rk_plaintext[rk_plain_size];
 
-  if (rk_sealed_size != seal_size || supernode_size != meta_size)
+  if (rk_sealed_size != seal_size || supernode_size != FILE_SYSTEM->supernode->e_size())
     return -EPROTO;
 
-  if (FILE_SYSTEM->root_key->dump(plain_size, plaintext) < 0)
+  if (FILE_SYSTEM->root_key->dump_without_mac(rk_plain_size, rk_plaintext) < 0)
     return -EPROTO;
 
-  sgx_status_t status = sgx_seal_data(0, NULL, plain_size, (uint8_t*)plaintext,
+  sgx_status_t status = sgx_seal_data(0, NULL, rk_plain_size, (uint8_t*)rk_plaintext,
                                       seal_size, (sgx_sealed_data_t*)sealed_rk);
   if (status != SGX_SUCCESS)
     return -EPROTO;
 
-  if (FILE_SYSTEM->supernode->dump_metadata(supernode_size, supernode) < 0)
+  if (FILE_SYSTEM->supernode->e_dump(supernode_size, supernode) < 0)
     return -EPROTO;
 
   delete FILE_SYSTEM;
@@ -84,31 +82,50 @@ int sgx_destroy_filesystem(size_t rk_sealed_size, char *sealed_rk,
 }
 
 
-int sgx_supernode_size() {
-  return FILE_SYSTEM->supernode->metadata_size();
+int sgx_supernode_e_size() {
+  return FILE_SYSTEM->supernode->e_size();
 }
 
 
-int sgx_create_user(const char *username,
-                    size_t pk_size, char *pk,
-                    size_t sk_size, char *sk) {
+int sgx_create_user(const char *username, size_t pk_size, char *pk,
+                      size_t sk_size, char *sk) {
+  if (FILE_SYSTEM->current_user != NULL)
+    return -EPROTO;
   if (User::generate_keys(pk_size, (sgx_ec256_public_t*)pk, sk_size, (sgx_ec256_private_t*)sk) < 0)
     return -EPROTO;
 
   User *user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
+
   FILE_SYSTEM->current_user = FILE_SYSTEM->supernode->add_user(user);
+  if (FILE_SYSTEM->current_user == NULL)
+    return -EPROTO;
   return FILE_SYSTEM->current_user->id;
 }
 
 int sgx_add_user(const char *username, size_t pk_size, const char *pk) {
-  if (FILE_SYSTEM->current_user == NULL || !FILE_SYSTEM->current_user->is_root())
+  if (FILE_SYSTEM->current_user == NULL)
     return -EPROTO;
+  if (!FILE_SYSTEM->current_user->is_root())
+    return -EACCES;
 
   User *user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
-  if (FILE_SYSTEM->supernode->add_user(user) < 0)
-    return -EPROTO;
+  if (FILE_SYSTEM->supernode->add_user(user) == NULL)
+    return -EEXIST;
   return FILE_SYSTEM->current_user->id;
 }
+
+int sgx_remove_user(const char *username, size_t pk_size, const char *pk) {
+  if (FILE_SYSTEM->current_user == NULL)
+    return -EPROTO;
+  if (!FILE_SYSTEM->current_user->is_root())
+    return -EACCES;
+
+  User *user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
+  if (FILE_SYSTEM->supernode->remove_user(user) == NULL)
+    return -EEXIST;
+  return FILE_SYSTEM->current_user->id;
+}
+
 
 int sgx_sign_message(size_t challenge_size, const char *challenge,
                     size_t sk_size, const char *sk,
@@ -122,14 +139,13 @@ int sgx_sign_message(size_t challenge_size, const char *challenge,
 }
 
 int sgx_validate_signature(const int user_id,
-                          size_t sig_size, const char *sig,
-                          size_t pk_size, const char *pk) {
+                          size_t sig_size, const char *sig) {
   User *user = FILE_SYSTEM->supernode->retrieve_user(user_id);
   if (user == NULL)
-    return -EPROTO;
+    return -EACCES;
 
   if (user->validate_signature(pki_challenge_size, (uint8_t*)pki_challenge, sig_size, (sgx_ec256_signature_t*)sig) < 0)
-    return -EPROTO;
+    return -EACCES;
 
   free(pki_challenge);
   pki_challenge = NULL;
@@ -200,27 +216,27 @@ int sgx_unlink(const char *filename) {
 }
 
 
-int sgx_metadata_size(const char *filename) {
-  return FILE_SYSTEM->metadata_size(filename);
+int sgx_e_metadata_size(const char *filename) {
+  return FILE_SYSTEM->e_metadata_size(filename);
 }
 
-int sgx_dump_metadata(const char *filename, size_t buffer_size, char *buffer) {
-  return FILE_SYSTEM->dump_metadata(filename, buffer_size, buffer);
+int sgx_e_dump_metadata(const char *filename, size_t buffer_size, char *buffer) {
+  return FILE_SYSTEM->e_dump_metadata(filename, buffer_size, buffer);
 }
 
-int sgx_load_metadata(const char *filename, size_t buffer_size, const char *buffer) {
-  return FILE_SYSTEM->load_metadata(filename, buffer_size, buffer);
+int sgx_e_load_metadata(const char *filename, size_t buffer_size, const char *buffer) {
+  return FILE_SYSTEM->e_load_metadata(filename, buffer_size, buffer);
 }
 
 
-int sgx_encryption_size(const char *filename, long up_offset, size_t up_size) {
-  return FILE_SYSTEM->encryption_size(filename, up_offset, up_size);
+int sgx_e_file_size(const char *filename, long up_offset, size_t up_size) {
+  return FILE_SYSTEM->e_file_size(filename, up_offset, up_size);
 }
 
-int sgx_dump_encryption(const char *filename, long up_offset, size_t up_size, size_t buffer_size, char *buffer) {
-  return FILE_SYSTEM->dump_encryption(filename, up_offset, up_size, buffer_size, buffer);
+int sgx_e_dump_file(const char *filename, long up_offset, size_t up_size, size_t buffer_size, char *buffer) {
+  return FILE_SYSTEM->e_dump_file(filename, up_offset, up_size, buffer_size, buffer);
 }
 
-int sgx_load_encryption(const char *filename, long offset, size_t buffer_size, const char *buffer) {
-  return FILE_SYSTEM->load_encryption(filename, offset, buffer_size, buffer);
+int sgx_e_load_file(const char *filename, long offset, size_t buffer_size, const char *buffer) {
+  return FILE_SYSTEM->e_load_file(filename, offset, buffer_size, buffer);
 }
