@@ -129,7 +129,9 @@ int Filenode::getattr(User *user) {
   if (it == this->allowed_users->end())
     return 0;
 
-  return it->second-Filenode::OWNER_POLICY;
+  if (it->second >= Filenode::OWNER_POLICY)
+    return it->second-Filenode::OWNER_POLICY;
+  return it->second;
 }
 
 int Filenode::write(const long offset, const size_t data_size, const char *data) {
