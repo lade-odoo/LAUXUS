@@ -118,7 +118,7 @@ Crypto_Library_Name := sgx_tcrypto
 
 # Enclave_Cpp_Files := Enclave/Enclave.cpp $(wildcard Enclave/Edger8rSyntax/*.cpp) $(wildcard Enclave/TrustedLibrary/*.cpp)
 Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata/node.cpp Enclave/utils/metadata/supernode.cpp Enclave/utils/metadata/filenode.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata/node.cpp Enclave/utils/metadata/supernode.cpp Enclave/utils/metadata/filenode.cpp Enclave/utils/metadata/filenode_content.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files)  Enclave/utils/encryption.cpp Enclave/utils/filesystem.cpp
 # Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
@@ -255,7 +255,7 @@ tests/users/%: tests/users/%.cpp utils/users/%.o $(Tests_Emul_Objects) tests/mai
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 
-tests/metadata/%: tests/metadata/%.cpp utils/metadata/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata/node.o utils/encryption.o utils/users/user.o
+tests/metadata/%: tests/metadata/%.cpp utils/metadata/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata/node.o utils/encryption.o utils/users/user.o utils/metadata/filenode_content.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 

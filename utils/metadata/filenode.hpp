@@ -3,6 +3,7 @@
 
 #include "../../utils/encryption.hpp"
 #include "../../utils/metadata/node.hpp"
+#include "../../utils/metadata/filenode_content.hpp"
 #include "../../utils/users/user.hpp"
 
 #include <string>
@@ -25,9 +26,9 @@ class Filenode: public Node {
 
     bool is_user_allowed(const unsigned char policy, User *user);
     int edit_user_policy(const unsigned char required_policy, User *user);
+    int getattr(User *user);
 
     size_t file_size();
-    int getattr(User *user);
     int read(const long offset, const size_t buffer_size, char *buffer);
     int write(const long offset, const size_t data_size, const char *data);
 
@@ -36,9 +37,8 @@ class Filenode: public Node {
     int e_load_content(const long offset, const size_t buffer_size, const char *buffer);
 
   private:
-    size_t block_size;
+    FilenodeContent *content;
     std::map<int, unsigned char> *allowed_users;
-    std::vector<std::vector<char>*> *plain, *cipher;
     std::vector<AES_CTR_context*> *aes_ctr_ctxs;
 
     int encrypt_block(const size_t block_index);
