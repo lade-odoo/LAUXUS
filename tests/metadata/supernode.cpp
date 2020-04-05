@@ -30,7 +30,7 @@ SCENARIO( "Supernode can be dumped and loaded to a buffer.", "[multi-file:supern
       THEN( "loading it must return the same supernode" ) {
         Supernode *loaded = new Supernode("Test", root_key);
 
-        REQUIRE( loaded->e_load(NULL, b_size, buffer) == (int)b_size );
+        REQUIRE( loaded->e_load(b_size, buffer) == (int)b_size );
         REQUIRE( loaded->equals(node) );
         delete loaded;
       }
@@ -48,7 +48,7 @@ SCENARIO( "Supernode can be dumped and loaded to a buffer.", "[multi-file:supern
       THEN( "loading it, it must return the same supernode" ) {
         Supernode *loaded = new Supernode("Test", root_key);
 
-        REQUIRE( loaded->e_load(NULL, b_size, buffer) == (int)b_size );
+        REQUIRE( loaded->e_load(b_size, buffer) == (int)b_size );
         REQUIRE( loaded->equals(node) );
         delete loaded;
       }

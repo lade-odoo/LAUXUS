@@ -28,7 +28,7 @@ class Supernode: public Node {
   protected:
     size_t p_sensitive_size();
     int p_dump_sensitive(const size_t buffer_size, char *buffer);
-    int p_load_sensitive(Node *parent, const size_t buffer_size, const char *buffer);
+    int p_load_sensitive(const size_t buffer_size, const char *buffer);
 };
 
 #endif /*__SUPERNODE_HPP__*/

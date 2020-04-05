@@ -65,7 +65,7 @@ int Node::e_dump(const size_t buffer_size, char *buffer) {
   return written;
 }
 
-int Node::e_load(Node *parent, const size_t buffer_size, const char *buffer) {
+int Node::e_load(const size_t buffer_size, const char *buffer) {
   int read = 0;
 
   // preamble section
@@ -89,7 +89,7 @@ int Node::e_load(Node *parent, const size_t buffer_size, const char *buffer) {
   read += crypto_size;
 
   // sensitive informations section
-  int sensitive_size = this->e_load_sensitive(parent, buffer_size-read, buffer+read);
+  int sensitive_size = this->e_load_sensitive(buffer_size-read, buffer+read);
   if (sensitive_size < 0)
     return -1;
   read += sensitive_size;
@@ -176,7 +176,7 @@ int Node::e_dump_sensitive(const size_t buffer_size, char *buffer) {
   return sizeof(int) + cypher_size;
 }
 
-int Node::e_load_sensitive(Node *parent, const size_t buffer_size, const char *buffer) {
+int Node::e_load_sensitive(const size_t buffer_size, const char *buffer) {
   if (buffer_size < sizeof(int))
     return -1;
 
@@ -193,7 +193,7 @@ int Node::e_load_sensitive(Node *parent, const size_t buffer_size, const char *b
   int decrypted = this->aes_gcm_ctx->decrypt((uint8_t*)buffer+sizeof(int), cypher_size, (uint8_t*)aad, aad_size, (uint8_t*)plain);
   if (decrypted != cypher_size)
     return -1;
-  if (this->p_load_sensitive(parent, plain_size, plain) != decrypted)
+  if (this->p_load_sensitive(plain_size, plain) != decrypted)
     return -1;
 
   return sizeof(int) + decrypted;

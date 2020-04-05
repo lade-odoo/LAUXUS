@@ -100,7 +100,7 @@ int Supernode::p_dump_sensitive(const size_t buffer_size, char *buffer) {
   return written;
 }
 
-int Supernode::p_load_sensitive(Node *parent, const size_t buffer_size, const char *buffer) {
+int Supernode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
   size_t read = 0;
   int users_len = 0;
 
