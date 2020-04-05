@@ -21,6 +21,11 @@ int dump(const string &dumppath, const size_t size, const char *buffer) {
 }
 
 int dump_with_offset(const string &dumppath, const long offset, const size_t size, const char *buffer) {
+  if (file_size(dumppath) == 0) {
+    ofstream file(dumppath, ios::out | ios::binary);
+    file.close();
+  }
+
   ofstream stream(dumppath, ios::in | ios::out | ios::binary);
   if (stream.is_open() && (long)file_size(dumppath) >= offset) {
     stream.seekp(offset, ios::beg);
