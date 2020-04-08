@@ -1,6 +1,13 @@
 #include "../../utils/metadata/node.hpp"
 #include "../../utils/encryption.hpp"
 
+#include "../flag.h"
+#if EMULATING
+#  include "../tests/SGX_Emulator/sgx_trts.hpp"
+#else
+#   include "sgx_trts.h"
+#endif
+
 #include <string>
 #include <cstring>
 #include <vector>
@@ -15,6 +22,23 @@ Node::Node(const std::string &path, AES_GCM_context *root_key) {
 
 Node::~Node() {
   delete this->aes_gcm_ctx;
+}
+
+
+std::string Node::generate_uuid() {
+  const char possibilities[] = "0123456789abcdef";
+  const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
+
+  uint8_t indexes[16] = {0};
+  sgx_read_rand(indexes, 16);
+
+  std::string res;
+  for (int i = 0; i < 16; i++) {
+      if (dash[i]) res += "-";
+      res += possibilities[indexes[i] % 16];
+  }
+
+  return res;
 }
 
 

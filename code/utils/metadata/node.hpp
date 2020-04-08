@@ -14,6 +14,8 @@ class Node {
     Node(const std::string &filename, AES_GCM_context *root_key);
     ~Node();
 
+    static std::string generate_uuid();
+
     size_t e_size();
     int e_dump(const size_t buffer_size, char *buffer);
     int e_load(const size_t buffer_size, const char *buffer);

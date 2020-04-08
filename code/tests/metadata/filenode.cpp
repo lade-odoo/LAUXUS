@@ -22,7 +22,8 @@ SCENARIO( "Filenode can be dumped and loaded to a buffer.", "[multi-file:filenod
     User *user = new User("test", pk_size, pk);
     user->id = 1;
 
-    Filenode *node = new Filenode("Test", root_key, 4096);
+    string uuid = Node::generate_uuid();
+    Filenode *node = new Filenode(uuid, "Test", root_key, 4096);
     REQUIRE( node->edit_user_policy(Filenode::OWNER_POLICY, user) == 0 );
 
     WHEN( "dumping it to a buffer" ) {
@@ -31,7 +32,7 @@ SCENARIO( "Filenode can be dumped and loaded to a buffer.", "[multi-file:filenod
 
       REQUIRE( node->e_dump(b_size, buffer) == (int)b_size );
       THEN( "loading it must return the same filenode" ) {
-        Filenode *loaded = new Filenode("Test", root_key, 4096);
+        Filenode *loaded = new Filenode(uuid, root_key, 4096);
 
         REQUIRE( loaded->e_load(b_size, buffer) == (int)b_size );
         REQUIRE( loaded->equals(node) );
@@ -41,7 +42,8 @@ SCENARIO( "Filenode can be dumped and loaded to a buffer.", "[multi-file:filenod
     delete node; // user delete with the node
   }
   AND_GIVEN( "A filenode with no sensitive informations" ) {
-    Filenode *node = new Filenode("Test", root_key, 4096);
+    string uuid = Node::generate_uuid();
+    Filenode *node = new Filenode(uuid, "Test", root_key, 4096);
 
     WHEN( "dumping it to a buffer" ) {
       size_t b_size = node->e_size();
@@ -49,7 +51,7 @@ SCENARIO( "Filenode can be dumped and loaded to a buffer.", "[multi-file:filenod
 
       REQUIRE( node->e_dump(b_size, buffer) == (int)b_size );
       THEN( "loading it, it must return the same filenode" ) {
-        Filenode *loaded = new Filenode("Test", root_key, 4096);
+        Filenode *loaded = new Filenode(uuid, root_key, 4096);
 
         REQUIRE( loaded->e_load(b_size, buffer) == (int)b_size );
         REQUIRE( loaded->equals(node) );
@@ -71,7 +73,8 @@ SCENARIO( "Filenode can store an access list, they can add / remove / check user
   user->id = 1;
 
   AES_GCM_context *root_key = new AES_GCM_context();
-  Filenode *node = new Filenode("Test", root_key, 4096);
+  string uuid = Node::generate_uuid();
+  Filenode *node = new Filenode(uuid, "Test", root_key, 4096);
 
   GIVEN( "A filenode without users" ) {
     WHEN( "a user is added" ) {
@@ -113,7 +116,8 @@ SCENARIO( "Filenode can store an access list, they can add / remove / check user
 SCENARIO( "Filenode can store the content of a file.", "[multi-file:filenode]" ) {
   AES_GCM_context *root_key = new AES_GCM_context();
   GIVEN( "An empty filenode" ) {
-    Filenode *node = new Filenode("Test", root_key, 30);
+    string uuid = Node::generate_uuid();
+    Filenode *node = new Filenode(uuid, "Test", root_key, 30);
 
     REQUIRE( node->file_size() == 0 );
     REQUIRE( node->read(0, 10, NULL) == 0 );
@@ -160,7 +164,8 @@ SCENARIO( "Filenode can dump and load the encrypted content of a file", "[multi-
   AES_GCM_context *root_key = new AES_GCM_context();
 
   GIVEN( "A filenode with a single block content" ) {
-    Filenode *node = new Filenode("Test", root_key, 30);
+    string uuid = Node::generate_uuid();
+    Filenode *node = new Filenode(uuid, "Test", root_key, 30);
     REQUIRE( node->write(0, 28, "This is some random content.") );
 
     WHEN( "dumping it to a buffer" ) {
@@ -183,7 +188,8 @@ SCENARIO( "Filenode can dump and load the encrypted content of a file", "[multi-
     delete node;
   }
   GIVEN( "A filenode with a more than a single block content" ) {
-    Filenode *node = new Filenode("Test", root_key, 30);
+    string uuid = Node::generate_uuid();
+    Filenode *node = new Filenode(uuid, "Test", root_key, 30);
     REQUIRE( node->write(0, 52, "This is some random content. With even more content.") );
 
     WHEN( "dumping it to a buffer" ) {

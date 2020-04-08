@@ -185,6 +185,10 @@ int sgx_readdir(char separator, size_t buffer_size, char *buffer) {
 }
 
 
+int sgx_get_uuid(const char *filename, size_t buffer_size, char *buffer) {
+  return FILE_SYSTEM->get_uuid(filename, buffer_size, buffer);
+}
+
 int sgx_isfile(const char *filename) {
   if (FILE_SYSTEM->isfile(filename))
     return EEXIST;
@@ -224,8 +228,8 @@ int sgx_e_dump_metadata(const char *filename, size_t buffer_size, char *buffer) 
   return FILE_SYSTEM->e_dump_metadata(filename, buffer_size, buffer);
 }
 
-int sgx_e_load_metadata(const char *filename, size_t buffer_size, const char *buffer) {
-  return FILE_SYSTEM->e_load_metadata(filename, buffer_size, buffer);
+int sgx_e_load_metadata(const char *uuid, size_t buffer_size, const char *buffer) {
+  return FILE_SYSTEM->e_load_metadata(uuid, buffer_size, buffer);
 }
 
 
@@ -237,6 +241,6 @@ int sgx_e_dump_file(const char *filename, long up_offset, size_t up_size, size_t
   return FILE_SYSTEM->e_dump_file(filename, up_offset, up_size, buffer_size, buffer);
 }
 
-int sgx_e_load_file(const char *filename, long offset, size_t buffer_size, const char *buffer) {
-  return FILE_SYSTEM->e_load_file(filename, offset, buffer_size, buffer);
+int sgx_e_load_file(const char *uuid, long offset, size_t buffer_size, const char *buffer) {
+  return FILE_SYSTEM->e_load_file(uuid, offset, buffer_size, buffer);
 }

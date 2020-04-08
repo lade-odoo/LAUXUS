@@ -70,7 +70,10 @@ static int nexus_write_metadata(const std::string &filename) {
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
   sgx_e_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
-  dump(META_PATH + "/" + filename, buffer_size, buffer);
+
+  std::string uuid(20+1, ' ');
+  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
+  dump(META_PATH + "/" + uuid, buffer_size, buffer);
 
   free(buffer);
   return ret;
@@ -82,7 +85,10 @@ static int nexus_write_encryption(const std::string &filename, long offset, size
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
   sgx_e_dump_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size, buffer_size, buffer);
-  dump_with_offset(ENCR_PATH + "/" + filename, ret, buffer_size, buffer); // dump with return offset
+
+  std::string uuid(20+1, ' ');
+  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
+  dump_with_offset(ENCR_PATH + "/" + uuid, ret, buffer_size, buffer); // dump with return offset
 
   free(buffer);
   return ret;
@@ -92,11 +98,11 @@ static int nexus_write_encryption(const std::string &filename, long offset, size
 static void retrieve_nexus_meta() {
   std::vector<std::string> files = read_directory(META_PATH);
   for(auto itr = files.begin(); itr != files.end(); ++itr) {
-    std::string filename = *itr; int ret; size_t buffer_size; char *buffer = NULL;
+    std::string uuid = *itr; int ret; size_t buffer_size; char *buffer = NULL;
 
     // retrieve metadata in one batch
-    buffer_size = load(META_PATH + "/" + filename, &buffer);
-    sgx_e_load_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
+    buffer_size = load(META_PATH + "/" + uuid, &buffer);
+    sgx_e_load_metadata(ENCLAVE_ID, &ret, (char*)uuid.c_str(), buffer_size, buffer);
     free(buffer);
   }
 }

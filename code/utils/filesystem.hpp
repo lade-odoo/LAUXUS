@@ -27,6 +27,7 @@ class FileSystem {
 
     std::vector<std::string> readdir();
 
+    int get_uuid(const std::string &filename, const size_t buffer_size, char *buffer);
     bool isfile(const std::string &filename);
     int file_size(const std::string &filename);
     int getattr(const std::string &filename);
@@ -37,11 +38,11 @@ class FileSystem {
 
     int e_metadata_size(const std::string &filename);
     int e_dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer);
-    int e_load_metadata(const std::string &filename, const size_t buffer_size, const char *buffer);
+    int e_load_metadata(const std::string &uuid, const size_t buffer_size, const char *buffer);
 
     int e_file_size(const std::string &filename, const long up_offset, const size_t up_size);
     int e_dump_file(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
-    int e_load_file(const std::string &filename, const long offset, const size_t buffer_size, const char *buffer);
+    int e_load_file(const std::string &uuid, const long offset, const size_t buffer_size, const char *buffer);
 
   private:
     size_t block_size;
@@ -50,6 +51,7 @@ class FileSystem {
 
 
     Filenode* retrieve_node(const std::string &filename);
+    Filenode* retrieve_node_with_uuid(const std::string &uuid);
 };
 
 #endif /*__FILESYSTEM_HPP__*/

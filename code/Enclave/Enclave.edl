@@ -27,6 +27,7 @@ enclave {
         public int sgx_ls_buffer_size();
         public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
 
+        public int sgx_get_uuid([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
         public int sgx_isfile([in, string] const char *filename);
         public int sgx_file_size([in, string] const char *filename);
         public int sgx_getattr([in, string] const char *filename);
@@ -37,11 +38,11 @@ enclave {
 
         public int sgx_e_metadata_size([in, string] const char *filename);
         public int sgx_e_dump_metadata([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_e_load_metadata([in, string] const char *filename, size_t buffer_size, [in, size=buffer_size] const char *buffer);
+        public int sgx_e_load_metadata([in, string] const char *uuid, size_t buffer_size, [in, size=buffer_size] const char *buffer);
 
         public int sgx_e_file_size([in, string] const char *filename, long up_offset, size_t up_size);
         public int sgx_e_dump_file([in, string] const char *filename, long up_offset, size_t up_size, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_e_load_file([in, string] const char *filename, long offset, size_t buffer_size, [in, size=buffer_size] const char *buffer);
+        public int sgx_e_load_file([in, string] const char *uuid, long offset, size_t buffer_size, [in, size=buffer_size] const char *buffer);
     };
 
     untrusted {
