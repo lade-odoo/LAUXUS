@@ -77,17 +77,11 @@ static int nexus_write_metadata(const std::string &filename) {
 }
 
 static int nexus_write_encryption(const std::string &filename, long offset, size_t updated_size) {
-  std::cout << "Writing encryption" << std::endl;
   int ret;
   sgx_e_file_size(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size);
   const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
 
   sgx_e_dump_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size, buffer_size, buffer);
-  std::cout << std::to_string(offset) << std::endl;
-  std::cout << std::to_string(updated_size) << std::endl;
-  std::cout << std::to_string(buffer_size) << std::endl;
-  std::cout << std::to_string(ret) << std::endl;
-  std::cout << ENCR_PATH << "/" << filename << std::endl;
   dump_with_offset(ENCR_PATH + "/" + filename, ret, buffer_size, buffer); // dump with return offset
 
   free(buffer);
@@ -217,7 +211,6 @@ static void* nexus_init(struct fuse_conn_info *conn) {
 static void nexus_destroy(void* private_data) {
   int ret;
   sgx_supernode_e_size(ENCLAVE_ID, &ret);
-  std::cout << std::to_string(ret) << std::endl;
 
   size_t rk_sealed_size = /*AES_GCM_context::size_without_mac()*/28 + sizeof(sgx_sealed_data_t);
   size_t supernode_size = ret;
