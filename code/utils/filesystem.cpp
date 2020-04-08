@@ -52,7 +52,8 @@ std::vector<std::string> FileSystem::readdir() {
 
   for (auto itr = this->files->begin(); itr != this->files->end(); itr++) {
     Filenode *filenode = itr->second;
-    entries.push_back(filenode->path);
+    if (filenode->getattr(this->current_user) != 0)
+      entries.push_back(filenode->path);
   }
 
   return entries;
