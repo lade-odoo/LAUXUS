@@ -36,6 +36,11 @@ int dump_with_offset(const string &dumppath, const long offset, const size_t siz
   return -1;
 }
 
+int dump_append(const string &dumppath, const size_t size, const char *buffer) {
+  return dump_with_offset(dumppath, file_size(dumppath), size, buffer);
+}
+
+
 int load(const string &loadpath, char **buffer) {
   ifstream stream(loadpath, ios::binary);
   if (stream.is_open()) {
@@ -63,6 +68,7 @@ int load_with_offset(const string &loadpath, const long offset, const size_t siz
   }
   return -1;
 }
+
 
 bool delete_file(const string &path) {
   if (remove((char*)path.c_str()) == 0)

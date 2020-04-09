@@ -63,6 +63,20 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
         free(buffer);
       }
     }
+    AND_WHEN( "content is appended" ) {
+      REQUIRE( dump_append(path, 16, " Plus appending.") );
+
+      THEN( "the size is changed" ) {
+        REQUIRE( file_size(path) == 31 );
+      }
+      AND_THEN( "the content matches when loaded" ) {
+        char *buffer = NULL;
+        REQUIRE( load(path, &buffer) >= 31);
+        REQUIRE( buffer != NULL);
+        REQUIRE( memcmp(buffer, "Some contentV2. Plus appending.", 31) == 0);
+        free(buffer);
+      }
+    }
     AND_WHEN( "the file is deleted" ) {
       REQUIRE( delete_file(path) );
 
