@@ -3,6 +3,7 @@
 #include "../utils/metadata/node.hpp"
 #include "../utils/metadata/filenode.hpp"
 #include "../utils/metadata/supernode.hpp"
+#include "../utils/metadata/filenode_audit.hpp"
 
 #include <cerrno>
 #include <string>
@@ -11,8 +12,10 @@
 
 
 
-FileSystem::FileSystem(AES_GCM_context *root_key, Supernode *supernode, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
+FileSystem::FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key,
+                        Supernode *supernode, size_t block_size=FileSystem::DEFAULT_BLOCK_SIZE) {
   this->root_key = root_key;
+  this->audit_root_key = audit_root_key;
   this->supernode = supernode;
   this->block_size = block_size;
 
@@ -91,34 +94,53 @@ int FileSystem::getattr(const std::string &filename) {
   return node->getattr(this->current_user);
 }
 
-int FileSystem::create_file(const std::string &filename) {
+int FileSystem::create_file(const std::string &filename, const std::string &reason,
+                            const size_t e_reason_b_size, char *e_reason_b) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node != NULL)
     return -EEXIST;
 
+  // encrypt reason
+  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_reason_b_size, e_reason_b) < 0)
+    return -EPROTO;
+
+  // create node
   std::string uuid = Node::generate_uuid();
   node = new Filenode(uuid, filename, this->root_key, this->block_size);
   node->edit_user_policy(Filenode::OWNER_POLICY, this->current_user);
   this->files->insert(std::pair<std::string, Filenode*>(filename, node));
+
   return 0;
 }
 
-int FileSystem::read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer) {
+int FileSystem::read_file(const std::string &filename,
+                          const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
+                          const long offset, const size_t buffer_size, char *buffer) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
   if (!node->is_user_allowed(Filenode::READ_POLICY, this->current_user))
     return -EACCES;
 
+  // encrypt reason
+  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_reason_b_size, e_reason_b) < 0)
+    return -EPROTO;
+
   return node->read(offset, buffer_size, buffer);
 }
 
-int FileSystem::write_file(const std::string &filename, const long offset, const size_t data_size, const char *data) {
+int FileSystem::write_file(const std::string &filename,
+                            const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
+                            const long offset, const size_t data_size, const char *data) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
   if (!node->is_user_allowed(Filenode::WRITE_POLICY, this->current_user))
     return -EACCES;
+
+  // encrypt reason
+  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_reason_b_size, e_reason_b) < 0)
+    return -EPROTO;
 
   return node->write(offset, data_size, data);
 }

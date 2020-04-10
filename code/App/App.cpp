@@ -19,7 +19,7 @@
 /* Global EID shared by multiple threads */
 static sgx_enclave_id_t ENCLAVE_ID;
 static const char BUFFER_SEPARATOR = 0x1C;
-static std::string NEXUS_DIR, META_PATH, ENCR_PATH, RK_PATH, SUPERNODE_PATH;
+static std::string NEXUS_DIR, META_PATH, ENCR_PATH, AUDIT_PATH, RK_PATH, ARK_PATH, SUPERNODE_PATH;
 static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
 
@@ -63,6 +63,18 @@ void ocall_print(const char* str) {
 }
 
 
+static std::string nexus_retrieve_reason(const std::string &filename) {
+  char *buffer = NULL;
+  int reason_size = load("/tmp/nexus/" + filename + ".reason", &buffer);
+  if (reason_size < 0)
+    return "";
+
+  std::string reason(reason_size-1, ' ');
+  std::memcpy(const_cast<char*>(reason.data()), buffer, reason_size);
+  free(buffer);
+  return reason;
+}
+
 
 static int nexus_write_metadata(const std::string &filename) {
   int ret;
@@ -91,6 +103,15 @@ static int nexus_write_encryption(const std::string &filename, long offset, size
   dump_with_offset(ENCR_PATH + "/" + uuid, ret, buffer_size, buffer); // dump with return offset
 
   free(buffer);
+  return ret;
+}
+
+static int nexus_append_e_reason(const std::string &filename, const size_t e_reason_b_size, char *e_reason_b) {
+  int ret;
+  std::string uuid(20+1, ' ');
+  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
+  dump_append(AUDIT_PATH + "/" + uuid, e_reason_b_size, e_reason_b);
+
   return ret;
 }
 
@@ -130,6 +151,7 @@ static void retrieve_nexus() {
 static void* nexus_init_existing() {
   int ret;
   int rk_sealed_size; char *sealed_rk = NULL;
+  int ark_sealed_size; char *sealed_ark = NULL;
   int supernode_size; char *supernode = NULL;
   int pk_size; char *pk = NULL;
   int sk_size; char *sk = NULL;
@@ -137,6 +159,7 @@ static void* nexus_init_existing() {
   size_t sig_size = sizeof(sgx_ec256_signature_t); char sig[sig_size];
 
   rk_sealed_size = load(RK_PATH, &sealed_rk);
+  ark_sealed_size = load(ARK_PATH, &sealed_ark);
   supernode_size = load(SUPERNODE_PATH, &supernode);
   pk_size = load(options.user_pk_file, &pk);
   sk_size = load(options.user_sk_file, &sk);
@@ -145,6 +168,7 @@ static void* nexus_init_existing() {
 
   sgx_status_t status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str(),
                                                     rk_sealed_size, sealed_rk,
+                                                    ark_sealed_size, sealed_ark,
                                                     supernode_size, supernode,
                                                     nonce_size, nonce);
   if (status != SGX_SUCCESS || ret < 0)
@@ -174,7 +198,7 @@ static void* nexus_init_existing() {
 
 static void* nexus_init_new() {
   int ret;
-  if (system((char*)("mkdir "+META_PATH).c_str()) < 0 || system((char*)("mkdir "+ENCR_PATH).c_str()) < 0)
+  if (system((char*)("mkdir "+META_PATH).c_str()) < 0 || system((char*)("mkdir "+ENCR_PATH).c_str()) < 0 || system((char*)("mkdir "+AUDIT_PATH).c_str()) < 0)
     exit(1);
   else
     if (sgx_init_new_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str()) != SGX_SUCCESS || ret < 0)
@@ -219,11 +243,14 @@ static void nexus_destroy(void* private_data) {
   sgx_supernode_e_size(ENCLAVE_ID, &ret);
 
   size_t rk_sealed_size = /*AES_GCM_context::size_without_mac()*/28 + sizeof(sgx_sealed_data_t);
+  size_t ark_sealed_size = /*AES_GCM_context::size_without_mac()*/28 + sizeof(sgx_sealed_data_t);
   size_t supernode_size = ret;
   char *sealed_rk = (char*) malloc(rk_sealed_size);
+  char *sealed_ark = (char*) malloc(ark_sealed_size);
   char *supernode = (char*) malloc(supernode_size);
 
   sgx_status_t status = sgx_destroy_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk,
+                                                ark_sealed_size, sealed_ark,
                                                 supernode_size, supernode);
   if (status != SGX_SUCCESS || ret < 0) {
     std::cout << "Fail to destroy the file system." << std::endl;
@@ -232,8 +259,9 @@ static void nexus_destroy(void* private_data) {
   sgx_destroy_enclave(ENCLAVE_ID);
 
   dump(RK_PATH, rk_sealed_size, sealed_rk);
+  dump(ARK_PATH, ark_sealed_size, sealed_ark);
   dump(SUPERNODE_PATH, supernode_size, supernode);
-  free(sealed_rk); free(supernode);
+  free(sealed_rk); free(sealed_ark); free(supernode);
 }
 
 
@@ -306,10 +334,20 @@ static int nexus_create(const char *filepath, mode_t mode, struct fuse_file_info
   sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == EEXIST)
     return -EEXIST;
-  sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str());
 
-  if (ret != -EEXIST && ret != -EACCES)
+  std::string reason = nexus_retrieve_reason(filename);
+  if (reason.compare("") == 0)
+    return -ENOENT;
+  sgx_e_reason_size(ENCLAVE_ID, &ret, (char*)reason.c_str());
+  size_t e_reason_b_size = ret; char e_reason_b[e_reason_b_size];
+
+  sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (char*)reason.c_str(),
+                    e_reason_b_size, e_reason_b);
+
+  if (ret != -EEXIST && ret != -EACCES && ret != -EPROTO) {
+    nexus_append_e_reason(filename, e_reason_b_size, e_reason_b);
     nexus_write_metadata(filename);
+  }
 
   return 0;
 }
@@ -322,7 +360,20 @@ static int nexus_read(const char *filepath, char *buf, size_t size, off_t offset
   if (ret == -ENOENT)
     return -ENOENT;
 
-  sgx_read_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, buf);
+  std::string reason = nexus_retrieve_reason(filename);
+  if (reason.compare("") == 0)
+    return -ENOENT;
+  sgx_e_reason_size(ENCLAVE_ID, &ret, (char*)reason.c_str());
+  size_t e_reason_b_size = ret; char e_reason_b[e_reason_b_size];
+
+  sgx_read_file(ENCLAVE_ID, &ret, (char*)filename.c_str(),
+                (char*)reason.c_str(), e_reason_b_size, e_reason_b,
+                (long)offset, size, buf);
+
+  if (ret != -EEXIST && ret != -EACCES && ret != -EPROTO) {
+    nexus_append_e_reason(filename, e_reason_b_size, e_reason_b);
+  }
+
   return ret;
 }
 
@@ -333,9 +384,19 @@ static int nexus_write(const char *filepath, const char *data, size_t size, off_
   sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
-  sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, data);
+
+  std::string reason = nexus_retrieve_reason(filename);
+  if (reason.compare("") == 0)
+    return -ENOENT;
+  sgx_e_reason_size(ENCLAVE_ID, &ret, (char*)reason.c_str());
+  size_t e_reason_b_size = ret; char e_reason_b[e_reason_b_size];
+
+  sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(),
+                  (char*)reason.c_str(), e_reason_b_size, e_reason_b,
+                  (long)offset, size, data);
 
   if (ret != -ENOENT && ret != -EACCES) {
+    nexus_append_e_reason(filename, e_reason_b_size, e_reason_b);
     nexus_write_metadata(filename);
     nexus_write_encryption(filename, (long)offset, size);
   }
@@ -350,9 +411,14 @@ static int nexus_unlink(const char *filepath) {
   if (ret == -ENOENT)
     return -ENOENT;
 
+  std::string uuid(20+1, ' ');
+  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
   sgx_unlink(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  if (ret != -ENOENT && ret != -EACCES)
-    delete_file(META_PATH + "/" + filename);
+  if (ret != -ENOENT && ret != -EACCES) {
+    delete_file(AUDIT_PATH + "/" + uuid);
+    delete_file(META_PATH + "/" + uuid);
+    delete_file(ENCR_PATH + "/" + uuid);
+  }
   return ret;
 }
 
@@ -363,8 +429,8 @@ static struct fuse_operations nexus_oper;
 int main(int argc, char **argv) {
   std::string binary_path =  get_directory(std::string(argv[0]));
   NEXUS_DIR = binary_path + "/.nexus";
-  META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers";
-  RK_PATH = NEXUS_DIR + "/sealed_rk"; SUPERNODE_PATH = NEXUS_DIR + "/supernode";
+  META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers"; AUDIT_PATH = NEXUS_DIR + "/audit";
+  RK_PATH = NEXUS_DIR + "/sealed_rk"; ARK_PATH = NEXUS_DIR + "/sealed_ark"; SUPERNODE_PATH = NEXUS_DIR + "/supernode";
 
   int ret;
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);

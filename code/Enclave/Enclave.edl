@@ -6,9 +6,11 @@ enclave {
         public int sgx_init_new_filesystem([in, string] const char *supernode_path);
         public int sgx_init_existing_filesystem([in, string] const char *supernode_path,
                                               size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
+                                              size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark,
                                               size_t supernode_size, [in, size=supernode_size] const char *supernode,
                                               size_t nonce_size, [out, size=nonce_size] char *nonce);
         public int sgx_destroy_filesystem(size_t rk_sealed_size, [out, size=rk_sealed_size] char *sealed_rk,
+                                          size_t ark_sealed_size, [out, size=ark_sealed_size] char *sealed_ark,
                                           size_t supernode_size, [out, size=supernode_size] char* supernode);
 
         public int sgx_supernode_e_size();
@@ -28,12 +30,19 @@ enclave {
         public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
 
         public int sgx_get_uuid([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_e_reason_size([in, string] const char *reason);
+
         public int sgx_isfile([in, string] const char *filename);
         public int sgx_file_size([in, string] const char *filename);
         public int sgx_getattr([in, string] const char *filename);
-        public int sgx_create_file([in, string] const char *filename);
-        public int sgx_read_file([in, string] const char *filename, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_write_file([in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
+        public int sgx_create_file([in, string] const char *filename, [in, string] const char *reason,
+                                    size_t e_reason_b_size, [out, size=e_reason_b_size] char *e_reason_b);
+        public int sgx_read_file([in, string] const char *filename,
+                                  [in, string] const char *reason, size_t e_reason_b_size, [out, size=e_reason_b_size] char *e_reason_b,
+                                  long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_write_file([in, string] const char *filename,
+                                  [in, string] const char *reason, size_t e_reason_b_size, [out, size=e_reason_b_size] char *e_reason_b,
+                                  long offset, size_t data_size, [in, size=data_size] const char *data);
         public int sgx_unlink([in, string] const char *filename);
 
         public int sgx_e_metadata_size([in, string] const char *filename);

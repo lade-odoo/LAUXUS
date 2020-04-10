@@ -17,11 +17,11 @@
 class FileSystem {
   public:
     static const size_t DEFAULT_BLOCK_SIZE = 4096;
-    AES_GCM_context *root_key;
+    AES_GCM_context *root_key, *audit_root_key;
     Supernode *supernode;
     User *current_user;
 
-    FileSystem(AES_GCM_context *root_key, Supernode *supernode, size_t block_size);
+    FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key, Supernode *supernode, size_t block_size);
 
     int edit_user_policy(const std::string &filename, const unsigned char policy, const int user_id);
 
@@ -31,9 +31,11 @@ class FileSystem {
     bool isfile(const std::string &filename);
     int file_size(const std::string &filename);
     int getattr(const std::string &filename);
-    int create_file(const std::string &filename);
-    int read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer);
-    int write_file(const std::string &filename, const long offset, const size_t data_size, const char *data);
+    int create_file(const std::string &filename, const std::string &reason, const size_t e_reason_b_size, char *e_reason_b);
+    int read_file(const std::string &filename, const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
+                    const long offset, const size_t buffer_size, char *buffer);
+    int write_file(const std::string &filename, const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
+                    const long offset, const size_t data_size, const char *data);
     int unlink(const std::string &filename);
 
     int e_metadata_size(const std::string &filename);
