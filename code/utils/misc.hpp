@@ -4,11 +4,15 @@
 #include <string>
 #include <vector>
 
+using namespace std;
 
-std::vector<std::string> tokenize(const size_t buffer_size, const char *entries, const char separator);
 
-std::string get_directory(const std::string &filepath);
-std::string get_filename(const std::string &filepath);
+vector<string> tokenize(const size_t buffer_size, const char *entries, const char separator);
+
+string get_directory(const string &filepath);
+string get_filename(const string &filepath);
+
+int create_directory(const string &dirpath);
 
 
 #endif /*__MISC_HPP__*/

@@ -7,55 +7,52 @@ enclave {
         public int sgx_init_existing_filesystem([in, string] const char *supernode_path,
                                               size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
                                               size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark,
-                                              size_t supernode_size, [in, size=supernode_size] const char *supernode,
-                                              size_t nonce_size, [out, size=nonce_size] char *nonce);
-        public int sgx_destroy_filesystem(size_t rk_sealed_size, [out, size=rk_sealed_size] char *sealed_rk,
-                                          size_t ark_sealed_size, [out, size=ark_sealed_size] char *sealed_ark,
-                                          size_t supernode_size, [out, size=supernode_size] char* supernode);
+                                              size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
+        public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path, [in, string] const char *supernode_path);
 
-        public int sgx_supernode_e_size();
-        public int sgx_create_user([in, string] const char *username,
-                                    size_t pk_size, [out, size=pk_size] char *pk,
-                                    size_t sk_size, [out, size=sk_size] char *sk);
-        public int sgx_add_user([in, string] const char *username,
-                                size_t pk_size, [in, size=pk_size] const char *pk);
+        public int sgx_login([in, string] const char *sk_path, int user_id, size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
         public int sgx_sign_message(size_t challenge_size, [in, size=challenge_size] const char *challenge,
-                                    size_t sk_size, [in, size=sk_size] const char *sk,
-                                    size_t sig_size, [out, size=sig_size] char *sig);
-        public int sgx_validate_signature(int user_id, size_t sig_size, [in, size=sig_size] const char *sig);
+                                    size_t sk_size, [in, size=sk_size] const char *sk, size_t sig_size, [out, size=sig_size] char *sig);
 
+        public int sgx_create_user([in, string] const char *username, [in, string] const char *pk_path, [in, string] const char *sk_path);
+        public int sgx_add_user([in, string] const char *username, size_t pk_size, [in, size=pk_size] const char *pk);
+        public int sgx_remove_user(int user_id);
         public int sgx_edit_user_policy([in, string] const char *filename, unsigned char policy, int user_id);
 
         public int sgx_ls_buffer_size();
         public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
 
-        public int sgx_get_uuid([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_e_reason_size([in, string] const char *reason);
-
         public int sgx_isfile([in, string] const char *filename);
         public int sgx_file_size([in, string] const char *filename);
         public int sgx_getattr([in, string] const char *filename);
-        public int sgx_create_file([in, string] const char *filename, [in, string] const char *reason,
-                                    size_t e_reason_b_size, [out, size=e_reason_b_size] char *e_reason_b);
-        public int sgx_read_file([in, string] const char *filename,
-                                  [in, string] const char *reason, size_t e_reason_b_size, [out, size=e_reason_b_size] char *e_reason_b,
-                                  long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_write_file([in, string] const char *filename,
-                                  [in, string] const char *reason, size_t e_reason_b_size, [out, size=e_reason_b_size] char *e_reason_b,
-                                  long offset, size_t data_size, [in, size=data_size] const char *data);
+        public int sgx_create_file([in, string] const char *filename);
+        public int sgx_read_file([in, string] const char *filename, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_write_file([in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
         public int sgx_unlink([in, string] const char *filename);
 
-        public int sgx_e_metadata_size([in, string] const char *filename);
-        public int sgx_e_dump_metadata([in, string] const char *filename, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_e_dump_metadata([in, string] const char *filename, [in, string] const char *dest_dir);
         public int sgx_e_load_metadata([in, string] const char *uuid, size_t buffer_size, [in, size=buffer_size] const char *buffer);
 
-        public int sgx_e_file_size([in, string] const char *filename, long up_offset, size_t up_size);
-        public int sgx_e_dump_file([in, string] const char *filename, long up_offset, size_t up_size, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_e_dump_file([in, string] const char *filename, [in, string] const char *dest_dir, long up_offset, size_t up_size);
         public int sgx_e_load_file([in, string] const char *uuid, long offset, size_t buffer_size, [in, size=buffer_size] const char *buffer);
+
+        public int sgx_e_dump_audit([in, string] const char *filename, [in, string] const char *dest_dir, [in, string] const char *reason);
+
+        public int sgx_delete_file([in, string] const char *filename, [in, string] const char *dir);
     };
 
     untrusted {
         /* define OCALLs here. */
-        void ocall_print([in, string] const char* str);
+        void ocall_print([in, string] const char *str);
+
+        int ocall_dump([in, string] const char *path, size_t size, [in, size=size] const char *buffer);
+        int ocall_dump_in_dir([in, string] const char *dir, [in, string] const char *file, size_t size, [in, size=size] const char *buffer);
+        int ocall_dump_append_in_dir([in, string] const char *dir, [in, string] const char *file, size_t size, [in, size=size] const char *buffer);
+        int ocall_dump_with_offset_in_dir([in, string] const char *dir, [in, string] const char *file, size_t offset, size_t size, [in, size=size] const char *buffer);
+
+        int ocall_delete_from_dir([in, string] const char *dir, [in, string] const char *path);
+
+        int ocall_sign_challenge([in, string] const char *sk_path, size_t nonce_size, [in, size=nonce_size] const char *nonce,
+                                size_t sig_size, [out, size=sig_size] char *sig) allow(sgx_sign_message);
     };
 };

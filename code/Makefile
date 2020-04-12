@@ -74,7 +74,7 @@ else
 endif
 
 # App_Cpp_Files := App/App.cpp $(wildcard App/Edger8rSyntax/*.cpp) $(wildcard App/TrustedLibrary/*.cpp)
-App_Cpp_Files := App/App.cpp App/sgx_utils/sgx_utils.cpp utils/serialization.cpp utils/misc.cpp
+App_Cpp_Files := App/main.cpp App/untrusted.cpp App/App.cpp App/options_utils/options.cpp App/sgx_utils/sgx_utils.cpp utils/serialization.cpp utils/misc.cpp
 # App_Include_Paths := -IInclude -IApp -I$(SGX_SDK)/include
 App_Include_Paths := -IApp -I$(SGX_SDK)/include
 

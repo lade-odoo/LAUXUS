@@ -1,271 +1,267 @@
-#define FUSE_USE_VERSION 29
+#include "../App/App.hpp"
+#include "../App/options_utils/options.hpp"
 
-#include <stdio.h>
 #include <cstring>
 #include <vector>
 #include <iostream>
 #include <fuse.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <assert.h>
 
 #include "Enclave_u.h"
-#include "sgx_urts.h"
-#include "sgx_tcrypto.h"
+#include "sgx_error.h"
 #include "sgx_utils/sgx_utils.h"
 #include "../utils/serialization.hpp"
 #include "../utils/misc.hpp"
 
+
+using namespace std;
+
 /* Global EID shared by multiple threads */
+static string NEXUS_DIR;
+static string RK_PATH, ARK_PATH;
+static string SUPERNODE_PATH;
+static string META_PATH, ENCR_PATH, AUDIT_PATH;
+
 static sgx_enclave_id_t ENCLAVE_ID;
 static const char BUFFER_SEPARATOR = 0x1C;
-static std::string NEXUS_DIR, META_PATH, ENCR_PATH, AUDIT_PATH, RK_PATH, ARK_PATH, SUPERNODE_PATH;
 static const size_t DEFAULT_BLOCK_SIZE = 4096;
 
 
-static struct options {
-  int new_user, create_fs, show_help, edit_policies_user;
-  int edit_policies_user_id, user_id;
-  unsigned char new_policy;
-	char *user_pk_file, *user_sk_file;
-	char *new_user_pk_file, *new_username;
-  char *new_policy_filename;
-} options;
 
-#define OPTION(t, p)                           \
-    { t, offsetof(struct options, p), 1 }
-static const struct fuse_opt option_spec[] = {
-	OPTION("-h", show_help),
-	OPTION("--help", show_help),
-
-	OPTION("--user_pk_file=%s", user_pk_file),
-	OPTION("--user_sk_file=%s", user_sk_file),
-	OPTION("--user_id=%d", user_id),
-
-	OPTION("--create_fs", create_fs),
-
-	OPTION("--new_user", new_user),
-  OPTION("--new_user_pk_file=%s", new_user_pk_file),
-	OPTION("--new_username=%s", new_username),
-
-	OPTION("--edit_policies_user", edit_policies_user),
-	OPTION("--new_policy=%d", new_policy),
-	OPTION("--new_policy_filename=%s", new_policy_filename),
-	OPTION("--edit_policies_user_id=%d", edit_policies_user_id),
-	FUSE_OPT_END
-};
-
-
-
-// OCall implementations
-void ocall_print(const char* str) {
-  printf("%s\n", str);
+// okay
+void App::init(const string &binary_path) {
+  NEXUS_DIR = binary_path + "/.nexus";
+  RK_PATH = NEXUS_DIR + "/sealed_rk";
+  ARK_PATH = NEXUS_DIR + "/sealed_ark";
+  SUPERNODE_PATH = NEXUS_DIR + "/supernode";
+  META_PATH = NEXUS_DIR + "/metadata";
+  ENCR_PATH = NEXUS_DIR + "/ciphers";
+  AUDIT_PATH = NEXUS_DIR + "/audit";
 }
 
 
-static std::string nexus_retrieve_reason(const std::string &filename) {
-  char *buffer = NULL;
-  int reason_size = load("/tmp/nexus/" + filename + ".reason", &buffer);
-  if (reason_size < 0)
-    return "";
-
-  std::string reason(reason_size-1, ' ');
-  std::memcpy(const_cast<char*>(reason.data()), buffer, reason_size);
-  free(buffer);
-  return reason;
-}
-
-
-static int nexus_write_metadata(const std::string &filename) {
-  int ret;
-  sgx_e_metadata_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
-
-  sgx_e_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), buffer_size, buffer);
-
-  std::string uuid(20+1, ' ');
-  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
-  dump(META_PATH + "/" + uuid, buffer_size, buffer);
-
-  free(buffer);
-  return ret;
-}
-
-static int nexus_write_encryption(const std::string &filename, long offset, size_t updated_size) {
-  int ret;
-  sgx_e_file_size(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size);
-  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
-
-  sgx_e_dump_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), offset, updated_size, buffer_size, buffer);
-
-  std::string uuid(20+1, ' ');
-  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
-  dump_with_offset(ENCR_PATH + "/" + uuid, ret, buffer_size, buffer); // dump with return offset
-
-  free(buffer);
-  return ret;
-}
-
-static int nexus_append_e_reason(const std::string &filename, const size_t e_reason_b_size, char *e_reason_b) {
-  int ret;
-  std::string uuid(20+1, ' ');
-  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
-  dump_append(AUDIT_PATH + "/" + uuid, e_reason_b_size, e_reason_b);
-
-  return ret;
-}
-
-
-static void retrieve_nexus_meta() {
-  std::vector<std::string> files = read_directory(META_PATH);
-  for(auto itr = files.begin(); itr != files.end(); ++itr) {
-    std::string uuid = *itr; int ret; size_t buffer_size; char *buffer = NULL;
-
-    // retrieve metadata in one batch
-    buffer_size = load(META_PATH + "/" + uuid, &buffer);
-    sgx_e_load_metadata(ENCLAVE_ID, &ret, (char*)uuid.c_str(), buffer_size, buffer);
-    free(buffer);
-  }
-}
-
-static void retrieve_nexus_ciphers() {
-  std::vector<std::string> files = read_directory(ENCR_PATH);
-
-  for(auto itr = files.begin(); itr != files.end(); ++itr) {
-    std::string filename = *itr; int ret; size_t buffer_size; char *buffer = NULL;
-
-    for (size_t read = 0; read % DEFAULT_BLOCK_SIZE == 0; read += buffer_size) {
-      buffer_size = load_with_offset(ENCR_PATH + "/" + filename, read, DEFAULT_BLOCK_SIZE, &buffer);
-      sgx_e_load_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
-      free(buffer);
-    }
-  }
-}
-
-static void retrieve_nexus() {
-  retrieve_nexus_meta();
-  retrieve_nexus_ciphers();
-}
-
-
-static void* nexus_init_existing() {
-  int ret;
-  int rk_sealed_size; char *sealed_rk = NULL;
-  int ark_sealed_size; char *sealed_ark = NULL;
-  int supernode_size; char *supernode = NULL;
-  int pk_size; char *pk = NULL;
-  int sk_size; char *sk = NULL;
-  size_t nonce_size = 32; char nonce[nonce_size];
-  size_t sig_size = sizeof(sgx_ec256_signature_t); char sig[sig_size];
-
-  rk_sealed_size = load(RK_PATH, &sealed_rk);
-  ark_sealed_size = load(ARK_PATH, &sealed_ark);
-  supernode_size = load(SUPERNODE_PATH, &supernode);
-  pk_size = load(options.user_pk_file, &pk);
-  sk_size = load(options.user_sk_file, &sk);
-  if (rk_sealed_size < 0 || supernode_size < 0 || pk_size < 0 || sk_size < 0)
-    exit(1);
-
-  sgx_status_t status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str(),
-                                                    rk_sealed_size, sealed_rk,
-                                                    ark_sealed_size, sealed_ark,
-                                                    supernode_size, supernode,
-                                                    nonce_size, nonce);
-  if (status != SGX_SUCCESS || ret < 0)
-    exit(1);
-
-  size_t challenge_size = nonce_size + supernode_size; char challenge[challenge_size];
-  std::memcpy(challenge, nonce, nonce_size);
-  std::memcpy(challenge+nonce_size, supernode, supernode_size);
-
-  status = sgx_sign_message(ENCLAVE_ID, &ret, challenge_size, challenge,
-              sk_size, sk, sig_size, sig);
-  if (status != SGX_SUCCESS || ret < 0)
-    exit(1);
-
-  // must use pk stored inside FS
-  status = sgx_validate_signature(ENCLAVE_ID, &ret, options.user_id, sig_size, sig);
-  if (status != SGX_SUCCESS || ret < 0) {
-    std::cout << "Fail to validate PKI signature." << std::endl;
-    exit(1);
-  }
-
-  free(sealed_rk); free(supernode);
-  free(pk); free(sk);
-
-  retrieve_nexus();
-}
-
-static void* nexus_init_new() {
-  int ret;
-  if (system((char*)("mkdir "+META_PATH).c_str()) < 0 || system((char*)("mkdir "+ENCR_PATH).c_str()) < 0 || system((char*)("mkdir "+AUDIT_PATH).c_str()) < 0)
-    exit(1);
-  else
-    if (sgx_init_new_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str()) != SGX_SUCCESS || ret < 0)
-      exit(1);
-
-  char *pk = (char*) malloc(sizeof(sgx_ec256_public_t));
-  char *sk = (char*) malloc(sizeof(sgx_ec256_private_t));
-  size_t pk_size = sizeof(sgx_ec256_public_t);
-  size_t sk_size = sizeof(sgx_ec256_private_t);
-
-  sgx_status_t status = sgx_create_user(ENCLAVE_ID, &ret, options.new_username, pk_size, pk, sk_size, sk);
-  if (status != SGX_SUCCESS || ret < 0)
-    exit(1);
-
-  if (dump(options.user_pk_file, pk_size, pk) < 0 ||
-      dump(options.user_sk_file, sk_size, sk) < 0)
-    exit(1);
-
-  free(sk); free(pk);
-  return 0;
-}
-
-static void* nexus_init(struct fuse_conn_info *conn) {
-  std::string path_token = NEXUS_DIR + "/enclave.token";
-  std::string path_so = NEXUS_DIR + "/enclave.signed.so";
+// okay
+int App::init_enclave() {
+  string path_token = NEXUS_DIR + "/enclave.token";
+  string path_so = NEXUS_DIR + "/enclave.signed.so";
   int initialized = initialize_enclave(&ENCLAVE_ID, path_token, path_so);
-  if (initialized < 0) {
-    std::cout << "Fail to initialize enclave." << std::endl;
+  return initialized;
+}
+
+// okay
+void App::destroy_enclave() {
+  sgx_destroy_enclave(ENCLAVE_ID);
+}
+
+
+// okay
+void* App::fuse_init(struct fuse_conn_info *conn) {
+  if (nexus_load() < 0) {
+    cout << "Failed to load the filesystem !" << endl;
     exit(1);
   }
-
-  if (options.create_fs)
-    nexus_init_new();
-  else
-    nexus_init_existing();
+  struct nexus_options *options = (struct nexus_options*) fuse_get_context()->private_data;
+  if (nexus_login(options->user_sk_file, options->user_id) < 0) {
+    cout << "Failed to login in the filesystem !" << endl;
+    exit(1);
+  }
+  if (retrieve_nexus_content() < 0) {
+    cout << "Failed to retrieve Nexus previous content !" << endl;
+    exit(1);
+  }
 
   return &ENCLAVE_ID;
 }
 
-static void nexus_destroy(void* private_data) {
-  int ret;
-  sgx_supernode_e_size(ENCLAVE_ID, &ret);
-
-  size_t rk_sealed_size = /*AES_GCM_context::size_without_mac()*/28 + sizeof(sgx_sealed_data_t);
-  size_t ark_sealed_size = /*AES_GCM_context::size_without_mac()*/28 + sizeof(sgx_sealed_data_t);
-  size_t supernode_size = ret;
-  char *sealed_rk = (char*) malloc(rk_sealed_size);
-  char *sealed_ark = (char*) malloc(ark_sealed_size);
-  char *supernode = (char*) malloc(supernode_size);
-
-  sgx_status_t status = sgx_destroy_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk,
-                                                ark_sealed_size, sealed_ark,
-                                                supernode_size, supernode);
-  if (status != SGX_SUCCESS || ret < 0) {
-    std::cout << "Fail to destroy the file system." << std::endl;
-    exit(1);
+// okay
+int App::nexus_create() {
+  if (create_directory(ENCR_PATH) < 0 || create_directory(META_PATH) < 0 || create_directory(AUDIT_PATH) < 0) {
+    cout << "Failed to create required directories !" << endl;
+    return -1;
   }
-  sgx_destroy_enclave(ENCLAVE_ID);
+  if (init_enclave() < 0) {
+    cout << "Failed to initialize the Enclave !" << endl;
+    return -1;
+  }
 
-  dump(RK_PATH, rk_sealed_size, sealed_rk);
-  dump(ARK_PATH, ark_sealed_size, sealed_ark);
-  dump(SUPERNODE_PATH, supernode_size, supernode);
-  free(sealed_rk); free(sealed_ark); free(supernode);
+  int ret;
+  sgx_status_t sgx_status = sgx_init_new_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !", ret))
+    return -1;
+
+  return 0;
+}
+
+// okay
+int App::nexus_load() {
+  if (init_enclave() < 0) {
+    cout << "Failed to initialize the Enclave !" << endl;
+    return -1;
+  }
+
+  char *sealed_rk = NULL, *sealed_ark = NULL, *e_supernode = NULL;
+  int rk_sealed_size = load(RK_PATH, &sealed_rk);
+  int ark_sealed_size = load(ARK_PATH, &sealed_ark);
+  int e_supernode_size = load(SUPERNODE_PATH, &e_supernode);
+  if (rk_sealed_size < 0 || ark_sealed_size < 0 || e_supernode_size < 0)
+    return -1;
+
+  int ret;
+  sgx_status_t sgx_status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str(),
+                              rk_sealed_size, sealed_rk, ark_sealed_size, sealed_ark, e_supernode_size, e_supernode);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !", ret))
+    return -1;
+
+  free(sealed_rk); free(sealed_ark); free(e_supernode);
+  return 0;
+}
+
+// okay
+int App::nexus_login(const char *sk_path, int user_id) {
+  char *e_supernode = NULL;
+  int e_supernode_size = load(SUPERNODE_PATH, &e_supernode);
+  if (e_supernode_size < 0)
+    return -1;
+
+  int ret;
+  sgx_status_t sgx_status = sgx_login(ENCLAVE_ID, &ret, sk_path, user_id, e_supernode_size, e_supernode);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to login to the filesystem !", ret))
+    return -1;
+
+  free(e_supernode);
+  return 0;
 }
 
 
-static int nexus_getattr(const char *path, struct stat *stbuf) {
+// okay
+void App::fuse_destroy(void* private_data) {
+  if (nexus_destroy() < 0)
+    exit(1);
+}
+
+// okay
+int App::nexus_destroy() {
+  int ret;
+  sgx_status_t sgx_status = sgx_destroy_filesystem(ENCLAVE_ID, &ret,
+            (char*)RK_PATH.c_str(), (char*)ARK_PATH.c_str(), (char*)SUPERNODE_PATH.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to destroy the filesystem !", ret))
+    return -1;
+
+  destroy_enclave();
+  return 0;
+}
+
+
+int App::retrieve_nexus_content() {
+  if (retrieve_nexus_meta() < 0)
+    return -1;
+  if (retrieve_nexus_ciphers() < 0)
+    return -1;
+}
+
+// okay
+int App::retrieve_nexus_meta() {
+  vector<string> files = read_directory(META_PATH);
+  for(auto itr = files.begin(); itr != files.end(); ++itr) {
+    string uuid = *itr;
+    int ret; int buffer_size; char *buffer = NULL;
+
+    // retrieve metadata in one batch
+    buffer_size = load(META_PATH + "/" + uuid, &buffer);
+    if (buffer_size < 0)
+      return -1;
+
+    sgx_status_t sgx_status = sgx_e_load_metadata(ENCLAVE_ID, &ret, (char*)uuid.c_str(), buffer_size, buffer);
+    if (!is_ecall_successful(sgx_status, "[SGX] Fail to load metadata !", ret))
+      return -1;
+
+    free(buffer);
+  }
+  return 0;
+}
+
+// okay
+int App::retrieve_nexus_ciphers() {
+  vector<string> files = read_directory(ENCR_PATH);
+
+  for(auto itr = files.begin(); itr != files.end(); ++itr) {
+    string filename = *itr;
+    int ret; int buffer_size; char *buffer = NULL;
+
+    for (size_t read = 0; read % DEFAULT_BLOCK_SIZE == 0; read += buffer_size) {
+      buffer_size = load_with_offset(ENCR_PATH + "/" + filename, read, DEFAULT_BLOCK_SIZE, &buffer);
+      if (buffer_size < 0)
+        return -1;
+
+      sgx_status_t sgx_status = sgx_e_load_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), read, buffer_size, buffer);
+      if (!is_ecall_successful(sgx_status, "[SGX] Fail to load file !", ret))
+        return -1;
+
+      free(buffer);
+    }
+  }
+  return 0;
+}
+
+int App::retrieve_nexus_audits() {
+  return 0;
+}
+
+
+// okay
+int App::nexus_write_metadata(const string &filename) {
+  int ret;
+  sgx_status_t sgx_status = sgx_e_dump_metadata(ENCLAVE_ID, &ret, (char*)filename.c_str(), (char*)META_PATH.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to dump metadata !", ret))
+    return -1;
+
+  return ret;
+}
+
+// okay
+int App::nexus_write_encryption(const string &filename, long offset, size_t updated_size) {
+  int ret;
+  sgx_status_t sgx_status = sgx_e_dump_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (char*)ENCR_PATH.c_str(), offset, updated_size);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to dump metadata !", ret))
+    return -1;
+
+  return ret;
+}
+
+// okay
+int App::nexus_append_reason(const string &filename) {
+  char *buffer = NULL;
+  int reason_size = load("/tmp/nexus/" + filename + ".reason", &buffer);
+  if (reason_size < 0) {
+    cout << "Failed to retrieve the reason !";
+    return -1;
+  }
+
+  string reason(reason_size-1, ' ');
+  memcpy(const_cast<char*>(reason.data()), buffer, reason_size);
+  free(buffer);
+
+  int ret;
+  sgx_status_t sgx_status = sgx_e_dump_audit(ENCLAVE_ID, &ret, (char*)filename.c_str(), (char*)AUDIT_PATH.c_str(), (char*)reason.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to dump audit !", ret))
+    return -1;
+
+  return ret;
+}
+
+// okay
+int App::nexus_delete_file(const string &dir, const string &filename) {
+  int ret;
+  sgx_status_t sgx_status = sgx_delete_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (char*)dir.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to dump audit !", ret))
+    return -1;
+
+  return ret;
+}
+
+
+// okay
+int App::fuse_getattr(const char *path, struct stat *stbuf) {
 	memset(stbuf, 0, sizeof(struct stat));
   stbuf->st_uid = getuid();
   stbuf->st_gid = getgid();
@@ -278,15 +274,23 @@ static int nexus_getattr(const char *path, struct stat *stbuf) {
 	}
 
   int ret;
-  std::string filename = get_filename(path);
-  sgx_status_t status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  string filename = get_filename(path);
+  sgx_status_t sgx_status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
 
   if (ret == EEXIST) {
-    sgx_getattr(ENCLAVE_ID, &ret, (char*)filename.c_str());
+    sgx_status = sgx_getattr(ENCLAVE_ID, &ret, (char*)filename.c_str());
+    if (!is_ecall_successful(sgx_status, "[SGX] Fail to load file attribute !", ret))
+      return -EPROTO;
+
     stbuf->st_mode = S_IFREG | (ret + ret*8 + ret*64); // 3 LSB base 8
     stbuf->st_nlink = 1;
 
-    sgx_file_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
+    sgx_status = sgx_file_size(ENCLAVE_ID, &ret, (char*)filename.c_str());
+    if (!is_ecall_successful(sgx_status, "[SGX] Fail to load file size !", ret))
+      return -EPROTO;
+
     stbuf->st_size = ret;
     return 0;
   }
@@ -294,227 +298,230 @@ static int nexus_getattr(const char *path, struct stat *stbuf) {
   return -ENOENT;
 }
 
-static int nexus_fgetattr(const char *path, struct stat *stbuf,
+// okay
+int App::fuse_fgetattr(const char *path, struct stat *stbuf,
                    struct fuse_file_info *) {
-  return nexus_getattr(path, stbuf);
+  return fuse_getattr(path, stbuf);
 }
 
 
-static int nexus_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+// okay
+int App::fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                          off_t offset, struct fuse_file_info *fi) {
   filler(buf, ".", NULL, 0);
   filler(buf, "..", NULL, 0);
 
   int ret;
-  sgx_ls_buffer_size(ENCLAVE_ID, &ret);
-  const size_t buffer_size = ret; char *buffer = (char*) malloc(buffer_size);
-  sgx_readdir(ENCLAVE_ID, &ret, BUFFER_SEPARATOR, buffer_size, buffer);
-  std::vector<std::string> files = tokenize(buffer_size, buffer, BUFFER_SEPARATOR);
+  sgx_status_t sgx_status = sgx_ls_buffer_size(ENCLAVE_ID, &ret);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load ls buffer size !"))
+    return -EPROTO;
+
+  const size_t buffer_size = ret;
+  char buffer[buffer_size];
+  sgx_status = sgx_readdir(ENCLAVE_ID, &ret, BUFFER_SEPARATOR, buffer_size, buffer);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load directory entries !"))
+    return -EPROTO;
+
+  vector<string> files = tokenize(buffer_size, buffer, BUFFER_SEPARATOR);
   for (auto it = files.begin(); it != files.end(); it++) {
     filler(buf, (char*)it->c_str(), NULL, 0);
   }
 
-  free(buffer);
   return 0;
 }
 
 
-static int nexus_open(const char *filepath, struct fuse_file_info *) {
-  std::string filename = get_filename(filepath);
+// okay
+int App::fuse_open(const char *filepath, struct fuse_file_info *) {
+  string filename = get_filename(filepath);
   int ret;
-  sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  sgx_status_t sgx_status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
+
   return 0;
 }
 
-static int nexus_create(const char *filepath, mode_t mode, struct fuse_file_info *) {
-  std::string filename = get_filename(filepath);
+// okay
+int App::fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *) {
+  string filename = get_filename(filepath);
   int ret;
-  sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  sgx_status_t sgx_status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == EEXIST)
     return -EEXIST;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
 
-  std::string reason = nexus_retrieve_reason(filename);
-  if (reason.compare("") == 0)
-    return -ENOENT;
-  sgx_e_reason_size(ENCLAVE_ID, &ret, (char*)reason.c_str());
-  size_t e_reason_b_size = ret; char e_reason_b[e_reason_b_size];
+  sgx_status = sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to create file !"))
+    return -EPROTO;
 
-  sgx_create_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (char*)reason.c_str(),
-                    e_reason_b_size, e_reason_b);
-
-  if (ret != -EEXIST && ret != -EACCES && ret != -EPROTO) {
-    nexus_append_e_reason(filename, e_reason_b_size, e_reason_b);
-    nexus_write_metadata(filename);
-  }
+  if (ret < 0)
+    return ret;
+  if (nexus_append_reason(filename) < 0)
+    return -EPROTO;
+  if (nexus_write_metadata(filename) < 0)
+    return -EPROTO;
 
   return 0;
 }
 
-static int nexus_read(const char *filepath, char *buf, size_t size, off_t offset,
+// okay
+int App::fuse_read(const char *filepath, char *buf, size_t size, off_t offset,
                       struct fuse_file_info *) {
-  std::string filename = get_filename(filepath);
+  string filename = get_filename(filepath);
   int ret;
-  sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  sgx_status_t sgx_status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
 
-  std::string reason = nexus_retrieve_reason(filename);
-  if (reason.compare("") == 0)
-    return -ENOENT;
-  sgx_e_reason_size(ENCLAVE_ID, &ret, (char*)reason.c_str());
-  size_t e_reason_b_size = ret; char e_reason_b[e_reason_b_size];
+  if (nexus_append_reason(filename) < 0)
+    return -EPROTO;
 
-  sgx_read_file(ENCLAVE_ID, &ret, (char*)filename.c_str(),
-                (char*)reason.c_str(), e_reason_b_size, e_reason_b,
-                (long)offset, size, buf);
+  sgx_status = sgx_read_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, buf);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to read file !"))
+    return -EPROTO;
 
-  if (ret != -EEXIST && ret != -EACCES && ret != -EPROTO) {
-    nexus_append_e_reason(filename, e_reason_b_size, e_reason_b);
-  }
+  if (ret < 0)
+    return ret;
 
   return ret;
 }
 
-static int nexus_write(const char *filepath, const char *data, size_t size, off_t offset,
+// okay
+int App::fuse_write(const char *filepath, const char *data, size_t size, off_t offset,
                 struct fuse_file_info *) {
-  std::string filename = get_filename(filepath);
+  string filename = get_filename(filepath);
   int ret;
-  sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  sgx_status_t sgx_status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
 
-  std::string reason = nexus_retrieve_reason(filename);
-  if (reason.compare("") == 0)
-    return -ENOENT;
-  sgx_e_reason_size(ENCLAVE_ID, &ret, (char*)reason.c_str());
-  size_t e_reason_b_size = ret; char e_reason_b[e_reason_b_size];
+  if (nexus_append_reason(filename) < 0)
+    return -EPROTO;
 
-  sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(),
-                  (char*)reason.c_str(), e_reason_b_size, e_reason_b,
-                  (long)offset, size, data);
+  sgx_status = sgx_write_file(ENCLAVE_ID, &ret, (char*)filename.c_str(), (long)offset, size, data);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to write file !"))
+    return -EPROTO;
 
-  if (ret != -ENOENT && ret != -EACCES) {
-    nexus_append_e_reason(filename, e_reason_b_size, e_reason_b);
-    nexus_write_metadata(filename);
-    nexus_write_encryption(filename, (long)offset, size);
-  }
+  if (ret < 0)
+    return ret;
+  if (nexus_write_metadata(filename) < 0)
+    return -EPROTO;
+  if (nexus_write_encryption(filename, (long)offset, size) < 0)
+    return -EPROTO;
 
   return ret;
 }
 
-static int nexus_unlink(const char *filepath) {
-  std::string filename = get_filename(filepath);
+// okay
+int App::fuse_unlink(const char *filepath) {
+  string filename = get_filename(filepath);
   int ret;
-  sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  sgx_status_t sgx_status = sgx_isfile(ENCLAVE_ID, &ret, (char*)filename.c_str());
   if (ret == -ENOENT)
     return -ENOENT;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
 
-  std::string uuid(20+1, ' ');
-  sgx_get_uuid(ENCLAVE_ID, &ret, (char*)filename.c_str(), 20+1, const_cast<char*>(uuid.data()));
-  sgx_unlink(ENCLAVE_ID, &ret, (char*)filename.c_str());
-  if (ret != -ENOENT && ret != -EACCES) {
-    delete_file(AUDIT_PATH + "/" + uuid);
-    delete_file(META_PATH + "/" + uuid);
-    delete_file(ENCR_PATH + "/" + uuid);
-  }
-  return ret;
+  if (ret < 0)
+    return ret;
+  if (nexus_delete_file(ENCR_PATH, filename) < 0)
+    return -EPROTO;
+  if (nexus_delete_file(META_PATH, filename) < 0)
+    return -EPROTO;
+  if (nexus_delete_file(AUDIT_PATH, filename) < 0)
+    return -EPROTO;
+
+  sgx_status = sgx_unlink(ENCLAVE_ID, &ret, (char*)filename.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to unlink entry !"))
+    return -EPROTO;
+
+  return 0;
 }
 
 
-
-static struct fuse_operations nexus_oper;
-
-int main(int argc, char **argv) {
-  std::string binary_path =  get_directory(std::string(argv[0]));
-  NEXUS_DIR = binary_path + "/.nexus";
-  META_PATH = NEXUS_DIR + "/metadata"; ENCR_PATH = NEXUS_DIR + "/ciphers"; AUDIT_PATH = NEXUS_DIR + "/audit";
-  RK_PATH = NEXUS_DIR + "/sealed_rk"; ARK_PATH = NEXUS_DIR + "/sealed_ark"; SUPERNODE_PATH = NEXUS_DIR + "/supernode";
-
+// okay
+int App::nexus_create_user(const char *username, const char *pk_file, const char *sk_file) {
   int ret;
-  struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+  sgx_status_t sgx_status = sgx_create_user(ENCLAVE_ID, &ret, username, pk_file, sk_file);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to create a new user !", ret))
+    return -1;
 
-  /* Set defaults -- we have to use strdup so that
-	   fuse_opt_parse can free the defaults if other
-	   values are specified */
-	options.user_pk_file = strdup((char*)(binary_path + "/ecc-256-public-key.spki").c_str());
-  options.user_sk_file = strdup((char*)(binary_path + "/ecc-256-private-key.p8").c_str());
+  return ret;
+}
 
-  /* Parse options */
-	if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
-		return 1;
+// okay
+int App::nexus_add_user(const char *username, const char *pk_file) {
+  int ret;
+  char *pk = NULL;
+  int pk_size = load(pk_file, &pk);
+  if (pk_size < 0)
+    return -1;
+  cout << "Loaded pk" << endl;
 
-  /* When --help is specified, first print our own file-system
-	   specific help text, then signal fuse_main to show
-	   additional help (by adding `--help` to the options again)
-	   without usage: line (by setting argv[0] to the empty
-	   string) */
-	if (options.show_help) {
-		assert(fuse_opt_add_arg(&args, "--help") == 0);
-		args.argv[0][0] = '\0';
-	} else if (options.user_id < 0 && options.new_username == NULL) {
-    std::cout << "Missing username." << std::endl;
-    fuse_opt_free_args(&args);
-    return 0;
-  } else if (options.create_fs && options.new_username != NULL) {
-    nexus_init(NULL);
-    nexus_destroy(NULL);
-    fuse_opt_free_args(&args);
-    std::cout << "FS successfully created." << std::endl;
-    return 0;
-  } else if (options.new_user && options.new_user_pk_file != NULL && options.new_username != NULL && options.user_id >= 0) {
-    nexus_init(NULL);
+  sgx_status_t sgx_status = sgx_add_user(ENCLAVE_ID, &ret, username, pk_size, pk);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to add a user !"))
+    return -1;
+  cout << "Added !" << endl;
 
-    int ret;
-    int pk_size = sizeof(sgx_ec256_public_t); char *pk = NULL;
-    pk_size = load(options.new_user_pk_file, &pk);
-    if (pk_size < 0)
-      exit(1);
+  return ret;
+}
 
-    sgx_status_t status = sgx_add_user(ENCLAVE_ID, &ret, options.new_username, pk_size, pk);
-    if (status != SGX_SUCCESS || ret < 0) {
-      std::cout << "Impossible to add a new user." << std::endl;
-      exit(1);
-    }
+// okay
+int App::nexus_remove_user(int user_id) {
+  int ret;
+  sgx_status_t sgx_status = sgx_remove_user(ENCLAVE_ID, &ret, user_id);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to remove a user !"))
+    return -1;
 
-    nexus_destroy(NULL);
-    fuse_opt_free_args(&args);
-    std::cout << "User successfully created." << std::endl;
-    return 0;
-  } else if (options.edit_policies_user && options.new_policy_filename != NULL && options.edit_policies_user_id > 0 && options.user_id >= 0) {
-    nexus_init(NULL);
+  return ret;
+}
 
-    sgx_status_t status = sgx_edit_user_policy(ENCLAVE_ID, &ret, options.new_policy_filename, options.new_policy, options.edit_policies_user_id);
-    if (status != SGX_SUCCESS || ret < 0) {
-      std::cout << "Impossible to edit this user policies." << std::endl;
-      exit(1);
-    }
-
-    nexus_write_metadata(options.new_policy_filename);
-    nexus_destroy(NULL);
-    fuse_opt_free_args(&args);
-    std::cout << "User policies successfully updated." << std::endl;
-    return 0;
+int App::nexus_edit_user_policy(const int user_id, const char *filepath, const unsigned char policy) {
+  int ret;
+  sgx_status_t status = sgx_edit_user_policy(ENCLAVE_ID, &ret, filepath, policy, user_id);
+  if (status != SGX_SUCCESS || ret < 0) {
+    cout << "Impossible to edit this user policies." << endl;
+    exit(1);
   }
 
-
-  nexus_oper.init = nexus_init;
-  nexus_oper.destroy = nexus_destroy;
-
-  nexus_oper.getattr = nexus_getattr;
-  nexus_oper.fgetattr = nexus_fgetattr;
-
-  nexus_oper.readdir = nexus_readdir;
-
-  nexus_oper.open = nexus_open;
-  nexus_oper.create = nexus_create;
-  nexus_oper.read = nexus_read;
-  nexus_oper.write = nexus_write;
-  nexus_oper.unlink = nexus_unlink;
+  App::nexus_write_metadata(filepath);
+  return 0;
+}
 
 
-  ret = fuse_main(args.argc, args.argv, &nexus_oper, NULL);
-  fuse_opt_free_args(&args);
-  return ret;
+// okay
+int ocall_sign_challenge(const char *sk_path, size_t nonce_size, const char *nonce, size_t sig_size, char *sig) {
+  // load sk
+  char *sk = NULL;
+  int sk_size = load(sk_path, &sk);
+  if (sk_size < 0)
+    return -1;
+
+  // load encrypted supernode
+  char *e_supernode = NULL;
+  int e_supernode_size = load(SUPERNODE_PATH, &e_supernode);
+  if (e_supernode_size <= 0)
+    return -1;
+
+  // construct the challenge
+  size_t challenge_size = nonce_size + e_supernode_size;
+  char challenge[challenge_size];
+  memcpy(challenge, nonce, nonce_size);
+  memcpy(challenge+nonce_size, e_supernode, e_supernode_size);
+
+  // sign it
+  int ret;
+  sgx_status_t sgx_status = sgx_sign_message(ENCLAVE_ID, &ret, challenge_size, challenge, sk_size, sk, sig_size, sig);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to sign the challenge !", ret))
+    return -1;
+
+  return 0;
 }

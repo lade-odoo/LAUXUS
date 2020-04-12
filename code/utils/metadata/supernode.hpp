@@ -16,7 +16,7 @@ class Supernode: public Node {
     ~Supernode();
 
     User *add_user(User *user);
-    User *remove_user(User *user);
+    User *remove_user_from_id(int user_id);
     User *check_user(User *user);
     User *retrieve_user(int user_id);
 

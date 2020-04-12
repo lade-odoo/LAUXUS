@@ -5,6 +5,8 @@
 #include "../utils/metadata/supernode.hpp"
 #include "../utils/metadata/filenode_audit.hpp"
 
+#include "../Enclave/Enclave_t.h"
+
 #include <cerrno>
 #include <string>
 #include <vector>
@@ -63,19 +65,6 @@ std::vector<std::string> FileSystem::readdir() {
 }
 
 
-int FileSystem::get_uuid(const std::string &filename, const size_t buffer_size, char *buffer) {
-  Filenode *node = FileSystem::retrieve_node(filename);
-  if (node == NULL)
-    return -ENOENT;
-
-  int uuid_len = node->uuid.length() + 1;
-  if (buffer_size < uuid_len)
-    return -1;
-
-  std::memcpy(buffer, node->uuid.c_str(), uuid_len);
-  return 0;
-}
-
 bool FileSystem::isfile(const std::string &filename) {
   return this->files->find(filename) != this->files->end();
 }
@@ -94,15 +83,10 @@ int FileSystem::getattr(const std::string &filename) {
   return node->getattr(this->current_user);
 }
 
-int FileSystem::create_file(const std::string &filename, const std::string &reason,
-                            const size_t e_reason_b_size, char *e_reason_b) {
+int FileSystem::create_file(const std::string &filename) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node != NULL)
     return -EEXIST;
-
-  // encrypt reason
-  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_reason_b_size, e_reason_b) < 0)
-    return -EPROTO;
 
   // create node
   std::string uuid = Node::generate_uuid();
@@ -113,34 +97,22 @@ int FileSystem::create_file(const std::string &filename, const std::string &reas
   return 0;
 }
 
-int FileSystem::read_file(const std::string &filename,
-                          const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
-                          const long offset, const size_t buffer_size, char *buffer) {
+int FileSystem::read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
   if (!node->is_user_allowed(Filenode::READ_POLICY, this->current_user))
     return -EACCES;
 
-  // encrypt reason
-  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_reason_b_size, e_reason_b) < 0)
-    return -EPROTO;
-
   return node->read(offset, buffer_size, buffer);
 }
 
-int FileSystem::write_file(const std::string &filename,
-                            const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
-                            const long offset, const size_t data_size, const char *data) {
+int FileSystem::write_file(const std::string &filename, const long offset, const size_t data_size, const char *data) {
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
   if (!node->is_user_allowed(Filenode::WRITE_POLICY, this->current_user))
     return -EACCES;
-
-  // encrypt reason
-  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_reason_b_size, e_reason_b) < 0)
-    return -EPROTO;
 
   return node->write(offset, data_size, data);
 }
@@ -158,25 +130,32 @@ int FileSystem::unlink(const std::string &filename) {
 }
 
 
-int FileSystem::e_metadata_size(const std::string &filename) {
+int FileSystem::e_dump_metadata(const std::string &filename, const std::string &dest_dir) {
+  // check if given file exists
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->e_size();
-}
 
-int FileSystem::e_dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer) {
-  Filenode *node = FileSystem::retrieve_node(filename);
-  if (node == NULL)
-    return -ENOENT;
-  return node->e_dump(buffer_size, buffer);
+  // dump and encrypt metadata content
+  size_t e_size = node->e_size(); char cypher[e_size];
+  if (node->e_dump(e_size, cypher) < 0)
+    return -EPROTO;
+
+  // save metadata content
+  int ret;
+  if (ocall_dump_in_dir(&ret, (char*)dest_dir.c_str(), (char*)node->uuid.c_str(), e_size, cypher) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
+
+  return e_size;
 }
 
 int FileSystem::e_load_metadata(const std::string &uuid, const size_t buffer_size, const char *buffer) {
+  // check if given file exists
   Filenode *node = FileSystem::retrieve_node_with_uuid(uuid);
   if (node != NULL)
     return -EEXIST;
 
+  // load and decrypt metadata content
   node = new Filenode(uuid, this->root_key, this->block_size);
   node->e_load(buffer_size, buffer);
   this->files->insert(std::pair<std::string, Filenode*>(node->path, node));
@@ -184,18 +163,24 @@ int FileSystem::e_load_metadata(const std::string &uuid, const size_t buffer_siz
 }
 
 
-int FileSystem::e_file_size(const std::string &filename, const long up_offset, const size_t up_size) {
+int FileSystem::e_dump_file(const std::string &filename, const std::string &dest_dir, const long up_offset, const size_t up_size) {
+  // check if given file exists
   Filenode *node = FileSystem::retrieve_node(filename);
   if (node == NULL)
     return -ENOENT;
-  return node->e_content_size(up_offset, up_size);
-}
 
-int FileSystem::e_dump_file(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
-  Filenode *node = FileSystem::retrieve_node(filename);
-  if (node == NULL)
-    return -ENOENT;
-  return node->e_dump_content(up_offset, up_size, buffer_size, buffer);
+  // dump and encrypt metadata content
+  size_t e_size = node->e_content_size(up_offset, up_size); char cypher[e_size];
+  int offset = node->e_dump_content(up_offset, up_size, e_size, cypher);
+  if (offset < 0)
+    return -EPROTO;
+
+  // save metadata content
+  int ret;
+  if (ocall_dump_with_offset_in_dir(&ret, (char*)dest_dir.c_str(), (char*)node->uuid.c_str(), offset, e_size, cypher) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
+
+  return e_size;
 }
 
 int FileSystem::e_load_file(const std::string &uuid, const long offset, const size_t buffer_size, const char *buffer) {
@@ -203,4 +188,38 @@ int FileSystem::e_load_file(const std::string &uuid, const long offset, const si
   if (node == NULL)
     return -ENOENT;
   return node->e_load_content(offset, buffer_size, buffer);
+}
+
+
+int FileSystem::e_dump_audit(const std::string &filename, const std::string &dest_dir, const std::string &reason) {
+  // check if given file exists
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node == NULL)
+    return -ENOENT;
+
+  // dump and encrypt metadata content
+  size_t e_size = FilenodeAudit::e_reason_size(reason); char cypher[e_size];
+  if (FilenodeAudit::e_reason_dump(this->audit_root_key, reason, e_size, cypher) < 0)
+    return -EPROTO;
+
+  // save metadata content
+  int ret;
+  if (ocall_dump_append_in_dir(&ret, (char*)dest_dir.c_str(), (char*)node->uuid.c_str(), e_size, cypher) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
+
+  return e_size;
+}
+
+
+int FileSystem::delete_file(const std::string &filename, const std::string &dir) {
+  // check if given file exists
+  Filenode *node = FileSystem::retrieve_node(filename);
+  if (node == NULL)
+    return -ENOENT;
+
+  int ret;
+  if (ocall_delete_from_dir(&ret, (char*)dir.c_str(), (char*)node->uuid.c_str()) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
+
+  return 0;
 }

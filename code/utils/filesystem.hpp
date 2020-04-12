@@ -27,24 +27,23 @@ class FileSystem {
 
     std::vector<std::string> readdir();
 
-    int get_uuid(const std::string &filename, const size_t buffer_size, char *buffer);
     bool isfile(const std::string &filename);
     int file_size(const std::string &filename);
     int getattr(const std::string &filename);
-    int create_file(const std::string &filename, const std::string &reason, const size_t e_reason_b_size, char *e_reason_b);
-    int read_file(const std::string &filename, const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
-                    const long offset, const size_t buffer_size, char *buffer);
-    int write_file(const std::string &filename, const std::string &reason, const size_t e_reason_b_size, char *e_reason_b,
-                    const long offset, const size_t data_size, const char *data);
+    int create_file(const std::string &filename);
+    int read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer);
+    int write_file(const std::string &filename, const long offset, const size_t data_size, const char *data);
     int unlink(const std::string &filename);
 
-    int e_metadata_size(const std::string &filename);
-    int e_dump_metadata(const std::string &filename, const size_t buffer_size, char *buffer);
+    int e_dump_metadata(const std::string &filename, const std::string &dest_dir);
     int e_load_metadata(const std::string &uuid, const size_t buffer_size, const char *buffer);
 
-    int e_file_size(const std::string &filename, const long up_offset, const size_t up_size);
-    int e_dump_file(const std::string &filename, const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer);
+    int e_dump_file(const std::string &filename, const std::string &dest_dir, const long up_offset, const size_t up_size);
     int e_load_file(const std::string &uuid, const long offset, const size_t buffer_size, const char *buffer);
+
+    int e_dump_audit(const std::string &filename, const std::string &dest_dir, const std::string &reason);
+
+    int delete_file(const std::string &filename, const std::string &dir);
 
   private:
     size_t block_size;

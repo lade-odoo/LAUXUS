@@ -27,20 +27,23 @@ User *Supernode::add_user(User *user) {
   if (check_user(user) != NULL)
     return NULL;
 
-  user->id = this->allowed_users->size();
+  int max_id = -1;
+  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
+    if (it->first > max_id)
+      max_id = it->first;
+
+  user->id = max_id + 1;
   this->allowed_users->insert(std::pair<int, User*>(user->id, user));
   return user;
 }
 
-User *Supernode::remove_user(User *user) {
-  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
-    if (user->equals(it->second)) {
-      User *retrieved = it->second;
-      this->allowed_users->erase(it);
-      return retrieved;
-    }
+User *Supernode::remove_user_from_id(int user_id) {
+  User *removed = this->retrieve_user(user_id);
+  if (removed == NULL || removed->is_root())
+    return NULL;
 
-  return NULL;
+  this->allowed_users->erase(removed->id);
+  return removed;
 }
 
 User *Supernode::check_user(User *user) {
