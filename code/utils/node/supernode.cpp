@@ -8,7 +8,7 @@
 #include <map>
 
 
-Supernode::Supernode(const std::string &filename, AES_GCM_context *root_key):Node::Node(filename, root_key) {
+Supernode::Supernode(const std::string &filename, AES_GCM_context *root_key):Node::Node(filename, filename, root_key) {
   this->allowed_users = new std::map<int, User*>();
 }
 

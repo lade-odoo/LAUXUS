@@ -19,8 +19,6 @@ class Filenode: public Node {
     static const unsigned char WRITE_POLICY = 2;
     static const unsigned char EXEC_POLICY = 1;
 
-    std::string uuid;
-
     Filenode(const std::string &uuid, const std::string &filename, AES_GCM_context *root_key, size_t block_size);
     Filenode(const std::string &uuid, AES_GCM_context *root_key, size_t block_size);
     ~Filenode();

@@ -14,21 +14,13 @@
 
 
 Filenode::Filenode(const std::string &uuid, const std::string &path,
-                    AES_GCM_context *root_key, const size_t block_size):Node::Node(path, root_key) {
-  this->uuid = uuid;
+        AES_GCM_context *root_key, const size_t block_size):Node::Node(uuid, path, root_key) {
+
   this->allowed_users = new std::map<int, unsigned char>();
   this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
-
   this->content = new FilenodeContent(block_size, this->aes_ctr_ctxs);
 }
-Filenode::Filenode(const std::string &uuid, AES_GCM_context *root_key,
-                    const size_t block_size):Node::Node("", root_key) {
-  this->uuid = uuid;
-  this->allowed_users = new std::map<int, unsigned char>();
-  this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
-
-  this->content = new FilenodeContent(block_size, this->aes_ctr_ctxs);
-}
+Filenode::Filenode(const std::string &uuid, AES_GCM_context *root_key, const size_t block_size):Filenode::Filenode(uuid, "", root_key, block_size) {}
 
 Filenode::~Filenode() {
   for (auto it = this->aes_ctr_ctxs->begin(); it != this->aes_ctr_ctxs->end(); ) {
@@ -41,9 +33,6 @@ Filenode::~Filenode() {
 
 
 bool Filenode::equals(Filenode *other) {
-  if (this->uuid.compare(other->uuid) != 0)
-    return false;
-
   if (this->allowed_users->size() != other->allowed_users->size())
     return false;
   if (this->aes_ctr_ctxs->size() != other->aes_ctr_ctxs->size())
@@ -114,7 +103,7 @@ int Filenode::getattr(User *user) {
 
 
 size_t Filenode::p_sensitive_size() {
-  size_t size = sizeof(int) + this->path.length()+1;
+  size_t size = Node::p_sensitive_size();
   size += sizeof(int) + this->allowed_users->size() * (sizeof(int) + sizeof(unsigned char));
   size += sizeof(int) + this->aes_ctr_ctxs->size() * AES_CTR_context::size();
   return size;
@@ -124,11 +113,9 @@ int Filenode::p_dump_sensitive(const size_t buffer_size, char *buffer) {
   if (buffer_size < this->p_sensitive_size())
     return -1;
 
-  size_t written = 0;
-
-  int path_len = this->path.length() + 1;
-  std::memcpy(buffer+written, &path_len, sizeof(int)); written += sizeof(int);
-  std::memcpy(buffer+written, this->path.c_str(), path_len); written += path_len;
+  int written = Node::p_dump_sensitive(buffer_size, buffer);
+  if (written < 0)
+    return -1;
 
   int users_len = this->allowed_users->size();
   std::memcpy(buffer+written, &users_len, sizeof(int)); written += sizeof(int);
@@ -153,12 +140,9 @@ int Filenode::p_dump_sensitive(const size_t buffer_size, char *buffer) {
 }
 
 int Filenode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
-  size_t read = 0;
-
-  int path_len = 0;
-  std::memcpy(&path_len, buffer+read, sizeof(int)); read += sizeof(int);
-  this->path.resize(path_len-1);
-  std::memcpy(const_cast<char*>(this->path.data()), buffer+read, path_len); read += path_len;
+  int read = Node::p_load_sensitive(buffer_size, buffer);
+  if (read < 0)
+    return -1;
 
   int users_len = 0;
   std::memcpy(&users_len, buffer+read, sizeof(int)); read += sizeof(int);
