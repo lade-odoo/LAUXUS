@@ -1,7 +1,7 @@
 #ifndef __FILENODE_AUDIT_HPP__
 #define __FILENODE_AUDIT_HPP__
 
-#include "../../utils/encryption/aes_gcm.hpp"
+#include "../encryption/aes_gcm.hpp"
 
 #include <string>
 

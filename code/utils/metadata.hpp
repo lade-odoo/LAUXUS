@@ -1,26 +1,22 @@
-#ifndef __NODE_HPP__
-#define __NODE_HPP__
+#ifndef __METADATA_HPP__
+#define __METADATA_HPP__
 
-#include "../../utils/encryption/aes_gcm.hpp"
+#include "encryption/aes_gcm.hpp"
 
 #include <string>
 #include <vector>
 
 
-class Node {
+class Metadata {
   public:
-    std::string path;
-
-    Node(const std::string &filename, AES_GCM_context *root_key);
-    ~Node();
-
-    static std::string generate_uuid();
+    Metadata(AES_GCM_context *root_key);
+    ~Metadata();
 
     size_t e_size();
     int e_dump(const size_t buffer_size, char *buffer);
     int e_load(const size_t buffer_size, const char *buffer);
 
-    bool equals(Node *other);
+    bool equals(Metadata *other);
 
   private:
     AES_GCM_context *root_key;
@@ -44,4 +40,4 @@ class Node {
     virtual int p_load_sensitive(const size_t buffer_size, const char *buffer) = 0;
 };
 
-#endif /*__NODE_HPP__*/
+#endif /*__METADATA_HPP__*/

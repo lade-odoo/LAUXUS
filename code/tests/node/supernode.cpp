@@ -1,6 +1,6 @@
 #include "../catch.hpp"
-#include "../../utils/metadata/node.hpp"
-#include "../../utils/metadata/supernode.hpp"
+#include "../../utils/node/node.hpp"
+#include "../../utils/node/supernode.hpp"
 #include "../../utils/users/user.hpp"
 #include "../../utils/encryption/aes_gcm.hpp"
 

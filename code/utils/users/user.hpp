@@ -1,9 +1,9 @@
 #ifndef __USER_HPP__
 #define __USER_HPP__
 
-#include "../flag.h"
+#include "../../flag.h"
 #if EMULATING
-#  include "../tests/SGX_Emulator/sgx_tcrypto.hpp"
+#  include "../../tests/SGX_Emulator/sgx_tcrypto.hpp"
 #else
 #   include "sgx_tcrypto.h"
 #endif

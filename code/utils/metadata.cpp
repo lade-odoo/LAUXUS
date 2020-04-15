@@ -1,5 +1,5 @@
-#include "../../utils/metadata/node.hpp"
-#include "../../utils/encryption/aes_gcm.hpp"
+#include "metadata.hpp"
+#include "encryption/aes_gcm.hpp"
 
 #include "../flag.h"
 #if EMULATING
@@ -12,49 +12,32 @@
 #include <cstring>
 #include <vector>
 
+using namespace std;
 
 
-Node::Node(const std::string &path, AES_GCM_context *root_key) {
-  this->path = path;
+
+Metadata::Metadata(AES_GCM_context *root_key) {
   this->root_key = root_key;
   this->aes_gcm_ctx = new AES_GCM_context();
 }
 
-Node::~Node() {
+Metadata::~Metadata() {
   delete this->aes_gcm_ctx;
 }
 
 
-std::string Node::generate_uuid() {
-  const char possibilities[] = "0123456789abcdef";
-  const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
-
-  uint8_t indexes[16] = {0};
-  sgx_read_rand(indexes, 16);
-
-  std::string res;
-  for (int i = 0; i < 16; i++) {
-      if (dash[i]) res += "-";
-      res += possibilities[indexes[i] % 16];
-  }
-
-  return res;
-}
-
-
-bool Node::equals(Node *other) {
-  return this->path.compare(other->path) == 0 &&
-          this->root_key->equals(other->root_key) &&
+bool Metadata::equals(Metadata *other) {
+  return this->root_key->equals(other->root_key) &&
           this->aes_gcm_ctx->equals(other->aes_gcm_ctx);
 }
 
 
-size_t Node::e_size() {
+size_t Metadata::e_size() {
   size_t mac_size = AES_GCM_context::size() - AES_GCM_context::size_without_mac();
   return this->p_preamble_size() + mac_size + this->e_crypto_size() + this->e_sensitive_size();
 }
 
-int Node::e_dump(const size_t buffer_size, char *buffer) {
+int Metadata::e_dump(const size_t buffer_size, char *buffer) {
   if (buffer_size < this->e_size())
     return -1;
 
@@ -83,13 +66,13 @@ int Node::e_dump(const size_t buffer_size, char *buffer) {
   // dump mac of root key
   int mac_size = AES_GCM_context::size() - AES_GCM_context::size_without_mac();
   int mac_offset = buffer_size - sensitive_size - crypto_size - mac_size;
-  std::memcpy(buffer+mac_offset, this->root_key->p_mac, mac_size);
+  memcpy(buffer+mac_offset, this->root_key->p_mac, mac_size);
   written += mac_size;
 
   return written;
 }
 
-int Node::e_load(const size_t buffer_size, const char *buffer) {
+int Metadata::e_load(const size_t buffer_size, const char *buffer) {
   int read = 0;
 
   // preamble section
@@ -103,7 +86,7 @@ int Node::e_load(const size_t buffer_size, const char *buffer) {
   int mac_offset = preamble_size;
   if ((int)(buffer_size-read) < mac_size)
     return -1;
-  std::memcpy(this->root_key->p_mac, buffer+mac_offset, mac_size);
+  memcpy(this->root_key->p_mac, buffer+mac_offset, mac_size);
   read += mac_size;
 
   // crypto context
@@ -122,24 +105,24 @@ int Node::e_load(const size_t buffer_size, const char *buffer) {
 }
 
 
-size_t Node::p_preamble_size() {
+size_t Metadata::p_preamble_size() {
   return 0/*length int + size filename*/;
 }
 
-int Node::p_dump_preamble(const size_t buffer_size, char *buffer) {
+int Metadata::p_dump_preamble(const size_t buffer_size, char *buffer) {
   return 0/*dump length filename + dump filename*/;
 }
 
-int Node::p_load_preamble(const size_t buffer_size, const char *buffer) {
+int Metadata::p_load_preamble(const size_t buffer_size, const char *buffer) {
   return 0;
 }
 
 
-size_t Node::e_crypto_size() {
+size_t Metadata::e_crypto_size() {
   return sizeof(int) + AES_GCM_context::size();
 }
 
-int Node::e_dump_crypto(const size_t buffer_size, char *buffer) {
+int Metadata::e_dump_crypto(const size_t buffer_size, char *buffer) {
   if (buffer_size < this->e_crypto_size())
     return -1;
 
@@ -151,16 +134,16 @@ int Node::e_dump_crypto(const size_t buffer_size, char *buffer) {
   if (cypher_size < 0)
     return -1;
 
-  std::memcpy(buffer, &cypher_size, sizeof(int));
+  memcpy(buffer, &cypher_size, sizeof(int));
   return sizeof(int) + cypher_size;
 }
 
-int Node::e_load_crypto(const size_t buffer_size, const char *buffer) {
+int Metadata::e_load_crypto(const size_t buffer_size, const char *buffer) {
   if (buffer_size < sizeof(int))
     return -1;
 
   int cypher_size = 0;
-  std::memcpy(&cypher_size, buffer, sizeof(int));
+  memcpy(&cypher_size, buffer, sizeof(int));
   if ((int)(buffer_size-sizeof(int)) < cypher_size)
     return -1;
 
@@ -176,11 +159,11 @@ int Node::e_load_crypto(const size_t buffer_size, const char *buffer) {
 }
 
 
-size_t Node::e_sensitive_size() {
+size_t Metadata::e_sensitive_size() {
   return sizeof(int) + this->p_sensitive_size();
 }
 
-int Node::e_dump_sensitive(const size_t buffer_size, char *buffer) {
+int Metadata::e_dump_sensitive(const size_t buffer_size, char *buffer) {
   if (buffer_size < this->e_sensitive_size())
     return -1;
 
@@ -196,16 +179,16 @@ int Node::e_dump_sensitive(const size_t buffer_size, char *buffer) {
   if (cypher_size < 0)
     return -1;
 
-  std::memcpy(buffer, &cypher_size, sizeof(int));
+  memcpy(buffer, &cypher_size, sizeof(int));
   return sizeof(int) + cypher_size;
 }
 
-int Node::e_load_sensitive(const size_t buffer_size, const char *buffer) {
+int Metadata::e_load_sensitive(const size_t buffer_size, const char *buffer) {
   if (buffer_size < sizeof(int))
     return -1;
 
   int cypher_size = 0;
-  std::memcpy(&cypher_size, buffer, sizeof(int));
+  memcpy(&cypher_size, buffer, sizeof(int));
   if ((int)(buffer_size-sizeof(int)) < cypher_size)
     return -1;
 

@@ -1,5 +1,5 @@
 #include "../catch.hpp"
-#include "../../utils/metadata/filenode_audit.hpp"
+#include "../../utils/node/filenode_audit.hpp"
 
 #include <string>
 #include <cstring>

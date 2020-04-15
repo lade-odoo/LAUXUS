@@ -118,7 +118,8 @@ Crypto_Library_Name := sgx_tcrypto
 
 # Enclave_Cpp_Files := Enclave/Enclave.cpp $(wildcard Enclave/Edger8rSyntax/*.cpp) $(wildcard Enclave/TrustedLibrary/*.cpp)
 Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata/node.cpp Enclave/utils/metadata/supernode.cpp Enclave/utils/metadata/filenode.cpp Enclave/utils/metadata/filenode_content.cpp Enclave/utils/metadata/filenode_audit.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/node/node.cpp Enclave/utils/node/supernode.cpp Enclave/utils/node/filenode.cpp Enclave/utils/node/filenode_content.cpp Enclave/utils/node/filenode_audit.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/encryption/aes_gcm.cpp Enclave/utils/encryption/aes_ctr.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/filesystem.cpp
@@ -153,7 +154,7 @@ endif
 
 Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
 Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
-Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/metadata -name '*.cpp') $(shell find tests/encryption -name '*.cpp')
+Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/node -name '*.cpp') $(shell find tests/encryption -name '*.cpp')
 Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
 
 
@@ -219,8 +220,8 @@ Enclave/utils/encryption/%.o: utils/encryption/%.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-Enclave/utils/metadata/%.o: utils/metadata/%.cpp
-	@mkdir -p Enclave/utils/metadata/
+Enclave/utils/node/%.o: utils/node/%.cpp
+	@mkdir -p Enclave/utils/node/
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
@@ -265,7 +266,7 @@ tests/users/%: tests/users/%.cpp utils/users/%.o $(Tests_Emul_Objects) tests/mai
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 
-tests/metadata/%: tests/metadata/%.cpp utils/metadata/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata/node.o utils/encryption/aes_gcm.o utils/encryption/aes_ctr.o utils/users/user.o utils/metadata/filenode_content.o
+tests/node/%: tests/node/%.cpp utils/node/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata.o utils/node/node.o utils/encryption/aes_gcm.o utils/encryption/aes_ctr.o utils/users/user.o utils/node/filenode_content.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 

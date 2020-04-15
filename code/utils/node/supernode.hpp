@@ -1,9 +1,9 @@
 #ifndef __SUPERNODE_HPP__
 #define __SUPERNODE_HPP__
 
-#include "../../utils/users/user.hpp"
-#include "../../utils/encryption/aes_gcm.hpp"
-#include "../../utils/metadata/node.hpp"
+#include "../users/user.hpp"
+#include "../encryption/aes_gcm.hpp"
+#include "node.hpp"
 
 #include <string>
 #include <map>

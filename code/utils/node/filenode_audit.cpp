@@ -1,5 +1,5 @@
-#include "../../utils/metadata/filenode_audit.hpp"
-#include "../../utils/encryption/aes_gcm.hpp"
+#include "filenode_audit.hpp"
+#include "../encryption/aes_gcm.hpp"
 
 #include <string>
 #include <cstring>

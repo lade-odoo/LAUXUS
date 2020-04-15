@@ -1,9 +1,9 @@
 #include "../utils/filesystem.hpp"
 #include "../utils/encryption/aes_gcm.hpp"
-#include "../utils/metadata/node.hpp"
-#include "../utils/metadata/filenode.hpp"
-#include "../utils/metadata/supernode.hpp"
-#include "../utils/metadata/filenode_audit.hpp"
+#include "../utils/node/node.hpp"
+#include "../utils/node/filenode.hpp"
+#include "../utils/node/supernode.hpp"
+#include "../utils/node/filenode_audit.hpp"
 
 #include "../Enclave/Enclave_t.h"
 

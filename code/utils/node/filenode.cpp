@@ -1,10 +1,10 @@
-#include "../../utils/metadata/filenode.hpp"
-#include "../../utils/metadata/filenode_content.hpp"
-#include "../../utils/metadata/supernode.hpp"
-#include "../../utils/metadata/node.hpp"
-#include "../../utils/encryption/aes_gcm.hpp"
-#include "../../utils/encryption/aes_ctr.hpp"
-#include "../../utils/users/user.hpp"
+#include "filenode.hpp"
+#include "filenode_content.hpp"
+#include "supernode.hpp"
+#include "node.hpp"
+#include "../encryption/aes_gcm.hpp"
+#include "../encryption/aes_ctr.hpp"
+#include "../users/user.hpp"
 
 #include <string>
 #include <cstring>

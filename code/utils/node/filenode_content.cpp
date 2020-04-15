@@ -1,5 +1,5 @@
-#include "../../utils/metadata/filenode_content.hpp"
-#include "../../utils/encryption/aes_ctr.hpp"
+#include "filenode_content.hpp"
+#include "../encryption/aes_ctr.hpp"
 
 #include <string>
 #include <cstring>

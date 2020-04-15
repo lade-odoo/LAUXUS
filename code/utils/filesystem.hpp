@@ -7,8 +7,8 @@
 
 #include "../utils/encryption/aes_gcm.hpp"
 #include "../utils/users/user.hpp"
-#include "../utils/metadata/filenode.hpp"
-#include "../utils/metadata/supernode.hpp"
+#include "../utils/node/filenode.hpp"
+#include "../utils/node/supernode.hpp"
 
 
 /**
