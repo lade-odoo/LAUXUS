@@ -154,6 +154,9 @@ endif
 
 Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
 Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
+Tests_Cpp_Files := utils/metadata.cpp utils/misc.cpp utils/serialization.cpp
+Tests_Cpp_Files := $(Tests_Cpp_Files) $(shell find utils/encryption -name '*.cpp') $(shell find utils/node -name '*.cpp') $(shell find utils/users -name '*.cpp')
+Tests_Cpp_Objects := $(Tests_Cpp_Files:.cpp=.o)
 Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/node -name '*.cpp') $(shell find tests/encryption -name '*.cpp')
 Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
 
@@ -254,25 +257,13 @@ tests/main.o: tests/main.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "Building Catch2"
 
-tests/utils/%: tests/utils/%.cpp utils/%.o $(Tests_Emul_Objects) tests/main.o
-	@$(CXX) $(App_Cpp_Flags) $^ -o $@
-	@echo "LINK  =>  $<"
-
-tests/encryption/%: tests/encryption/%.cpp utils/encryption/%.o $(Tests_Emul_Objects) tests/main.o
-	@$(CXX) $(App_Cpp_Flags) $^ -o $@
-	@echo "LINK  =>  $<"
-
-tests/users/%: tests/users/%.cpp utils/users/%.o $(Tests_Emul_Objects) tests/main.o
-	@$(CXX) $(App_Cpp_Flags) $^ -o $@
-	@echo "LINK  =>  $<"
-
-tests/node/%: tests/node/%.cpp utils/node/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata.o utils/node/node.o utils/encryption/aes_gcm.o utils/encryption/aes_ctr.o utils/users/user.o utils/node/filenode_content.o
-	@$(CXX) $(App_Cpp_Flags) $^ -o $@
-	@echo "LINK  =>  $<"
-
 tests/SGX_Emulator/%.o: tests/SGX_Emulator/%.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
+
+tests/%: tests/%.o $(Tests_Emul_Objects) $(Tests_Cpp_Objects) tests/main.o
+	@$(CXX) $(App_Cpp_Flags) $^ -o $@
+	@echo "LINK  =>  $<"
 
 
 .PHONY: test

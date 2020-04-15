@@ -44,7 +44,7 @@ int Metadata::e_dump(const size_t buffer_size, char *buffer) {
   int written = 0;
 
   // preamble section
-  int preamble_size = this->p_dump_preamble(buffer_size, buffer);
+  int preamble_size = this->p_dump_preamble(this->p_preamble_size(), buffer);
   if (preamble_size < 0)
     return -1;
   written += preamble_size;
@@ -102,19 +102,6 @@ int Metadata::e_load(const size_t buffer_size, const char *buffer) {
   read += sensitive_size;
 
   return read;
-}
-
-
-size_t Metadata::p_preamble_size() {
-  return 0/*length int + size filename*/;
-}
-
-int Metadata::p_dump_preamble(const size_t buffer_size, char *buffer) {
-  return 0/*dump length filename + dump filename*/;
-}
-
-int Metadata::p_load_preamble(const size_t buffer_size, const char *buffer) {
-  return 0;
 }
 
 
@@ -196,6 +183,9 @@ int Metadata::e_load_sensitive(const size_t buffer_size, const char *buffer) {
   char plain[plain_size];
   size_t aad_size = this->p_preamble_size();
   char aad[aad_size];
+
+  if (this->p_dump_preamble(aad_size, aad) < 0)
+    return -1;
 
   int decrypted = this->aes_gcm_ctx->decrypt((uint8_t*)buffer+sizeof(int), cypher_size, (uint8_t*)aad, aad_size, (uint8_t*)plain);
   if (decrypted != cypher_size)

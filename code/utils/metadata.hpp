@@ -22,10 +22,6 @@ class Metadata {
     AES_GCM_context *root_key;
     AES_GCM_context *aes_gcm_ctx;
 
-    size_t p_preamble_size();
-    int p_dump_preamble(const size_t buffer_size, char *buffer);
-    int p_load_preamble(const size_t buffer_size, const char *buffer);
-
     size_t e_crypto_size();
     int e_dump_crypto(const size_t buffer_size, char *buffer);
     int e_load_crypto(const size_t buffer_size, const char *buffer);
@@ -35,6 +31,10 @@ class Metadata {
     int e_load_sensitive(const size_t buffer_size, const char *buffer);
 
   protected:
+    virtual size_t p_preamble_size() = 0;
+    virtual int p_dump_preamble(const size_t buffer_size, char *buffer) = 0;
+    virtual int p_load_preamble(const size_t buffer_size, const char *buffer) = 0;
+
     virtual size_t p_sensitive_size() = 0;
     virtual int p_dump_sensitive(const size_t buffer_size, char *buffer) = 0;
     virtual int p_load_sensitive(const size_t buffer_size, const char *buffer) = 0;

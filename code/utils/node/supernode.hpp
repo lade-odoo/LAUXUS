@@ -8,22 +8,24 @@
 #include <string>
 #include <map>
 
+using namespace std;
+
 
 
 class Supernode: public Node {
   public:
-    Supernode(const std::string &filename, AES_GCM_context *root_key);
+    Supernode(const string &filename, AES_GCM_context *root_key);
     ~Supernode();
+
+    bool equals(Supernode *other);
 
     User *add_user(User *user);
     User *remove_user_from_id(int user_id);
     User *check_user(User *user);
     User *retrieve_user(int user_id);
 
-    bool equals(Supernode *other);
-
   private:
-    std::map<int, User*> *allowed_users;
+    map<int, User*> *allowed_users;
 
   protected:
     size_t p_sensitive_size();

@@ -11,32 +11,121 @@
 
 #include <string>
 #include <cstring>
-#include <iostream>
+#include <map>
 
 using namespace std;
 
 
 
-Node::Node(const string &uuid, const string &path, AES_GCM_context *root_key):Metadata::Metadata(root_key) {
-  this->path = path;
+Node::Node(const string &uuid, const string &relative_path, AES_GCM_context *root_key):Metadata::Metadata(root_key) {
+  this->relative_path = relative_path;
   this->uuid = uuid;
+
+  this->node_entries = new map<string, Node*>();
 }
 Node::Node(const string &uuid, AES_GCM_context *root_key):Node::Node(uuid, "", root_key) {}
 
 Node::~Node() {
+  for (auto it = this->node_entries->begin(); it != this->node_entries->end(); ++it) {
+    Node *node = it->second;
+    delete node;
+  }
+  delete this->node_entries;
 }
 
 
 bool Node::equals(Node *other) {
-  if (this->uuid.compare(other->uuid) != 0 || this->path.compare(other->path) !=0)
+  if (this->node_entries->size() != other->node_entries->size())
     return false;
+  if (this->uuid.compare(other->uuid) != 0 || this->relative_path.compare(other->relative_path) !=0)
+    return false;
+
+  for (auto it = this->node_entries->begin(); it != this->node_entries->end(); ++it)
+    if (other->node_entries->find(it->first) == other->node_entries->end())
+      return false;
 
   return Metadata::equals(other);
 }
 
 
+
+bool Node::is_correct_node(string parent_path) {
+  size_t index = parent_path.find('/');
+  return parent_path.substr(0, index).compare(this->relative_path) == 0;
+}
+
+Node* Node::retrieve_node(string parent_path) {
+  if (parent_path.compare(this->relative_path) == 0)
+    return this;
+
+  int index = parent_path.find('/');
+  string relative_path = parent_path.substr(index+1);
+
+  for (auto it = this->node_entries->begin(); it != this->node_entries->end(); it++) {
+    Node *node = it->second;
+    if (node->is_correct_node(relative_path))
+      return node->retrieve_node(relative_path);
+  }
+  return NULL;
+}
+
+int Node::add_node_entry(Node *node) {
+  auto entry = this->node_entries->find(node->uuid);
+  if (entry != this->node_entries->end())
+    return -1;
+
+  this->node_entries->insert(pair<string, Node*>(node->uuid, node));
+  return 0;
+}
+
+int Node::link_node_entry(string uuid, Node *node) {
+  auto entry = this->node_entries->find(uuid);
+  if (entry == this->node_entries->end())
+    return -1;
+
+  entry->second = node;
+  return 0;
+}
+
+
+size_t Node::p_preamble_size() {
+  size_t size = sizeof(int) + this->node_entries->size() * Node::UUID_SIZE;
+  return size;
+}
+
+int Node::p_dump_preamble(const size_t buffer_size, char *buffer) {
+  if (buffer_size < this->p_preamble_size())
+    return -1;
+
+  int written = 0;
+  int entries_len = this->node_entries->size();
+  std::memcpy(buffer+written, &entries_len, sizeof(int)); written += sizeof(int);
+  for (auto it = this->node_entries->begin(); it != this->node_entries->end(); ++it) {
+    string uuid = it->first;
+    std::memcpy(buffer+written, uuid.c_str(), UUID_SIZE);
+    written += UUID_SIZE;
+  }
+
+  return written;
+}
+
+int Node::p_load_preamble(const size_t buffer_size, const char *buffer) {
+  int read = 0;
+  int entries_len = 0;
+  memcpy(&entries_len, buffer+read, sizeof(int)); read += sizeof(int);
+  for (int i = 0; i < entries_len; i++) {
+    string uuid(UUID_SIZE-1, ' ');
+    std::memcpy(const_cast<char*>(uuid.data()), buffer+read, UUID_SIZE);
+    read += UUID_SIZE;
+    this->node_entries->insert(pair<string, Node*>(uuid, NULL));
+  }
+
+  return read;
+}
+
+
 size_t Node::p_sensitive_size() {
-  return sizeof(int) + this->path.length()+1;
+  return sizeof(int) + this->relative_path.length()+1;
 }
 
 int Node::p_dump_sensitive(const size_t buffer_size, char *buffer) {
@@ -44,9 +133,9 @@ int Node::p_dump_sensitive(const size_t buffer_size, char *buffer) {
     return -1;
 
   size_t written = 0;
-  int path_len = this->path.length() + 1;
+  int path_len = this->relative_path.length() + 1;
   memcpy(buffer+written, &path_len, sizeof(int)); written += sizeof(int);
-  memcpy(buffer+written, this->path.c_str(), path_len); written += path_len;
+  memcpy(buffer+written, this->relative_path.c_str(), path_len); written += path_len;
 
   return written;
 }
@@ -61,8 +150,8 @@ int Node::p_load_sensitive(const size_t buffer_size, const char *buffer) {
   if ((int)(buffer_size-read) < path_len)
     return -1;
 
-  this->path.resize(path_len-1);
-  memcpy(const_cast<char*>(this->path.data()), buffer+read, path_len); read += path_len;
+  this->relative_path.resize(path_len-1);
+  memcpy(const_cast<char*>(this->relative_path.data()), buffer+read, path_len); read += path_len;
 
   return read;
 }

@@ -13,8 +13,8 @@
 
 
 
-Filenode::Filenode(const std::string &uuid, const std::string &path,
-        AES_GCM_context *root_key, const size_t block_size):Node::Node(uuid, path, root_key) {
+Filenode::Filenode(const std::string &uuid, const std::string &relative_path,
+        AES_GCM_context *root_key, const size_t block_size):Node::Node(uuid, relative_path, root_key) {
 
   this->allowed_users = new std::map<int, unsigned char>();
   this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
@@ -54,6 +54,13 @@ bool Filenode::equals(Filenode *other) {
   return Node::equals(other);
 }
 
+
+bool Filenode::is_correct_node(string parent_path) {
+  return parent_path.compare(this->relative_path) == 0;
+}
+Node* Filenode::retrieve_node(string relative_path) {
+  return this;
+}
 
 bool Filenode::is_user_allowed(const unsigned char required_policy, User *user) {
   if (user->is_root())

@@ -7,9 +7,11 @@
 #include <cstring>
 #include <map>
 
+using namespace std;
 
-Supernode::Supernode(const std::string &filename, AES_GCM_context *root_key):Node::Node(filename, filename, root_key) {
-  this->allowed_users = new std::map<int, User*>();
+
+Supernode::Supernode(const string &filename, AES_GCM_context *root_key):Node::Node(filename, "/", root_key) {
+  this->allowed_users = new map<int, User*>();
 }
 
 Supernode::~Supernode() {
@@ -23,6 +25,18 @@ Supernode::~Supernode() {
 }
 
 
+bool Supernode::equals(Supernode *other) {
+  if (this->allowed_users->size() != other->allowed_users->size())
+    return false;
+
+  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
+    if (other->check_user(it->second) == NULL)
+      return false;
+
+  return Node::equals(other);
+}
+
+
 User *Supernode::add_user(User *user) {
   if (check_user(user) != NULL)
     return NULL;
@@ -33,7 +47,7 @@ User *Supernode::add_user(User *user) {
       max_id = it->first;
 
   user->id = max_id + 1;
-  this->allowed_users->insert(std::pair<int, User*>(user->id, user));
+  this->allowed_users->insert(pair<int, User*>(user->id, user));
   return user;
 }
 
@@ -63,19 +77,6 @@ User *Supernode::retrieve_user(int user_id) {
 }
 
 
-bool Supernode::equals(Supernode *other) {
-  bool flag = false;
-  if (this->allowed_users->size() != other->allowed_users->size())
-    return false;
-
-  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
-    if (other->check_user(it->second) == NULL)
-      return false;
-
-  return Node::equals(other);
-}
-
-
 size_t Supernode::p_sensitive_size() {
   size_t size = sizeof(int);
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
@@ -91,7 +92,7 @@ int Supernode::p_dump_sensitive(const size_t buffer_size, char *buffer) {
 
   size_t written = 0;
   int users_len = this->allowed_users->size();
-  std::memcpy(buffer, &users_len, sizeof(int)); written += sizeof(int);
+  memcpy(buffer, &users_len, sizeof(int)); written += sizeof(int);
 
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
     User *user = it->second;
@@ -107,8 +108,7 @@ int Supernode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
   size_t read = 0;
   int users_len = 0;
 
-  std::memcpy(&users_len, buffer, sizeof(int)); read += sizeof(int);
-
+  memcpy(&users_len, buffer, sizeof(int)); read += sizeof(int);
   for (int i = 0; i < users_len; i++) {
     User *user = new User();
     int step = user->load(buffer_size-read, buffer+read);
@@ -116,7 +116,7 @@ int Supernode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
       return -1;
     read += step;
 
-    this->allowed_users->insert(std::pair<int, User*>(user->id, user));
+    this->allowed_users->insert(pair<int, User*>(user->id, user));
   }
   return read;
 }

@@ -19,11 +19,14 @@ class Filenode: public Node {
     static const unsigned char WRITE_POLICY = 2;
     static const unsigned char EXEC_POLICY = 1;
 
-    Filenode(const std::string &uuid, const std::string &filename, AES_GCM_context *root_key, size_t block_size);
+    Filenode(const std::string &uuid, const std::string &relative_path, AES_GCM_context *root_key, size_t block_size);
     Filenode(const std::string &uuid, AES_GCM_context *root_key, size_t block_size);
     ~Filenode();
 
     bool equals(Filenode *other);
+
+    bool is_correct_node(string parent_path);
+    Node* retrieve_node(string relative_path);
 
     bool is_user_allowed(const unsigned char policy, User *user);
     int edit_user_policy(const unsigned char required_policy, User *user);
