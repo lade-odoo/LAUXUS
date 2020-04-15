@@ -2,7 +2,7 @@
 #define __SUPERNODE_HPP__
 
 #include "../../utils/users/user.hpp"
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
 #include "../../utils/metadata/node.hpp"
 
 #include <string>

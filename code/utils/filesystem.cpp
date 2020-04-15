@@ -1,5 +1,5 @@
 #include "../utils/filesystem.hpp"
-#include "../utils/encryption.hpp"
+#include "../utils/encryption/aes_gcm.hpp"
 #include "../utils/metadata/node.hpp"
 #include "../utils/metadata/filenode.hpp"
 #include "../utils/metadata/supernode.hpp"

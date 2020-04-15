@@ -2,7 +2,8 @@
 #include "../../utils/metadata/filenode_content.hpp"
 #include "../../utils/metadata/supernode.hpp"
 #include "../../utils/metadata/node.hpp"
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
+#include "../../utils/encryption/aes_ctr.hpp"
 #include "../../utils/users/user.hpp"
 
 #include <string>

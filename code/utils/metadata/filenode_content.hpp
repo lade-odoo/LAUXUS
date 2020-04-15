@@ -1,7 +1,7 @@
 #ifndef __FILENODE_CONTENT_HPP__
 #define __FILENODE_CONTENT_HPP__
 
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_ctr.hpp"
 
 #include <string>
 #include <vector>

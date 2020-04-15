@@ -1,7 +1,7 @@
 #include "../../utils/metadata/supernode.hpp"
 #include "../../utils/metadata/node.hpp"
 #include "../../utils/users/user.hpp"
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
 
 #include <string>
 #include <cstring>

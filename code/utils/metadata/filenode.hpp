@@ -1,7 +1,7 @@
 #ifndef __FILENODE_HPP__
 #define __FILENODE_HPP__
 
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
 #include "../../utils/metadata/node.hpp"
 #include "../../utils/metadata/filenode_content.hpp"
 #include "../../utils/users/user.hpp"

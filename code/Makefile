@@ -120,7 +120,8 @@ Crypto_Library_Name := sgx_tcrypto
 Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata/node.cpp Enclave/utils/metadata/supernode.cpp Enclave/utils/metadata/filenode.cpp Enclave/utils/metadata/filenode_content.cpp Enclave/utils/metadata/filenode_audit.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files)  Enclave/utils/encryption.cpp Enclave/utils/filesystem.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/encryption/aes_gcm.cpp Enclave/utils/encryption/aes_ctr.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/filesystem.cpp
 # Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 
@@ -152,7 +153,7 @@ endif
 
 Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
 Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
-Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/metadata -name '*.cpp')
+Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/metadata -name '*.cpp') $(shell find tests/encryption -name '*.cpp')
 Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
 
 
@@ -213,6 +214,11 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@$(CC) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
+Enclave/utils/encryption/%.o: utils/encryption/%.cpp
+	@mkdir -p Enclave/utils/encryption/
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 Enclave/utils/metadata/%.o: utils/metadata/%.cpp
 	@mkdir -p Enclave/utils/metadata/
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
@@ -251,11 +257,15 @@ tests/utils/%: tests/utils/%.cpp utils/%.o $(Tests_Emul_Objects) tests/main.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 
+tests/encryption/%: tests/encryption/%.cpp utils/encryption/%.o $(Tests_Emul_Objects) tests/main.o
+	@$(CXX) $(App_Cpp_Flags) $^ -o $@
+	@echo "LINK  =>  $<"
+
 tests/users/%: tests/users/%.cpp utils/users/%.o $(Tests_Emul_Objects) tests/main.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 
-tests/metadata/%: tests/metadata/%.cpp utils/metadata/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata/node.o utils/encryption.o utils/users/user.o utils/metadata/filenode_content.o
+tests/metadata/%: tests/metadata/%.cpp utils/metadata/%.o $(Tests_Emul_Objects) tests/main.o utils/metadata/node.o utils/encryption/aes_gcm.o utils/encryption/aes_ctr.o utils/users/user.o utils/metadata/filenode_content.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 

@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 
-#include "../utils/encryption.hpp"
+#include "../utils/encryption/aes_gcm.hpp"
 #include "../utils/users/user.hpp"
 #include "../utils/metadata/filenode.hpp"
 #include "../utils/metadata/supernode.hpp"

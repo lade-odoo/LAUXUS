@@ -2,7 +2,7 @@
 #include "../../utils/metadata/node.hpp"
 #include "../../utils/metadata/filenode.hpp"
 #include "../../utils/users/user.hpp"
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
 
 #include <string>
 #include <cstring>

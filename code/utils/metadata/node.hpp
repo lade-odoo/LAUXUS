@@ -1,7 +1,7 @@
 #ifndef __NODE_HPP__
 #define __NODE_HPP__
 
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
 
 #include <string>
 #include <vector>

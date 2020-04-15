@@ -1,5 +1,5 @@
 #include "../utils/filesystem.hpp"
-#include "../utils/encryption.hpp"
+#include "../utils/encryption/aes_gcm.hpp"
 #include "../utils/users/user.hpp"
 
 #include "Enclave_t.h"

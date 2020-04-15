@@ -1,5 +1,5 @@
 #include "../../utils/metadata/node.hpp"
-#include "../../utils/encryption.hpp"
+#include "../../utils/encryption/aes_gcm.hpp"
 
 #include "../flag.h"
 #if EMULATING
