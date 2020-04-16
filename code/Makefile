@@ -157,7 +157,7 @@ Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
 Tests_Cpp_Files := utils/metadata.cpp utils/misc.cpp utils/serialization.cpp
 Tests_Cpp_Files := $(Tests_Cpp_Files) $(shell find utils/encryption -name '*.cpp') $(shell find utils/node -name '*.cpp') $(shell find utils/users -name '*.cpp')
 Tests_Cpp_Objects := $(Tests_Cpp_Files:.cpp=.o)
-Tests_Exec_Files := $(shell find tests/users -name '*.cpp') $(shell find tests/utils -name '*.cpp') $(shell find tests/node -name '*.cpp') $(shell find tests/encryption -name '*.cpp')
+Tests_Exec_Files := $(shell find tests/utils -name '*.cpp')
 Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
 
 

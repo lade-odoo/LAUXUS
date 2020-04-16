@@ -1,7 +1,7 @@
-#include "../catch.hpp"
-#include "../../utils/node/node.hpp"
-#include "../../utils/node/filenode.hpp"
-#include "../../utils/encryption/aes_gcm.hpp"
+#include "../../catch.hpp"
+#include "../../../utils/node/node.hpp"
+#include "../../../utils/node/filenode.hpp"
+#include "../../../utils/encryption/aes_gcm.hpp"
 
 #include <string>
 #include <cstring>
