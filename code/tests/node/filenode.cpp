@@ -1,7 +1,6 @@
 #include "../catch.hpp"
 #include "../../utils/node/node.hpp"
 #include "../../utils/node/filenode.hpp"
-#include "../../utils/users/user.hpp"
 #include "../../utils/encryption/aes_gcm.hpp"
 
 #include <string>
@@ -10,108 +9,6 @@
 using namespace std;
 
 
-
-SCENARIO( "Filenode can be dumped and loaded to a buffer.", "[multi-file:filenode]" ) {
-  AES_GCM_context *root_key = new AES_GCM_context();
-  GIVEN( "A filenode with sensitive informations" ) {
-    size_t pk_size = sizeof(sgx_ec256_public_t), sk_size = sizeof(sgx_ec256_private_t);
-    sgx_ec256_public_t pk[pk_size];
-    sgx_ec256_private_t sk[sk_size];
-
-    REQUIRE( User::generate_keys(pk_size, pk, sk_size, sk) == 0 );
-    User *user = new User("test", pk_size, pk);
-    user->id = 1;
-
-    string uuid = Node::generate_uuid();
-    Filenode *node = new Filenode(uuid, "Test", root_key, 4096);
-    REQUIRE( node->edit_user_policy(Filenode::OWNER_POLICY, user) == 0 );
-
-    WHEN( "dumping it to a buffer" ) {
-      size_t b_size = node->e_size();
-      char buffer[b_size];
-
-      REQUIRE( node->e_dump(b_size, buffer) == (int)b_size );
-      THEN( "loading it must return the same filenode" ) {
-        Filenode *loaded = new Filenode(uuid, root_key, 4096);
-
-        REQUIRE( loaded->e_load(b_size, buffer) == (int)b_size );
-        REQUIRE( loaded->equals(node) );
-        delete loaded;
-      }
-    }
-    delete node; // user delete with the node
-  }
-  AND_GIVEN( "A filenode with no sensitive informations" ) {
-    string uuid = Node::generate_uuid();
-    Filenode *node = new Filenode(uuid, "Test", root_key, 4096);
-
-    WHEN( "dumping it to a buffer" ) {
-      size_t b_size = node->e_size();
-      char buffer[b_size];
-
-      REQUIRE( node->e_dump(b_size, buffer) == (int)b_size );
-      THEN( "loading it, it must return the same filenode" ) {
-        Filenode *loaded = new Filenode(uuid, root_key, 4096);
-
-        REQUIRE( loaded->e_load(b_size, buffer) == (int)b_size );
-        REQUIRE( loaded->equals(node) );
-        delete loaded;
-      }
-    }
-    delete node;
-  }
-  delete root_key;
-}
-
-SCENARIO( "Filenode can store an access list, they can add / remove / check users.", "[multi-file:filenode]" ) {
-  size_t pk_size = sizeof(sgx_ec256_public_t), sk_size = sizeof(sgx_ec256_private_t);
-  sgx_ec256_public_t pk[pk_size];
-  sgx_ec256_private_t sk[sk_size];
-
-  REQUIRE( User::generate_keys(pk_size, pk, sk_size, sk) == 0 );
-  User *user = new User("test", pk_size, pk);
-  user->id = 1;
-
-  AES_GCM_context *root_key = new AES_GCM_context();
-  string uuid = Node::generate_uuid();
-  Filenode *node = new Filenode(uuid, "Test", root_key, 4096);
-
-  GIVEN( "A filenode without users" ) {
-    WHEN( "a user is added" ) {
-      REQUIRE( node->edit_user_policy(Filenode::WRITE_POLICY | Filenode::READ_POLICY, user) == 0 );
-
-      THEN( "checking only its permission should return True" ) {
-        REQUIRE( node->is_user_allowed(Filenode::WRITE_POLICY, user) );
-        REQUIRE( node->is_user_allowed(Filenode::WRITE_POLICY | Filenode::READ_POLICY, user) );
-        REQUIRE( !node->is_user_allowed(Filenode::WRITE_POLICY | Filenode::EXEC_POLICY, user) );
-        REQUIRE( !node->is_user_allowed(Filenode::OWNER_POLICY, user) );
-        REQUIRE( !node->is_user_allowed(Filenode::EXEC_POLICY, user) );
-      }
-      AND_THEN( "getting its attribute should give us the same policy" ) {
-        REQUIRE( node->getattr(user) == (Filenode::WRITE_POLICY | Filenode::READ_POLICY) );
-      }
-    }
-  }
-  AND_GIVEN( "A filenode with a user" ) {
-    REQUIRE( node->edit_user_policy(Filenode::OWNER_POLICY, user) == 0 );
-
-    WHEN( "the user is removed" ) {
-      REQUIRE( node->edit_user_policy(0, user) == 0 );
-
-      THEN( "checking any permission will fail" ) {
-        REQUIRE( !node->is_user_allowed(Filenode::EXEC_POLICY, user) );
-        REQUIRE( !node->is_user_allowed(Filenode::READ_POLICY, user) );
-        REQUIRE( !node->is_user_allowed(Filenode::WRITE_POLICY, user) );
-        REQUIRE( !node->is_user_allowed(Filenode::OWNER_POLICY, user) );
-      }
-      AND_THEN( "getting its attribute should give us a policy of 0" ) {
-        REQUIRE( node->getattr(user) == 0 );
-      }
-    }
-  }
-  delete root_key;
-  delete node; // user is deleted with the  node
-}
 
 SCENARIO( "Filenode can store the content of a file.", "[multi-file:filenode]" ) {
   AES_GCM_context *root_key = new AES_GCM_context();

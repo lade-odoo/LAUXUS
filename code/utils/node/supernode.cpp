@@ -37,46 +37,6 @@ bool Supernode::equals(Supernode *other) {
 }
 
 
-User *Supernode::add_user(User *user) {
-  if (check_user(user) != NULL)
-    return NULL;
-
-  int max_id = -1;
-  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
-    if (it->first > max_id)
-      max_id = it->first;
-
-  user->id = max_id + 1;
-  this->allowed_users->insert(pair<int, User*>(user->id, user));
-  return user;
-}
-
-User *Supernode::remove_user_from_id(int user_id) {
-  User *removed = this->retrieve_user(user_id);
-  if (removed == NULL || removed->is_root())
-    return NULL;
-
-  this->allowed_users->erase(removed->id);
-  return removed;
-}
-
-User *Supernode::check_user(User *user) {
-  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
-    if (user->equals(it->second))
-      return it->second;
-
-  return NULL;
-}
-
-User *Supernode::retrieve_user(int user_id) {
-  auto it = this->allowed_users->find(user_id);
-  if (it == this->allowed_users->end())
-    return NULL;
-
-  return it->second;
-}
-
-
 size_t Supernode::p_sensitive_size() {
   size_t size = sizeof(int);
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
@@ -119,4 +79,44 @@ int Supernode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
     this->allowed_users->insert(pair<int, User*>(user->id, user));
   }
   return read;
+}
+
+
+User *Supernode::add_user(User *user) {
+  if (check_user(user) != NULL)
+    return NULL;
+
+  int max_id = -1;
+  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
+    if (it->first > max_id)
+      max_id = it->first;
+
+  user->id = max_id + 1;
+  this->allowed_users->insert(pair<int, User*>(user->id, user));
+  return user;
+}
+
+User *Supernode::remove_user_from_id(int user_id) {
+  User *removed = this->retrieve_user(user_id);
+  if (removed == NULL || removed->is_root())
+    return NULL;
+
+  this->allowed_users->erase(removed->id);
+  return removed;
+}
+
+User *Supernode::check_user(User *user) {
+  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
+    if (user->equals(it->second))
+      return it->second;
+
+  return NULL;
+}
+
+User *Supernode::retrieve_user(int user_id) {
+  auto it = this->allowed_users->find(user_id);
+  if (it == this->allowed_users->end())
+    return NULL;
+
+  return it->second;
 }
