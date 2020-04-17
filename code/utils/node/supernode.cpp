@@ -11,6 +11,7 @@ using namespace std;
 
 
 Supernode::Supernode(const string &filename, AES_GCM_context *root_key):Node::Node(filename, "/", root_key) {
+  this->node_type = Node::SUPERNODE_TYPE;
   this->allowed_users = new map<int, User*>();
 }
 

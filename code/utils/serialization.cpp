@@ -41,28 +41,26 @@ int dump_append(const string &dumppath, const size_t size, const char *buffer) {
 }
 
 
-int load(const string &loadpath, char **buffer) {
+int load(const string &loadpath, char *buffer) {
   ifstream stream(loadpath, ios::binary);
   if (stream.is_open()) {
     size_t size = file_size(loadpath);
-    *buffer = new char[size];
-    stream.read(*buffer, size);
+    stream.read(buffer, size);
     stream.close();
     return size;
   }
   return -1;
 }
 
-int load_with_offset(const string &loadpath, const long offset, const size_t size, char **buffer) {
+int load_with_offset(const string &loadpath, const long offset, const size_t size, char *buffer) {
   ifstream stream(loadpath, ios::binary);
   size_t f_size = file_size(loadpath);
   if (stream.is_open() && (long)f_size > offset) {
     size_t size_to_copy = f_size - offset;
     if (size_to_copy > size)
       size_to_copy = size;
-    *buffer = new char[size_to_copy];
     stream.seekg(offset, ios::beg);
-    stream.read(*buffer, size_to_copy);
+    stream.read(buffer, size_to_copy);
     stream.close();
     return size_to_copy;
   }

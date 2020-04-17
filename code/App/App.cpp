@@ -432,11 +432,11 @@ int App::fuse_unlink(const char *filepath) {
 
   if (ret < 0)
     return ret;
-  if (nexus_delete_file(ENCR_PATH, filename) < 0)
+  if (nexus_delete_file(filename, ENCR_PATH) < 0)
     return -EPROTO;
-  if (nexus_delete_file(META_PATH, filename) < 0)
+  if (nexus_delete_file(filename, META_PATH) < 0)
     return -EPROTO;
-  if (nexus_delete_file(AUDIT_PATH, filename) < 0)
+  if (nexus_delete_file(filename, AUDIT_PATH) < 0)
     return -EPROTO;
 
   sgx_status = sgx_unlink(ENCLAVE_ID, &ret, (char*)filename.c_str());

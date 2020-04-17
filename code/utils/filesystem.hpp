@@ -1,14 +1,15 @@
 #ifndef __FILESYSTEM_HPP__
 #define __FILESYSTEM_HPP__
 
-#include <string>
-#include <map>
-#include <vector>
-
 #include "../utils/encryption/aes_gcm.hpp"
 #include "../utils/users/user.hpp"
 #include "../utils/node/filenode.hpp"
 #include "../utils/node/supernode.hpp"
+
+#include <string>
+#include <vector>
+
+using namespace std;
 
 
 /**
@@ -22,37 +23,35 @@ class FileSystem {
     User *current_user;
 
     FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key, Supernode *supernode, size_t block_size);
+    void init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR);
 
-    int edit_user_policy(const std::string &filename, const unsigned char policy, const int user_id);
+    int edit_user_entitlement(const string &path, const unsigned char rights, const int user_id);
 
-    std::vector<std::string> readdir();
+    vector<string> readdir();
+    int get_rights(const string &path);
+    int entry_type(const string &path);
 
-    bool isfile(const std::string &filename);
-    int file_size(const std::string &filename);
-    int getattr(const std::string &filename);
-    int create_file(const std::string &filename);
-    int read_file(const std::string &filename, const long offset, const size_t buffer_size, char *buffer);
-    int write_file(const std::string &filename, const long offset, const size_t data_size, const char *data);
-    int unlink(const std::string &filename);
-
-    int e_dump_metadata(const std::string &filename, const std::string &dest_dir);
-    int e_load_metadata(const std::string &uuid, const size_t buffer_size, const char *buffer);
-
-    int e_dump_file(const std::string &filename, const std::string &dest_dir, const long up_offset, const size_t up_size);
-    int e_load_file(const std::string &uuid, const long offset, const size_t buffer_size, const char *buffer);
-
-    int e_dump_audit(const std::string &filename, const std::string &dest_dir, const std::string &reason);
-
-    int delete_file(const std::string &filename, const std::string &dir);
+    int file_size(const string &filepath);
+    int create_file(const string &reason, const string &filepath);
+    int read_file(const string &reason, const string &filepath, const long offset, const size_t buffer_size, char *buffer);
+    int write_file(const string &reason, const string &filepath, const long offset, const size_t data_size, const char *data);
+    int unlink(const string &filepath);
 
   private:
+    string CONTENT_DIR, META_DIR, AUDIT_DIR;
     size_t block_size;
 
-    std::map<std::string, Filenode*> *files;
+    int load_metadata(Node *parent);
+    int load_content(Node *parent);
 
+    int e_write_meta_to_disk(Node *node);
+    int e_write_file_to_disk(Filenode *node, const long up_offset, const size_t up_size);
+    int e_append_audit_to_disk(Node *node, const string &reason);
 
-    Filenode* retrieve_node(const std::string &filename);
-    Filenode* retrieve_node_with_uuid(const std::string &uuid);
+    int e_load_meta_from_disk(const string &uuid, char **buffer);
+    int e_load_file_from_disk(const string &uuid, const long offset, char **buffer);
+
+    int delete_from_disk(Node *node, const string &from_dir);
 };
 
 #endif /*__FILESYSTEM_HPP__*/

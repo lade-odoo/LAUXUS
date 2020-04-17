@@ -16,8 +16,7 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
     WHEN( "content is loaded" ) {
       THEN( "the load fails" ) {
         char *buffer = NULL;
-        REQUIRE( load(path, &buffer) == -1);
-        REQUIRE( buffer == NULL);
+        REQUIRE( load(path, buffer) == -1);
       }
     }
   }
@@ -30,23 +29,18 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
         REQUIRE( file_size(path) == 13 );
       }
       AND_THEN( "the content matches when loaded" ) {
-        char *buffer = NULL;
-        REQUIRE( load(path, &buffer) == 13);
-        REQUIRE( buffer != NULL);
+        char buffer[13];
+        REQUIRE( load(path, buffer) == 13);
         REQUIRE( memcmp(buffer, "Some content.", 13) == 0);
-        free(buffer);
       }
       AND_THEN( "the content matches when loaded with offset" ) {
-        char *buffer = NULL;
-        REQUIRE( load_with_offset(path, 5, 10, &buffer) == 8);
-        REQUIRE( buffer != NULL);
+        char buffer[8];
+        REQUIRE( load_with_offset(path, 5, 10, buffer) == 8);
         REQUIRE( memcmp(buffer, "content.", 8) == 0);
-        free(buffer);
       }
       AND_THEN( "the load with offset fails if the offset is too big" ) {
         char *buffer = NULL;
-        REQUIRE( load_with_offset(path, 15, 5, &buffer) == -1);
-        REQUIRE( buffer == NULL);
+        REQUIRE( load_with_offset(path, 15, 5, buffer) == -1);
       }
     }
     AND_WHEN( "content is dumped with offset" ) {
@@ -56,11 +50,9 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
         REQUIRE( file_size(path) == 15 );
       }
       AND_THEN( "the content matches when loaded" ) {
-        char *buffer = NULL;
-        REQUIRE( load(path, &buffer) == 15);
-        REQUIRE( buffer != NULL);
+        char buffer[15];
+        REQUIRE( load(path, buffer) == 15);
         REQUIRE( memcmp(buffer, "Some contentV2.", 15) == 0);
-        free(buffer);
       }
     }
     AND_WHEN( "content is appended" ) {
@@ -70,11 +62,9 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
         REQUIRE( file_size(path) == 31 );
       }
       AND_THEN( "the content matches when loaded" ) {
-        char *buffer = NULL;
-        REQUIRE( load(path, &buffer) >= 31);
-        REQUIRE( buffer != NULL);
+        char buffer[31];
+        REQUIRE( load(path, buffer) >= 31);
         REQUIRE( memcmp(buffer, "Some contentV2. Plus appending.", 31) == 0);
-        free(buffer);
       }
     }
     AND_WHEN( "the file is deleted" ) {
@@ -82,8 +72,7 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
 
       THEN( "the file can no longer be loaded" ) {
         char *buffer = NULL;
-        REQUIRE( load(path, &buffer) == -1);
-        REQUIRE( buffer == NULL);
+        REQUIRE( load(path, buffer) == -1);
       }
     }
   }

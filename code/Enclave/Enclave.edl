@@ -48,9 +48,12 @@ enclave {
         int ocall_dump([in, string] const char *path, size_t size, [in, size=size] const char *buffer);
         int ocall_dump_in_dir([in, string] const char *dir, [in, string] const char *file, size_t size, [in, size=size] const char *buffer);
         int ocall_dump_append_in_dir([in, string] const char *dir, [in, string] const char *file, size_t size, [in, size=size] const char *buffer);
-        int ocall_dump_with_offset_in_dir([in, string] const char *dir, [in, string] const char *file, size_t offset, size_t size, [in, size=size] const char *buffer);
+        int ocall_dump_with_offset_in_dir([in, string] const char *dir, [in, string] const char *file, long offset, size_t size, [in, size=size] const char *buffer);
 
-        int ocall_delete_from_dir([in, string] const char *dir, [in, string] const char *path);
+        int ocall_delete_from_dir([in, string] const char *dir, [in, string] const char *uuid);
+
+        int ocall_file_size([in, string] const char *dir, [in, string] const char *uuid);
+        int ocall_load_file([in, string] const char *dir, [in, string] const char *uuid, long offset, size_t size, [out, size=size] char *buffer);
 
         int ocall_sign_challenge([in, string] const char *sk_path, size_t nonce_size, [in, size=nonce_size] const char *nonce,
                                 size_t sig_size, [out, size=sig_size] char *sig) allow(sgx_sign_message);

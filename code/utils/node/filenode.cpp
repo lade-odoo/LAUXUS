@@ -15,6 +15,7 @@
 Filenode::Filenode(const std::string &uuid, const std::string &relative_path,
         AES_GCM_context *root_key, const size_t block_size):Node::Node(uuid, relative_path, root_key) {
 
+  this->node_type = Node::FILENODE_TYPE;
   this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
   this->content = new FilenodeContent(block_size, this->aes_ctr_ctxs);
 

@@ -159,7 +159,8 @@ SCENARIO( "Nodes can form file hierarchy.", "[multi-file:node]" ) {
 
       THEN( "we should retrieve a file from its path" ) {
         REQUIRE( supernode->retrieve_node("/Test1")->equals(filenode1) );
-        REQUIRE( supernode->retrieve_node("/Test1")->equals(filenode1) );
+        REQUIRE( supernode->retrieve_node("/Test2")->equals(filenode2) );
+        REQUIRE( supernode->retrieve_node("/")->equals(supernode) );
       }
       AND_THEN( "an incorrect path should return NULL" ) {
         REQUIRE( supernode->retrieve_node("/Wrong") == NULL );

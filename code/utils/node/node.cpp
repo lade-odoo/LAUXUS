@@ -112,13 +112,15 @@ bool Node::has_user_rights(const unsigned char min_rights, User *user) {
   if (it == this->entitlements->end())
     return false;
 
+  if (this->node_type == SUPERNODE_TYPE) // supernode must be readable by everyone
+    return min_rights == (min_rights & (READ_RIGHT | EXEC_RIGHT));
   if (it->second == OWNER_RIGHT)
     return true;
   return min_rights == (min_rights & it->second);
 }
 
 int Node::edit_user_entitlement(const unsigned char rights, User *user) {
-  if (user->is_root())
+  if (user->is_root() || this->node_type == SUPERNODE_TYPE)
     return -1;
 
   auto it = this->entitlements->find(user->id);
@@ -146,6 +148,8 @@ int Node::remove_user_entitlement(User *user) {
 int Node::get_rights(User *user) {
   if (user->is_root())
     return READ_RIGHT | WRITE_RIGHT | EXEC_RIGHT;
+  if (this->node_type == SUPERNODE_TYPE) // supernode must be readable by everyone
+    return READ_RIGHT | EXEC_RIGHT;
 
   auto it = this->entitlements->find(user->id);
   if (it == this->entitlements->end())

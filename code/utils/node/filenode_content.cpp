@@ -64,16 +64,16 @@ int FilenodeContent::write(const long offset, const size_t data_size, const char
   size_t block_index = (size_t)((offset-offset_in_block)/this->block_size);
 
   // fill as much as we can inside available blocks
-  if (block_index < this->plain->size()) {
+  for (; block_index < this->plain->size(); offset_in_block=0, block_index++) {
     std::vector<char> *block = this->plain->at(block_index);
-    size_t bytes_to_write = data_size;
-    if (this->block_size < (offset_in_block + data_size)) {
+    size_t bytes_to_write = data_size - written;
+    if (this->block_size < (offset_in_block + bytes_to_write)) {
       bytes_to_write = this->block_size - offset_in_block;
       block->resize(this->block_size);
     } else {
       block->resize(offset_in_block + data_size);
     }
-    std::memcpy(&(*block)[0] + offset_in_block, data, bytes_to_write);
+    std::memcpy(&(*block)[0] + offset_in_block, data+written, bytes_to_write);
     written += bytes_to_write;
 
     if (this->encrypt_block(block_index) < 0)
@@ -88,6 +88,7 @@ int FilenodeContent::write(const long offset, const size_t data_size, const char
     }
     std::vector<char> *block = new std::vector<char>(bytes_to_write);
     std::memcpy(&(*block)[0], data + written, bytes_to_write);
+
     this->plain->push_back(block);
     this->aes_ctr_ctxs->push_back(new AES_CTR_context());
     written += bytes_to_write;
@@ -103,7 +104,6 @@ int FilenodeContent::read(const long offset, const size_t buffer_size, char *buf
   size_t read = 0;
   size_t offset_in_block = offset % this->block_size;
   size_t block_index = (size_t)((offset-offset_in_block)/this->block_size);
-
   if (this->plain->size() <= block_index)
     return 0;
 
@@ -111,10 +111,11 @@ int FilenodeContent::read(const long offset, const size_t buffer_size, char *buf
        index < this->plain->size() && read < buffer_size;
        index++, offset_in_block = 0) {
     std::vector<char> *block = this->plain->at(index);
+
     auto size_to_copy = buffer_size - read;
-    if (size_to_copy > block->size()) {
-      size_to_copy = block->size();
-    }
+    if (size_to_copy > block->size()-offset_in_block)
+      size_to_copy = block->size()-offset_in_block;
+
     std::memcpy(buffer + read, &(*block)[0] + offset_in_block, size_to_copy);
     read += size_to_copy;
   }

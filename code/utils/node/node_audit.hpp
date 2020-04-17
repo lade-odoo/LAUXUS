@@ -6,8 +6,7 @@
 #include <string>
 
 
-
-class FilenodeAudit {
+class NodeAudit {
   public:
     static size_t e_reason_size(const std::string &reason);
     static int e_reason_dump(AES_GCM_context *audit_root_key, const std::string &reason, const size_t buffer_size, char *buffer);

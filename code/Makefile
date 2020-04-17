@@ -119,7 +119,7 @@ Crypto_Library_Name := sgx_tcrypto
 # Enclave_Cpp_Files := Enclave/Enclave.cpp $(wildcard Enclave/Edger8rSyntax/*.cpp) $(wildcard Enclave/TrustedLibrary/*.cpp)
 Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/node/node.cpp Enclave/utils/node/supernode.cpp Enclave/utils/node/filenode.cpp Enclave/utils/node/filenode_content.cpp Enclave/utils/node/filenode_audit.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/node/node.cpp Enclave/utils/node/supernode.cpp Enclave/utils/node/filenode.cpp Enclave/utils/node/filenode_content.cpp Enclave/utils/node/node_audit.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/encryption/aes_gcm.cpp Enclave/utils/encryption/aes_ctr.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/filesystem.cpp
@@ -152,13 +152,13 @@ endif
 
 # Tests settings
 
-Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
+Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp') App/untrusted.cpp
 Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
-Tests_Cpp_Files := utils/metadata.cpp utils/misc.cpp utils/serialization.cpp
-Tests_Cpp_Files := $(Tests_Cpp_Files) $(shell find utils/encryption -name '*.cpp') $(shell find utils/node -name '*.cpp') $(shell find utils/users -name '*.cpp')
+Tests_Cpp_Files := $(shell find utils -name '*.cpp')
+Tests_Cpp_Files := $(Tests_Cpp_Files)
 Tests_Cpp_Objects := $(Tests_Cpp_Files:.cpp=.o)
 Tests_Exec_Files := $(shell find tests/utils -name '*.cpp')
-Tests_Exec_Files := $(Tests_Exec_Files:.cpp=)
+Tests_Exec_Files := $(Tests_Exec_Files:.cpp=.test)
 
 
 .PHONY: all run
@@ -261,7 +261,7 @@ tests/SGX_Emulator/%.o: tests/SGX_Emulator/%.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-tests/%: tests/%.o $(Tests_Emul_Objects) $(Tests_Cpp_Objects) tests/main.o
+tests/%.test: tests/%.o $(Tests_Emul_Objects) $(Tests_Cpp_Objects) tests/main.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 

@@ -19,6 +19,13 @@ class Node: public Metadata {
     static const unsigned char WRITE_RIGHT = 2;
     static const unsigned char EXEC_RIGHT = 1;
 
+    static const unsigned char SUPERNODE_TYPE = 0;
+    static const unsigned char FILENODE_TYPE = 1;
+    unsigned char node_type;
+
+    string relative_path, uuid;
+    map<string, Node*> *node_entries; // mapping relative_path - node
+
     Node(const string &uuid, const string &relative_path, AES_GCM_context *root_key);
     Node(const string &uuid, AES_GCM_context *root_key);
     ~Node();
@@ -40,15 +47,12 @@ class Node: public Metadata {
 
 
   private:
-    map<string, Node*> *node_entries; // mapping relative_path - node
     map<int, unsigned char> *entitlements; // mapping user_id - policy ORWX
 
     bool is_correct_node(string parent_path);
 
 
   protected:
-    string relative_path, uuid;
-
     size_t p_preamble_size();
     int p_dump_preamble(const size_t buffer_size, char *buffer);
     int p_load_preamble(const size_t buffer_size, const char *buffer);

@@ -1,4 +1,4 @@
-#include "filenode_audit.hpp"
+#include "node_audit.hpp"
 #include "../encryption/aes_gcm.hpp"
 
 #include <string>
@@ -6,13 +6,13 @@
 
 
 
-size_t FilenodeAudit::e_reason_size(const std::string &reason) {
+size_t NodeAudit::e_reason_size(const std::string &reason) {
   size_t mac_size = AES_GCM_context::size() - AES_GCM_context::size_without_mac();
   return sizeof(int) + mac_size + AES_GCM_context::size() + sizeof(int) + reason.length()+1;
 }
 
-int FilenodeAudit::e_reason_dump(AES_GCM_context *audit_root_key, const std::string &reason, const size_t buffer_size, char *buffer) {
-  if (buffer_size < FilenodeAudit::e_reason_size(reason))
+int NodeAudit::e_reason_dump(AES_GCM_context *audit_root_key, const std::string &reason, const size_t buffer_size, char *buffer) {
+  if (buffer_size < NodeAudit::e_reason_size(reason))
     return -1;
 
   int reason_length = reason.length()+1;
@@ -51,7 +51,7 @@ int FilenodeAudit::e_reason_dump(AES_GCM_context *audit_root_key, const std::str
   return sizeof(int) + entry_size;
 }
 
-int FilenodeAudit::e_reason_entry_load(AES_GCM_context *audit_root_key, std::string &reason, const size_t buffer_size, const char *buffer) {
+int NodeAudit::e_reason_entry_load(AES_GCM_context *audit_root_key, std::string &reason, const size_t buffer_size, const char *buffer) {
   // retrieve mac
   size_t mac_size = AES_GCM_context::size() - AES_GCM_context::size_without_mac();
   std::memcpy(audit_root_key->p_mac, buffer, mac_size);
