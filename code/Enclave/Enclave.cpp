@@ -22,6 +22,10 @@ int sgx_init_new_filesystem(const char *supernode_path) {
   return 0;
 }
 
+void sgx_init_dumping_folders(const char *content_dir, const char* meta_dir, const char *audit_dir) {
+  FILE_SYSTEM->init_dumping_folders(content_dir, meta_dir, audit_dir);
+}
+
 int sgx_init_existing_filesystem(const char *supernode_path, size_t rk_sealed_size, const char *sealed_rk,
                     size_t ark_sealed_size, const char *sealed_ark, size_t e_supernode_size, const char *e_supernode) {
   // allocating plain root keys
@@ -185,10 +189,10 @@ int sgx_remove_user(int user_id) {
   return removed_user_id;
 }
 
-int sgx_edit_user_policy(const char *filename, const unsigned char policy, const int user_id) {
-  return FILE_SYSTEM->edit_user_policy(filename, policy, user_id);
-}
 
+int sgx_edit_user_entitlement(const char *path, const unsigned char rights, const int user_id) {
+  return FILE_SYSTEM->edit_user_entitlement(path, rights, user_id);
+}
 
 int sgx_ls_buffer_size() {
   std::vector<std::string> files = FILE_SYSTEM->readdir();
@@ -200,7 +204,6 @@ int sgx_ls_buffer_size() {
   }
   return size;
 }
-
 int sgx_readdir(char separator, size_t buffer_size, char *buffer) {
   std::vector<std::string> files = FILE_SYSTEM->readdir();
   size_t offset = 0, count_entries = 0;
@@ -215,60 +218,26 @@ int sgx_readdir(char separator, size_t buffer_size, char *buffer) {
   return count_entries;
 }
 
-
-int sgx_isfile(const char *filename) {
-  if (FILE_SYSTEM->isfile(filename))
-    return EEXIST;
-  return -ENOENT;
+int sgx_entry_type(const char *path) {
+  return FILE_SYSTEM->entry_type(path);
+}
+int sgx_get_rights(const char *path) {
+  return FILE_SYSTEM->get_rights(path);
 }
 
-int sgx_file_size(const char *filename) {
-  return FILE_SYSTEM->file_size(filename);
+int sgx_file_size(const char *filepath) {
+  return FILE_SYSTEM->file_size(filepath);
+}
+int sgx_create_file(const char *reason, const char *filepath) {
+  return FILE_SYSTEM->create_file(reason, filepath);
+}
+int sgx_read_file(const char *reason, const char *filepath, long offset, size_t buffer_size, char *buffer) {
+  return FILE_SYSTEM->read_file(reason, filepath, offset, buffer_size, buffer);
+}
+int sgx_write_file(const char *reason, const char *filepath, long offset, size_t data_size, const char *data) {
+  return FILE_SYSTEM->write_file(reason, filepath, offset, data_size, data);
 }
 
-int sgx_getattr(const char *filename) {
-  return FILE_SYSTEM->getattr(filename);
-}
-
-int sgx_create_file(const char *filename) {
-  return FILE_SYSTEM->create_file(filename);
-}
-
-int sgx_read_file(const char *filename, long offset, size_t buffer_size, char *buffer) {
-  return FILE_SYSTEM->read_file(filename, offset, buffer_size, buffer);
-}
-
-int sgx_write_file(const char *filename, long offset, size_t data_size, const char *data) {
-  return FILE_SYSTEM->write_file(filename, offset, data_size, data);
-}
-
-int sgx_unlink(const char *filename) {
-  return FILE_SYSTEM->unlink(filename);
-}
-
-
-int sgx_e_dump_metadata(const char *filename, const char *dest_dir) {
-  return FILE_SYSTEM->e_dump_metadata(filename, dest_dir);
-}
-
-int sgx_e_load_metadata(const char *uuid, size_t buffer_size, const char *buffer) {
-  return FILE_SYSTEM->e_load_metadata(uuid, buffer_size, buffer);
-}
-
-
-int sgx_e_dump_file(const char *filename, const char *dest_dir, long up_offset, size_t up_size) {
-  return FILE_SYSTEM->e_dump_file(filename, dest_dir, up_offset, up_size);
-}
-
-int sgx_e_load_file(const char *uuid, long offset, size_t buffer_size, const char *buffer) {
-  return FILE_SYSTEM->e_load_file(uuid, offset, buffer_size, buffer);
-}
-
-
-int sgx_e_dump_audit(const char *filename, const char *dest_dir, const char *reason) {
-  return FILE_SYSTEM->e_dump_audit(filename, dest_dir, reason);
-}
-
-int sgx_delete_file(const char *filename, const char *dir) {
-  return FILE_SYSTEM->delete_file(filename, dir);
+int sgx_unlink(const char *filepath) {
+  return FILE_SYSTEM->unlink(filepath);
 }

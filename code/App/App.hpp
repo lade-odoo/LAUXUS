@@ -33,23 +33,14 @@ class App {
     static int nexus_create_user(const char *username, const char *pk_file, const char *sk_file);
     static int nexus_add_user(const char *username, const char *pk_file);
     static int nexus_remove_user(int user_id);
-    static int nexus_edit_user_policy(const int user_id, const char *filepath, const unsigned char policy);
+    
+    static int nexus_edit_user_entitlement(const int user_id, const char *filepath, const unsigned char policy);
 
   private:
     static int init_enclave();
     static void destroy_enclave();
 
     static int nexus_login();
-
-    static int retrieve_nexus_content();
-    static int retrieve_nexus_meta();
-    static int retrieve_nexus_ciphers();
-    static int retrieve_nexus_audits();
-
-    static int nexus_write_metadata(const string &filename);
-    static int nexus_write_encryption(const string &filename, long offset, size_t updated_size);
-    static int nexus_append_reason(const string &filename);
-    static int nexus_delete_file(const string &dir, const string &filename);
 };
 
 #endif /*__APP_HPP__*/

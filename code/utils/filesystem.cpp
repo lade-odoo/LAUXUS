@@ -30,15 +30,15 @@ FileSystem::FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_ke
   this->supernode = supernode;
   this->block_size = block_size;
   this->current_user = NULL;
-
-  this->load_metadata(supernode);
-  this->load_content(supernode);
 }
 
 void FileSystem::init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR) {
   this->CONTENT_DIR = CONTENT_DIR;
   this->META_DIR = META_DIR;
   this->AUDIT_DIR = AUDIT_DIR;
+
+  this->load_metadata(supernode);
+  this->load_content(supernode);
 }
 
 

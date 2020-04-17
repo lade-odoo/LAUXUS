@@ -4,10 +4,11 @@ enclave {
     trusted {
         /* define ECALLs here. */
         public int sgx_init_new_filesystem([in, string] const char *supernode_path);
+        public void sgx_init_dumping_folders([in, string] const char *content_dir, [in, string] const char* meta_dir, [in, string] const char *audit_dir);
         public int sgx_init_existing_filesystem([in, string] const char *supernode_path,
-                                              size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
-                                              size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark,
-                                              size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
+                                size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
+                                size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark,
+                                size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
         public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path, [in, string] const char *supernode_path);
 
         public int sgx_login([in, string] const char *sk_path, int user_id, size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
@@ -17,28 +18,20 @@ enclave {
         public int sgx_create_user([in, string] const char *username, [in, string] const char *pk_path, [in, string] const char *sk_path);
         public int sgx_add_user([in, string] const char *username, size_t pk_size, [in, size=pk_size] const char *pk);
         public int sgx_remove_user(int user_id);
-        public int sgx_edit_user_policy([in, string] const char *filename, unsigned char policy, int user_id);
+
+        public int sgx_edit_user_entitlement([in, string] const char *path, unsigned char rights, int user_id);
 
         public int sgx_ls_buffer_size();
         public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
 
-        public int sgx_isfile([in, string] const char *filename);
-        public int sgx_file_size([in, string] const char *filename);
-        public int sgx_getattr([in, string] const char *filename);
-        public int sgx_create_file([in, string] const char *filename);
-        public int sgx_read_file([in, string] const char *filename, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_write_file([in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
-        public int sgx_unlink([in, string] const char *filename);
+        public int sgx_entry_type([in, string] const char *path);
+        public int sgx_get_rights([in, string] const char *path);
 
-        public int sgx_e_dump_metadata([in, string] const char *filename, [in, string] const char *dest_dir);
-        public int sgx_e_load_metadata([in, string] const char *uuid, size_t buffer_size, [in, size=buffer_size] const char *buffer);
-
-        public int sgx_e_dump_file([in, string] const char *filename, [in, string] const char *dest_dir, long up_offset, size_t up_size);
-        public int sgx_e_load_file([in, string] const char *uuid, long offset, size_t buffer_size, [in, size=buffer_size] const char *buffer);
-
-        public int sgx_e_dump_audit([in, string] const char *filename, [in, string] const char *dest_dir, [in, string] const char *reason);
-
-        public int sgx_delete_file([in, string] const char *filename, [in, string] const char *dir);
+        public int sgx_file_size([in, string] const char *filepath);
+        public int sgx_create_file([in, string] const char *reason, [in, string] const char *filename);
+        public int sgx_read_file([in, string] const char *reason, [in, string] const char *filename, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_write_file([in, string] const char *reason, [in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
+        public int sgx_unlink([in, string] const char *filepath);
     };
 
     untrusted {
