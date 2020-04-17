@@ -42,9 +42,11 @@ string get_filename(const string &filepath) {
 string clean_path(const string &path) {
   string trimmed = path;
   size_t position;
-  while ((position = trimmed.find("//")) != string::npos) {
+  while ((position = trimmed.find("//")) != string::npos)
     trimmed = trimmed.replace(position, 2, "/");
-  }
+  while (trimmed.length() > 1 && trimmed.back() == '/')
+    trimmed.pop_back();
+
   return trimmed;
 }
 

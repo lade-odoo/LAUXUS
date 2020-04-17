@@ -48,4 +48,6 @@ TEST_CASE( "3: Computation of clean_path", "[multi-file:misc]" ) {
   REQUIRE( clean_path("/folder1///file.txt").compare("/folder1/file.txt") == 0 );
   REQUIRE( clean_path("/folder1/folder2///file.txt").compare("/folder1/folder2/file.txt") == 0 );
   REQUIRE( clean_path("/folder1///folder2///file.txt").compare("/folder1/folder2/file.txt") == 0 );
+  REQUIRE( clean_path("/folder1/folder2///").compare("/folder1/folder2") == 0 );
+  REQUIRE( clean_path("/folder1///folder2///").compare("/folder1/folder2") == 0 );
 }
