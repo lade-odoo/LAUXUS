@@ -40,3 +40,12 @@ TEST_CASE( "3: Computation of get_filename", "[multi-file:misc]" ) {
   REQUIRE( get_filename("./a_file.txt").compare("a_file.txt") == 0 );
   REQUIRE( get_filename("./a_dir/a_file.txt").compare("a_file.txt") == 0 );
 }
+
+TEST_CASE( "3: Computation of clean_path", "[multi-file:misc]" ) {
+  REQUIRE( clean_path("/").compare("/") == 0 );
+  REQUIRE( clean_path("/////////").compare("/") == 0 );
+  REQUIRE( clean_path("/folder1/file.txt").compare("/folder1/file.txt") == 0 );
+  REQUIRE( clean_path("/folder1///file.txt").compare("/folder1/file.txt") == 0 );
+  REQUIRE( clean_path("/folder1/folder2///file.txt").compare("/folder1/folder2/file.txt") == 0 );
+  REQUIRE( clean_path("/folder1///folder2///file.txt").compare("/folder1/folder2/file.txt") == 0 );
+}

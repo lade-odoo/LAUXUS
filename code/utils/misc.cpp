@@ -39,6 +39,15 @@ string get_filename(const string &filepath) {
   return filepath.substr(index+1);
 }
 
+string clean_path(const string &path) {
+  string trimmed = path;
+  size_t position;
+  while ((position = trimmed.find("//")) != string::npos) {
+    trimmed = trimmed.replace(position, 2, "/");
+  }
+  return trimmed;
+}
+
 
 int create_directory(const string &dirpath) {
   return system((char*)("mkdir " + dirpath).c_str());

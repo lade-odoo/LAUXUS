@@ -11,6 +11,7 @@ vector<string> tokenize(const size_t buffer_size, const char *entries, const cha
 
 string get_directory(const string &filepath);
 string get_filename(const string &filepath);
+string clean_path(const string &path);
 
 int create_directory(const string &dirpath);
 
