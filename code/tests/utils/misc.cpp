@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 using namespace std;
 
@@ -28,17 +29,17 @@ TEST_CASE( "1: Computation of tokenize", "[multi-file:misc]" ) {
 }
 
 TEST_CASE( "2: Computation of get_directory", "[multi-file:misc]" ) {
-  REQUIRE( get_directory(".").compare(".") == 0 );
-  REQUIRE( get_directory("./").compare(".") == 0 );
-  REQUIRE( get_directory("./a_file.txt").compare(".") == 0 );
-  REQUIRE( get_directory("./a_dir/a_file.txt").compare("./a_dir") == 0 );
+  REQUIRE( get_directory("/").compare("/") == 0 );
+  REQUIRE( get_directory("/file").compare("/") == 0 );
+  REQUIRE( get_directory("/a_file.txt").compare("/") == 0 );
+  REQUIRE( get_directory("/a_dir/a_file.txt").compare("/a_dir") == 0 );
 }
 
-TEST_CASE( "3: Computation of get_filename", "[multi-file:misc]" ) {
-  REQUIRE( get_filename(".").compare(".") == 0 );
-  REQUIRE( get_filename("/a_file.txt").compare("a_file.txt") == 0 );
-  REQUIRE( get_filename("./a_file.txt").compare("a_file.txt") == 0 );
-  REQUIRE( get_filename("./a_dir/a_file.txt").compare("a_file.txt") == 0 );
+TEST_CASE( "3: Computation of get_relative_path", "[multi-file:misc]" ) {
+  REQUIRE( get_relative_path("/a_file.txt").compare("a_file.txt") == 0 );
+  REQUIRE( get_relative_path("/a_file.txt").compare("a_file.txt") == 0 );
+  REQUIRE( get_relative_path("/a_dir/a_file.txt").compare("a_file.txt") == 0 );
+  REQUIRE( get_relative_path("/a_dir").compare("a_dir") == 0 );
 }
 
 TEST_CASE( "3: Computation of clean_path", "[multi-file:misc]" ) {

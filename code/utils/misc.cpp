@@ -31,12 +31,12 @@ vector<string> tokenize(const size_t buffer_size, const char *entries, const cha
 
 string get_directory(const string &filepath) {
   size_t index = filepath.find_last_of("/");
-  return filepath.substr(0, index);
+  return clean_path(filepath.substr(0, index + 1));
 }
 
-string get_filename(const string &filepath) {
+string get_relative_path(const string &filepath) {
   size_t index = filepath.find_last_of("/");
-  return filepath.substr(index+1);
+  return clean_path(filepath.substr(index+1));
 }
 
 string clean_path(const string &path) {
