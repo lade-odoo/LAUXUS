@@ -1,4 +1,5 @@
 #include "../catch.hpp"
+#include "../../utils/misc.hpp"
 #include "../../utils/serialization.hpp"
 
 #include <string>
@@ -10,14 +11,14 @@ using namespace std;
 
 // ... crashing
 SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]" ) {
-  string path = "/tmp/nexus_tests_empty.txt";
+  create_directory("/tmp/nexus_tests");
+  string path = "/tmp/nexus_tests/empty.txt";
   GIVEN( "A non existing file" ) {
     REQUIRE( file_size(path) == 0 );
 
     WHEN( "content is loaded" ) {
       THEN( "the load fails" ) {
-        char *buffer = NULL;
-        REQUIRE( load(path, buffer) == -1);
+        REQUIRE( load(path, NULL) == -1);
       }
     }
   }
@@ -61,11 +62,6 @@ SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]
 
       THEN( "the size is changed" ) {
         REQUIRE( file_size(path) == 31 );
-      }
-      AND_THEN( "the content matches when loaded" ) {
-        char buffer[31];
-        REQUIRE( load(path, buffer) >= 31);
-        REQUIRE( memcmp(buffer, "Some contentV2. Plus appending.", 31) == 0);
       }
     }
     AND_WHEN( "the file is deleted" ) {

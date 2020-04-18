@@ -23,6 +23,7 @@ class FileSystem {
     User *current_user;
 
     FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key, Supernode *supernode, size_t block_size);
+    ~FileSystem();
     void init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR);
 
     int edit_user_entitlement(const string &path, const unsigned char rights, const int user_id);
@@ -34,11 +35,11 @@ class FileSystem {
     int create_file(const string &reason, const string &filepath);
     int read_file(const string &reason, const string &filepath, const long offset, const size_t buffer_size, char *buffer);
     int write_file(const string &reason, const string &filepath, const long offset, const size_t data_size, const char *data);
-    int unlink(const string &filepath);
+    int unlink(const string &reason, const string &filepath);
 
     vector<string> readdir(const string &path);
     int create_directory(const string &reason, const string &dirpath);
-    int rm_directory(const string &dirpath);
+    int rm_directory(const string &reason, const string &dirpath);
     int open_directory(const string &dirpath);
 
     // Static functioncs

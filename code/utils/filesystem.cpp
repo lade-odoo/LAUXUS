@@ -34,13 +34,20 @@ FileSystem::FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_ke
   this->current_user = NULL;
 }
 
+FileSystem::~FileSystem() {
+  delete this->root_key;
+  delete this->audit_root_key;
+  delete this->supernode;
+}
+
 void FileSystem::init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR) {
   this->CONTENT_DIR = CONTENT_DIR;
   this->META_DIR = META_DIR;
   this->AUDIT_DIR = AUDIT_DIR;
 
-  this->load_metadata(supernode);
-  this->load_content(supernode);
+  this->e_write_meta_to_disk(this->supernode);
+  this->load_metadata(this->supernode);
+  this->load_content(this->supernode);
 }
 
 
@@ -153,7 +160,7 @@ int FileSystem::write_file(const string &reason, const string &filepath, const l
   return ret;
 }
 
-int FileSystem::unlink(const string &filepath) {
+int FileSystem::unlink(const string &reason, const string &filepath) {
   Filenode *node = dynamic_cast<Filenode*>(this->supernode->retrieve_node(filepath));
   if (node == NULL)
     return -ENOENT;
@@ -171,6 +178,10 @@ int FileSystem::unlink(const string &filepath) {
     return -ENOENT;
 
   parent->remove_node_entry(node);
+  if (e_append_audit_to_disk(parent, reason) < 0)
+    return -EPROTO;
+  if (e_write_meta_to_disk(parent) < 0)
+    return -EPROTO;
   if (delete_from_disk(node, AUDIT_DIR) < 0)
     return -EPROTO;
 
@@ -210,6 +221,10 @@ int FileSystem::create_directory(const string &reason, const string &dirpath) {
   dirnode->edit_user_entitlement(Node::OWNER_RIGHT, this->current_user);
   parent->add_node_entry(dirnode);
 
+  if (e_append_audit_to_disk(parent, reason) < 0)
+    return -EPROTO;
+  if (e_write_meta_to_disk(parent) < 0)
+    return -EPROTO;
   if (e_append_audit_to_disk(dirnode, reason) < 0)
     return -EPROTO;
   if (e_write_meta_to_disk(dirnode) < 0)
@@ -218,7 +233,7 @@ int FileSystem::create_directory(const string &reason, const string &dirpath) {
   return 0;
 }
 
-int FileSystem::rm_directory(const string &dirpath) {
+int FileSystem::rm_directory(const string &reason, const string &dirpath) {
   Dirnode *node = dynamic_cast<Dirnode*>(this->supernode->retrieve_node(dirpath));
   if (node == NULL)
     return -ENOENT;
@@ -229,9 +244,9 @@ int FileSystem::rm_directory(const string &dirpath) {
   for (auto itr = node->node_entries->begin(); itr != node->node_entries->end(); itr++) {
     Node *children = itr->second;
     if (children->node_type == Node::FILENODE_TYPE)
-      this->unlink(children->absolute_path());
+      this->unlink(reason, children->absolute_path());
     else
-      this->rm_directory(children->absolute_path());
+      this->rm_directory(reason, children->absolute_path());
   }
 
   // now we can delete the dir informations
@@ -246,6 +261,10 @@ int FileSystem::rm_directory(const string &dirpath) {
     return -ENOENT;
 
   parent->remove_node_entry(node);
+  if (e_append_audit_to_disk(parent, reason) < 0)
+    return -EPROTO;
+  if (e_write_meta_to_disk(parent) < 0)
+    return -EPROTO;
   if (delete_from_disk(node, AUDIT_DIR) < 0)
     return -EPROTO;
 

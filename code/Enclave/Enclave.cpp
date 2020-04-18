@@ -240,15 +240,15 @@ int sgx_read_file(const char *reason, const char *filepath, long offset, size_t 
 int sgx_write_file(const char *reason, const char *filepath, long offset, size_t data_size, const char *data) {
   return FILE_SYSTEM->write_file(reason, filepath, offset, data_size, data);
 }
-int sgx_unlink(const char *filepath) {
-  return FILE_SYSTEM->unlink(filepath);
+int sgx_unlink(const char *reason, const char *filepath) {
+  return FILE_SYSTEM->unlink(reason, filepath);
 }
 
 int sgx_mkdir(const char *reason, const char *dirpath) {
   return FILE_SYSTEM->create_directory(reason, dirpath);
 }
-int sgx_rmdir(const char *dirpath) {
-  return FILE_SYSTEM->rm_directory(dirpath);
+int sgx_rmdir(const char *reason, const char *dirpath) {
+  return FILE_SYSTEM->rm_directory(reason, dirpath);
 }
 int sgx_opendir(const char *dirpath) {
   return FILE_SYSTEM->open_directory(dirpath);

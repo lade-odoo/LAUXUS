@@ -28,18 +28,18 @@ FileSystem* _create_fs(User *root=NULL, User *lambda=NULL, size_t block_size=Fil
   if (lambda != NULL)
     REQUIRE( supernode->add_user(lambda) == lambda );
 
-  FileSystem *fs = new FileSystem(root_key, audit_root_key, supernode, block_size);
-  fs->init_dumping_folders(CONTENT_DIR, META_DIR, AUDIT_DIR);
-  fs->current_user = root;
-
   create_directory("/tmp/nexus_tests");
   create_directory(CONTENT_DIR);
   create_directory(META_DIR);
   create_directory(AUDIT_DIR);
 
   assert(read_directory(CONTENT_DIR).size() == 0);
-  assert(read_directory(META_DIR).size() == 0);
-  assert(read_directory(AUDIT_DIR).size() == 0);
+  assert(read_directory(META_DIR).size() == 0 || read_directory(META_DIR).size() == 1);
+  assert(read_directory(AUDIT_DIR).size() == 0 || read_directory(AUDIT_DIR).size() == 1);
+
+  FileSystem *fs = new FileSystem(root_key, audit_root_key, supernode, block_size);
+  fs->init_dumping_folders(CONTENT_DIR, META_DIR, AUDIT_DIR);
+  fs->current_user = root;
 
   return fs;
 }
@@ -64,11 +64,10 @@ TEST_CASE( "1: Newly created filesystem, everything must return -ENOENT", "[mult
   REQUIRE( fs->file_size("/test") == -ENOENT );
   REQUIRE( fs->read_file("Testing purpose", "/test", 0, 10, NULL) == -ENOENT );
   REQUIRE( fs->write_file("Testing purpose", "/test", 0, 4, "Test") == -ENOENT );
-  REQUIRE( fs->unlink("/test") == -ENOENT );
+  REQUIRE( fs->unlink("Testing purpose", "/test") == -ENOENT );
 
   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 0 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 0 );
+  REQUIRE( read_directory(META_DIR).size() == 1 );
 
   delete fs;
 }
@@ -79,13 +78,13 @@ TEST_CASE( "2: Filesystem can create and delete file", "[multi-file:filesystem]"
 
   REQUIRE( fs->create_file("Testing purpose", "/test") == 0 );
   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+  REQUIRE( read_directory(META_DIR).size() == 2 );
+  REQUIRE( read_directory(AUDIT_DIR).size() == 2 );
+
+  REQUIRE( fs->unlink("Testing purpose", "/test") == 0 );
+  REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
   REQUIRE( read_directory(META_DIR).size() == 1 );
   REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
-
-  REQUIRE( fs->unlink("/test") == 0 );
-  REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 0 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 0 );
 
   delete fs;
 }
@@ -104,8 +103,8 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
     REQUIRE( fs->write_file("Testing purpose", "/test", 10, 20, "more advanced test !") == 20 );
     REQUIRE( fs->file_size("/test") == 30 );
     REQUIRE( read_directory(CONTENT_DIR).size() == 1 );
-    REQUIRE( read_directory(META_DIR).size() == 1 );
-    REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
+    REQUIRE( read_directory(META_DIR).size() == 2 );
+    REQUIRE( read_directory(AUDIT_DIR).size() == 2 );
 
     char buffer[30];
     REQUIRE( fs->read_file("Testing purpose", "/test", 0, 30, buffer) == 30 );
@@ -117,24 +116,24 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
     REQUIRE( fs->read_file("Testing purpose", "/test", 10, 40, buffer) == 20 );
     REQUIRE( memcmp(buffer, "more advanced test !", 6) == 0 );
 
-    REQUIRE( fs->unlink("/test") == 0 );
+    REQUIRE( fs->unlink("Testing purpose", "/test") == 0 );
     REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-    REQUIRE( read_directory(META_DIR).size() == 0 );
-    REQUIRE( read_directory(AUDIT_DIR).size() == 0 );
+    REQUIRE( read_directory(META_DIR).size() == 1 );
+    REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
 
     delete fs;
   }
 }
 
-TEST_CASE( "3: Filesystem can list files in a directory", "[multi-file:filesystem]" ) {
+TEST_CASE( "4: Filesystem can list files in a directory", "[multi-file:filesystem]" ) {
   User *user = _create_user();
   FileSystem *fs = _create_fs(user);
 
   REQUIRE( fs->create_file("Testing purpose", "/test1") == 0 );
   REQUIRE( fs->create_file("Testing purpose", "/test2") == 0 );
   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 2 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 2 );
+  REQUIRE( read_directory(META_DIR).size() == 3 );
+  REQUIRE( read_directory(AUDIT_DIR).size() == 3 );
 
   REQUIRE( fs->entry_type("/") == EISDIR );
   REQUIRE( fs->entry_type("/test1") == EEXIST );
@@ -145,19 +144,19 @@ TEST_CASE( "3: Filesystem can list files in a directory", "[multi-file:filesyste
 
   vector<string> ls = fs->readdir("/");
   REQUIRE( ls.size() == 2 );
-  REQUIRE( ls[0].compare("test1") == 0 );
-  REQUIRE( ls[1].compare("test2") == 0 );
+  REQUIRE( find(ls.begin(), ls.end(), "test1") != ls.end() );
+  REQUIRE( find(ls.begin(), ls.end(), "test2") != ls.end() );
 
-  REQUIRE( fs->unlink("/test1") == 0 );
-  REQUIRE( fs->unlink("/test2") == 0 );
+  REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
+  REQUIRE( fs->unlink("Testing purpose", "/test2") == 0 );
   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 0 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 0 );
+  REQUIRE( read_directory(META_DIR).size() == 1 );
+  REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
 
   delete fs;
 }
 
-TEST_CASE( "4: Filesystem can allow specific user entitlements", "[multi-file:filesystem]" ) {
+TEST_CASE( "5: Filesystem can allow specific user entitlements", "[multi-file:filesystem]" ) {
   User *root = _create_user();
   User *lambda = _create_user();
   FileSystem *fs = _create_fs(root, lambda);
@@ -187,11 +186,11 @@ TEST_CASE( "4: Filesystem can allow specific user entitlements", "[multi-file:fi
   REQUIRE( fs->get_rights("/test2") == (int)Node::WRITE_RIGHT );
 
   fs->current_user = root;
-  REQUIRE( fs->unlink("/test1") == 0 );
-  REQUIRE( fs->unlink("/test2") == 0 );
+  REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
+  REQUIRE( fs->unlink("Testing purpose", "/test2") == 0 );
   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 0 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 0 );
+  REQUIRE( read_directory(META_DIR).size() == 1 );
+  REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
 
   delete fs;
 }

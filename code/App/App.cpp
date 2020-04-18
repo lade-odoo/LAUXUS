@@ -261,7 +261,7 @@ int App::fuse_unlink(const char *filepath) {
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !") || ret != EEXIST)
     return -EPROTO;
 
-  sgx_status = sgx_unlink(ENCLAVE_ID, &ret, (char*)path.c_str());
+  sgx_status = sgx_unlink(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to unlink entry !"))
     return -EPROTO;
 
@@ -322,7 +322,7 @@ int App::fuse_rmdir(const char *dirpath) {
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if directory exists !") || ret != EISDIR)
     return -EPROTO;
 
-  sgx_status = sgx_rmdir(ENCLAVE_ID, &ret, (char*)path.c_str());
+  sgx_status = sgx_rmdir(ENCLAVE_ID, &ret, "..." , (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to delete directory !"))
     return -EPROTO;
 
