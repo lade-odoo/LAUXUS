@@ -27,7 +27,6 @@ class FileSystem {
 
     int edit_user_entitlement(const string &path, const unsigned char rights, const int user_id);
 
-    vector<string> readdir();
     int get_rights(const string &path);
     int entry_type(const string &path);
 
@@ -36,6 +35,16 @@ class FileSystem {
     int read_file(const string &reason, const string &filepath, const long offset, const size_t buffer_size, char *buffer);
     int write_file(const string &reason, const string &filepath, const long offset, const size_t data_size, const char *data);
     int unlink(const string &filepath);
+
+    vector<string> readdir(const string &path);
+    int create_directory(const string &reason, const string &dirpath);
+    int rm_directory(const string &dirpath);
+    int open_directory(const string &dirpath);
+
+    // Static functioncs
+    static string get_directory(const string &filepath);
+    static string get_relative_path(const string &filepath);
+    static string clean_path(const string &path);
 
   private:
     string CONTENT_DIR, META_DIR, AUDIT_DIR;

@@ -1,9 +1,11 @@
-#include "../utils/filesystem.hpp"
-#include "../utils/encryption/aes_gcm.hpp"
-#include "../utils/node/node.hpp"
-#include "../utils/node/filenode.hpp"
-#include "../utils/node/supernode.hpp"
-#include "../utils/node/node_audit.hpp"
+#include "filesystem.hpp"
+#include "encryption/aes_gcm.hpp"
+#include "node/node.hpp"
+#include "node/filenode.hpp"
+#include "node/dirnode.hpp"
+#include "node/supernode.hpp"
+#include "node/node_audit.hpp"
+#include "misc.hpp"
 
 #include "../flag.h"
 #if EMULATING
@@ -15,12 +17,12 @@
 #endif
 
 #include <cerrno>
+#include <cstring>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-// ... FREE CONTENT WHEN CD ?
 
 
 FileSystem::FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key,
@@ -61,18 +63,6 @@ int FileSystem::edit_user_entitlement(const string &path, const unsigned char ri
 }
 
 
-vector<string> FileSystem::readdir() {
-  vector<string> entries;
-
-  for (auto itr = this->supernode->node_entries->begin(); itr != this->supernode->node_entries->end(); itr++) {
-    Node *children = itr->second;
-    if (children->get_rights(this->current_user) > 0)
-      entries.push_back(children->relative_path);
-  }
-
-  return entries;
-}
-
 int FileSystem::get_rights(const string &path) {
   Node *node = this->supernode->retrieve_node(path);
   if (node == NULL)
@@ -84,7 +74,7 @@ int FileSystem::entry_type(const string &path) {
   Node *node = this->supernode->retrieve_node(path);
   if (node == NULL)
     return -ENOENT;
-  else if (node->node_type == Node::SUPERNODE_TYPE)
+  else if (node->node_type == Node::SUPERNODE_TYPE || node->node_type == Node::DIRNODE_TYPE)
     return EISDIR;
   return EEXIST;
 }
@@ -103,17 +93,23 @@ int FileSystem::create_file(const string &reason, const string &filepath) {
     return -EEXIST;
 
   // relative path of the file
-  string parent_path = filepath.substr(0, filepath.find_last_of("/") + 1);
-  string relative_path = filepath.substr(filepath.find_last_of("/") + 1);
+  string parent_path = FileSystem::get_directory(filepath);
+  string relative_path = FileSystem::get_relative_path(filepath);
+  Node *parent = this->supernode->retrieve_node(parent_path);
+  if (parent == NULL)
+    return -ENOENT;
 
   // create node
   string uuid = Node::generate_uuid();
-  Filenode *filenode = new Filenode(uuid, relative_path, this->root_key, this->block_size);
+  Filenode *filenode = new Filenode(parent, uuid, relative_path, this->root_key, this->block_size);
   filenode->edit_user_entitlement(Node::OWNER_RIGHT, this->current_user);
-
-  Node *parent = this->supernode->retrieve_node(parent_path);
   parent->add_node_entry(filenode);
 
+
+  if (e_append_audit_to_disk(parent, reason) < 0)
+    return -EPROTO;
+  if (e_write_meta_to_disk(parent) < 0)
+    return -EPROTO;
   if (e_append_audit_to_disk(filenode, reason) < 0)
     return -EPROTO;
   if (e_write_meta_to_disk(filenode) < 0)
@@ -161,7 +157,7 @@ int FileSystem::unlink(const string &filepath) {
   Filenode *node = dynamic_cast<Filenode*>(this->supernode->retrieve_node(filepath));
   if (node == NULL)
     return -ENOENT;
-  if (!node->has_user_rights(Filenode::OWNER_RIGHT, this->current_user))
+  if (!node->has_user_rights(Node::OWNER_RIGHT, this->current_user))
     return -EACCES;
 
   if (delete_from_disk(node, CONTENT_DIR) < 0)
@@ -169,12 +165,104 @@ int FileSystem::unlink(const string &filepath) {
   if (delete_from_disk(node, META_DIR) < 0)
     return -EPROTO;
 
-  this->supernode->remove_node_entry(node);
+  string parent_path = FileSystem::get_directory(filepath);
+  Node *parent = this->supernode->retrieve_node(parent_path);
+  if (parent == NULL)
+    return -ENOENT;
 
+  parent->remove_node_entry(node);
   if (delete_from_disk(node, AUDIT_DIR) < 0)
     return -EPROTO;
 
   delete node;
+  return 0;
+}
+
+
+vector<string> FileSystem::readdir(const string &path) {
+  vector<string> entries;
+
+  Node *parent = this->supernode->retrieve_node(path);
+  for (auto itr = parent->node_entries->begin(); itr != parent->node_entries->end(); itr++) {
+    Node *children = itr->second;
+    if (children->get_rights(this->current_user) > 0)
+      entries.push_back(children->relative_path);
+  }
+
+  return entries;
+}
+
+int FileSystem::create_directory(const string &reason, const string &dirpath) {
+  Node *node = this->supernode->retrieve_node(dirpath);
+  if (node != NULL)
+    return -EEXIST;
+
+  // relative path of the file
+  string parent_path = FileSystem::get_directory(dirpath);
+  string relative_path = FileSystem::get_relative_path(dirpath);
+  Node *parent = this->supernode->retrieve_node(parent_path);
+  if (parent == NULL)
+    return -ENOENT;
+
+  // create node
+  string uuid = Node::generate_uuid();
+  Dirnode *dirnode = new Dirnode(parent, uuid, relative_path, this->root_key);
+  dirnode->edit_user_entitlement(Node::OWNER_RIGHT, this->current_user);
+  parent->add_node_entry(dirnode);
+
+  if (e_append_audit_to_disk(dirnode, reason) < 0)
+    return -EPROTO;
+  if (e_write_meta_to_disk(dirnode) < 0)
+    return -EPROTO;
+
+  return 0;
+}
+
+int FileSystem::rm_directory(const string &dirpath) {
+  Dirnode *node = dynamic_cast<Dirnode*>(this->supernode->retrieve_node(dirpath));
+  if (node == NULL)
+    return -ENOENT;
+  if (!node->has_user_rights(Node::OWNER_RIGHT, this->current_user))
+    return -EACCES;
+
+  // deleting childrens informations
+  for (auto itr = node->node_entries->begin(); itr != node->node_entries->end(); itr++) {
+    Node *children = itr->second;
+    if (children->node_type == Node::FILENODE_TYPE)
+      this->unlink(children->absolute_path());
+    else
+      this->rm_directory(children->absolute_path());
+  }
+
+  // now we can delete the dir informations
+  if (delete_from_disk(node, CONTENT_DIR) < 0)
+    return -EPROTO;
+  if (delete_from_disk(node, META_DIR) < 0)
+    return -EPROTO;
+
+  string parent_path = FileSystem::get_directory(dirpath);
+  Node *parent = this->supernode->retrieve_node(parent_path);
+  if (parent == NULL)
+    return -ENOENT;
+
+  parent->remove_node_entry(node);
+  if (delete_from_disk(node, AUDIT_DIR) < 0)
+    return -EPROTO;
+
+  delete node;
+  return 0;
+}
+
+int FileSystem::open_directory(const string &dirpath) {
+  Dirnode *node = dynamic_cast<Dirnode*>(this->supernode->retrieve_node(dirpath));
+  if (node == NULL)
+    return -ENOENT;
+  if (!node->has_user_rights(Node::READ_RIGHT | Node::EXEC_RIGHT, this->current_user))
+    return -EACCES;
+
+  this->load_metadata(node);
+  this->load_content(node);
+
   return 0;
 }
 
@@ -191,7 +279,17 @@ int FileSystem::load_metadata(Node *parent) {
     if (buffer_size < 0)
       return -1;
 
-    Filenode *child = new Filenode(child_uuid, this->root_key, this->block_size);
+    unsigned char node_type = 0;
+    memcpy(&node_type, buffer, sizeof(unsigned char));
+
+    Node *child;
+    if (node_type == Node::FILENODE_TYPE)
+      child = new Filenode(parent, child_uuid, this->root_key, this->block_size);
+    else if (node_type == Node::DIRNODE_TYPE)
+      child = new Dirnode(parent, child_uuid, this->root_key);
+    else
+      return -1;
+
     if (child->e_load(buffer_size, buffer) < 0)
       return -1;
     if (parent->link_node_entry(child_uuid, child) < 0)
@@ -199,7 +297,7 @@ int FileSystem::load_metadata(Node *parent) {
 
     free(buffer);
   }
-  return 0;
+  return parent->node_entries->size();
 }
 
 int FileSystem::load_content(Node *parent) {
@@ -312,4 +410,27 @@ int FileSystem::delete_from_disk(Node *node, const string &from_dir) {
     return -EPROTO;
 
   return 0;
+}
+
+
+// Static functions
+string FileSystem::get_directory(const string &filepath) {
+  size_t index = filepath.find_last_of("/");
+  return clean_path(filepath.substr(0, index+1));
+}
+
+string FileSystem::get_relative_path(const string &filepath) {
+  size_t index = filepath.find_last_of("/");
+  return clean_path(filepath.substr(index+1));
+}
+
+string FileSystem::clean_path(const string &path) {
+  string trimmed = path;
+  size_t position;
+  while ((position = trimmed.find("//")) != string::npos)
+    trimmed = trimmed.replace(position, 2, "/");
+  while (trimmed.length() > 1 && trimmed[trimmed.length()-1] == '/')
+    trimmed.pop_back();
+
+  return trimmed;
 }

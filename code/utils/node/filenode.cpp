@@ -12,8 +12,8 @@
 
 
 
-Filenode::Filenode(const std::string &uuid, const std::string &relative_path,
-        AES_GCM_context *root_key, const size_t block_size):Node::Node(uuid, relative_path, root_key) {
+Filenode::Filenode(Node *parent, const std::string &uuid, const std::string &relative_path,
+        AES_GCM_context *root_key, const size_t block_size):Node::Node(parent, uuid, relative_path, root_key) {
 
   this->node_type = Node::FILENODE_TYPE;
   this->aes_ctr_ctxs = new std::vector<AES_CTR_context*>();
@@ -21,7 +21,7 @@ Filenode::Filenode(const std::string &uuid, const std::string &relative_path,
 
   this->add_node_entry(this); // ls of a file returns the file
 }
-Filenode::Filenode(const std::string &uuid, AES_GCM_context *root_key, const size_t block_size):Filenode::Filenode(uuid, "", root_key, block_size) {}
+Filenode::Filenode(Node *parent, const std::string &uuid, AES_GCM_context *root_key, const size_t block_size):Filenode::Filenode(parent, uuid, "", root_key, block_size) {}
 
 Filenode::~Filenode() {
   this->remove_node_entry(this);

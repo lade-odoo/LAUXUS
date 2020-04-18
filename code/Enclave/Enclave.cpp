@@ -17,7 +17,7 @@ static FileSystem* FILE_SYSTEM;
 int sgx_init_new_filesystem(const char *supernode_path) {
   AES_GCM_context *root_key = new AES_GCM_context();
   AES_GCM_context *audit_root_key = new AES_GCM_context();
-  Supernode *node = new Supernode(supernode_path, root_key);
+  Supernode *node = new Supernode(FileSystem::get_relative_path(supernode_path), root_key);
   FILE_SYSTEM = new FileSystem(root_key, audit_root_key, node, FileSystem::DEFAULT_BLOCK_SIZE);
   return 0;
 }
@@ -46,7 +46,7 @@ int sgx_init_existing_filesystem(const char *supernode_path, size_t rk_sealed_si
   AES_GCM_context *audit_root_key = new AES_GCM_context();
   if (audit_root_key->load_without_mac(ark_plain_size, (char*)ark_plain) < 0)
     return -EPROTO;
-  Supernode *node = new Supernode(supernode_path, root_key);
+  Supernode *node = new Supernode(FileSystem::get_relative_path(supernode_path), root_key);
   if (node->e_load(e_supernode_size, e_supernode) < 0)
     return -EPROTO;
 
@@ -194,8 +194,9 @@ int sgx_edit_user_entitlement(const char *path, const unsigned char rights, cons
   return FILE_SYSTEM->edit_user_entitlement(path, rights, user_id);
 }
 
-int sgx_ls_buffer_size() {
-  std::vector<std::string> files = FILE_SYSTEM->readdir();
+
+int sgx_ls_buffer_size(const char *path) {
+  std::vector<std::string> files = FILE_SYSTEM->readdir(path);
   size_t size = 0;
 
   for (auto itr = files.begin(); itr != files.end(); itr++) {
@@ -204,8 +205,9 @@ int sgx_ls_buffer_size() {
   }
   return size;
 }
-int sgx_readdir(char separator, size_t buffer_size, char *buffer) {
-  std::vector<std::string> files = FILE_SYSTEM->readdir();
+
+int sgx_readdir(const char *path, char separator, size_t buffer_size, char *buffer) {
+  std::vector<std::string> files = FILE_SYSTEM->readdir(path);
   size_t offset = 0, count_entries = 0;
 
   for (auto itr = files.begin(); itr != files.end() && offset < buffer_size; itr++, count_entries++) {
@@ -217,6 +219,7 @@ int sgx_readdir(char separator, size_t buffer_size, char *buffer) {
 
   return count_entries;
 }
+
 
 int sgx_entry_type(const char *path) {
   return FILE_SYSTEM->entry_type(path);
@@ -237,7 +240,16 @@ int sgx_read_file(const char *reason, const char *filepath, long offset, size_t 
 int sgx_write_file(const char *reason, const char *filepath, long offset, size_t data_size, const char *data) {
   return FILE_SYSTEM->write_file(reason, filepath, offset, data_size, data);
 }
-
 int sgx_unlink(const char *filepath) {
   return FILE_SYSTEM->unlink(filepath);
+}
+
+int sgx_mkdir(const char *reason, const char *dirpath) {
+  return FILE_SYSTEM->create_directory(reason, dirpath);
+}
+int sgx_rmdir(const char *dirpath) {
+  return FILE_SYSTEM->rm_directory(dirpath);
+}
+int sgx_opendir(const char *dirpath) {
+  return FILE_SYSTEM->open_directory(dirpath);
 }

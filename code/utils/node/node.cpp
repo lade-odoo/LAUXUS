@@ -18,14 +18,15 @@ using namespace std;
 
 
 
-Node::Node(const string &uuid, const string &relative_path, AES_GCM_context *root_key):Metadata::Metadata(root_key) {
+Node::Node(Node *parent, const string &uuid, const string &relative_path, AES_GCM_context *root_key):Metadata::Metadata(root_key) {
+  this->parent = parent;
   this->relative_path = relative_path;
   this->uuid = uuid;
 
   this->node_entries = new map<string, Node*>();
   this->entitlements = new map<int, unsigned char>();
 }
-Node::Node(const string &uuid, AES_GCM_context *root_key):Node::Node(uuid, "", root_key) {}
+Node::Node(Node *parent, const string &uuid, AES_GCM_context *root_key):Node::Node(parent, uuid, "", root_key) {}
 
 Node::~Node() {
   delete this->node_entries;
@@ -52,6 +53,14 @@ bool Node::equals(Node *other) {
       return false;
 
   return Metadata::equals(other);
+}
+
+string Node::absolute_path() {
+  if (this->parent == NULL)
+    return this->relative_path;
+  else if (this->parent->node_type == SUPERNODE_TYPE)
+    return this->parent->absolute_path() + this->relative_path;
+  return this->parent->absolute_path() + "/" + this->relative_path;
 }
 
 
@@ -162,7 +171,11 @@ int Node::get_rights(User *user) {
 
 
 size_t Node::p_preamble_size() {
-  size_t size = sizeof(int) + this->node_entries->size() * Node::UUID_SIZE;
+  size_t size = sizeof(unsigned char);
+  if (this->node_type != FILENODE_TYPE)
+    size += sizeof(int) + this->node_entries->size() * Node::UUID_SIZE;
+  else
+    size += sizeof(int);
   return size;
 }
 
@@ -171,12 +184,19 @@ int Node::p_dump_preamble(const size_t buffer_size, char *buffer) {
     return -1;
 
   int written = 0;
-  int entries_len = this->node_entries->size();
-  std::memcpy(buffer+written, &entries_len, sizeof(int)); written += sizeof(int);
-  for (auto it = this->node_entries->begin(); it != this->node_entries->end(); ++it) {
-    string uuid = it->first;
-    std::memcpy(buffer+written, uuid.c_str(), UUID_SIZE);
-    written += UUID_SIZE;
+  std::memcpy(buffer+written, &this->node_type, sizeof(unsigned char)); written += sizeof(unsigned char);
+
+  if (this->node_type != FILENODE_TYPE) {
+    int entries_len = this->node_entries->size();
+    std::memcpy(buffer+written, &entries_len, sizeof(int)); written += sizeof(int);
+    for (auto it = this->node_entries->begin(); it != this->node_entries->end(); ++it) {
+      string uuid = it->first;
+      std::memcpy(buffer+written, uuid.c_str(), UUID_SIZE);
+      written += UUID_SIZE;
+    }
+  } else {
+    int entries_len = 0;
+    std::memcpy(buffer+written, &entries_len, sizeof(int)); written += sizeof(int);
   }
 
   return written;
@@ -184,6 +204,8 @@ int Node::p_dump_preamble(const size_t buffer_size, char *buffer) {
 
 int Node::p_load_preamble(const size_t buffer_size, const char *buffer) {
   int read = 0;
+  std::memcpy(&this->node_type, buffer+read, sizeof(unsigned char)); read += sizeof(unsigned char);
+
   int entries_len = 0;
   memcpy(&entries_len, buffer+read, sizeof(int)); read += sizeof(int);
   for (int i = 0; i < entries_len; i++) {

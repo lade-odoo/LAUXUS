@@ -20,17 +20,19 @@ class Node: public Metadata {
     static const unsigned char EXEC_RIGHT = 1;
 
     static const unsigned char SUPERNODE_TYPE = 0;
-    static const unsigned char FILENODE_TYPE = 1;
-    unsigned char node_type;
+    static const unsigned char DIRNODE_TYPE = 1;
+    static const unsigned char FILENODE_TYPE = 2;
+    unsigned char node_type = -1;
 
     string relative_path, uuid;
     map<string, Node*> *node_entries; // mapping relative_path - node
 
-    Node(const string &uuid, const string &relative_path, AES_GCM_context *root_key);
-    Node(const string &uuid, AES_GCM_context *root_key);
+    Node(Node *parent, const string &uuid, const string &relative_path, AES_GCM_context *root_key);
+    Node(Node *parent, const string &uuid, AES_GCM_context *root_key);
     ~Node();
 
     bool equals(Node *other);
+    string absolute_path();
 
     Node* retrieve_node(string relative_path);
     int add_node_entry(Node *node);
@@ -47,6 +49,7 @@ class Node: public Metadata {
 
 
   private:
+    Node *parent;
     map<int, unsigned char> *entitlements; // mapping user_id - policy ORWX
 
     bool is_correct_node(string parent_path);

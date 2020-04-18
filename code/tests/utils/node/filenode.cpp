@@ -14,7 +14,7 @@ SCENARIO( "Filenode can store the content of a file.", "[multi-file:filenode]" )
   AES_GCM_context *root_key = new AES_GCM_context();
   GIVEN( "An empty filenode" ) {
     string uuid = Node::generate_uuid();
-    Filenode *node = new Filenode(uuid, "Test", root_key, 30);
+    Filenode *node = new Filenode(NULL, uuid, "Test", root_key, 30);
 
     REQUIRE( node->file_size() == 0 );
     REQUIRE( node->read(0, 10, NULL) == 0 );
@@ -62,7 +62,7 @@ SCENARIO( "Filenode can dump and load the encrypted content of a file", "[multi-
 
   GIVEN( "A filenode with a single block content" ) {
     string uuid = Node::generate_uuid();
-    Filenode *node = new Filenode(uuid, "Test", root_key, 30);
+    Filenode *node = new Filenode(NULL, uuid, "Test", root_key, 30);
     REQUIRE( node->write(0, 28, "This is some random content.") );
 
     WHEN( "dumping it to a buffer" ) {
@@ -86,7 +86,7 @@ SCENARIO( "Filenode can dump and load the encrypted content of a file", "[multi-
   }
   GIVEN( "A filenode with a more than a single block content" ) {
     string uuid = Node::generate_uuid();
-    Filenode *node = new Filenode(uuid, "Test", root_key, 30);
+    Filenode *node = new Filenode(NULL, uuid, "Test", root_key, 30);
     REQUIRE( node->write(0, 52, "This is some random content. With even more content.") );
 
     WHEN( "dumping it to a buffer" ) {

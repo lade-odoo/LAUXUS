@@ -32,8 +32,8 @@ void App::init(const string &binary_path) {
   NEXUS_DIR = binary_path + "/.nexus";
   RK_PATH = NEXUS_DIR + "/sealed_rk";
   ARK_PATH = NEXUS_DIR + "/sealed_ark";
-  SUPERNODE_PATH = NEXUS_DIR + "/supernode";
   META_DIR = NEXUS_DIR + "/metadata";
+  SUPERNODE_PATH = META_DIR + "/supernode";
   CONTENT_DIR = NEXUS_DIR + "/content";
   AUDIT_DIR = NEXUS_DIR + "/audit";
 }
@@ -186,32 +186,7 @@ int App::fuse_fgetattr(const char *path, struct stat *stbuf,
 }
 
 
-int App::fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-                         off_t offset, struct fuse_file_info *fi) {
-  filler(buf, ".", NULL, 0);
-  filler(buf, "..", NULL, 0);
-
-  int ret;
-  sgx_status_t sgx_status = sgx_ls_buffer_size(ENCLAVE_ID, &ret);
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load ls buffer size !"))
-    return -EPROTO;
-
-  const size_t buffer_size = ret;
-  char buffer[buffer_size];
-  sgx_status = sgx_readdir(ENCLAVE_ID, &ret, BUFFER_SEPARATOR, buffer_size, buffer);
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load directory entries !"))
-    return -EPROTO;
-
-  vector<string> files = tokenize(buffer_size, buffer, BUFFER_SEPARATOR);
-  for (auto it = files.begin(); it != files.end(); it++) {
-    filler(buf, (char*)it->c_str(), NULL, 0);
-  }
-
-  return 0;
-}
-
-
-int App::fuse_open(const char *filepath, struct fuse_file_info *) {
+int App::fuse_open(const char *filepath, struct fuse_file_info *) {//... must check access, do like
   string path = clean_path(filepath);
   int ret;
   sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
@@ -288,6 +263,85 @@ int App::fuse_unlink(const char *filepath) {
 
   sgx_status = sgx_unlink(ENCLAVE_ID, &ret, (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to unlink entry !"))
+    return -EPROTO;
+
+  return 0;
+}
+
+
+int App::fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+                         off_t offset, struct fuse_file_info *fi) {
+  filler(buf, ".", NULL, 0);
+  filler(buf, "..", NULL, 0);
+
+  int ret;
+  string cleaned_path = clean_path(path);
+  sgx_status_t sgx_status = sgx_ls_buffer_size(ENCLAVE_ID, &ret, (char*)cleaned_path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load ls buffer size !"))
+    return -EPROTO;
+
+  const size_t buffer_size = ret;
+  char buffer[buffer_size];
+  sgx_status = sgx_readdir(ENCLAVE_ID, &ret, (char*)cleaned_path.c_str(), BUFFER_SEPARATOR, buffer_size, buffer);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load directory entries !"))
+    return -EPROTO;
+
+  vector<string> files = tokenize(buffer_size, buffer, BUFFER_SEPARATOR);
+  for (auto it = files.begin(); it != files.end(); it++) {
+    filler(buf, (char*)it->c_str(), NULL, 0);
+  }
+
+  return 0;
+}
+
+
+int App::fuse_mkdir(const char *dirpath, mode_t) {
+  string path = clean_path(dirpath);
+  int ret;
+  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (ret != -ENOENT)
+    return -ret;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if directory exists !"))
+    return -EPROTO;
+
+  sgx_status = sgx_mkdir(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to create directory !"))
+    return -EPROTO;
+
+  if (ret < 0)
+    return ret;
+  return 0;
+}
+
+int App::fuse_rmdir(const char *dirpath) {
+  string path = clean_path(dirpath);
+  int ret;
+  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (ret == -ENOENT)
+    return -ENOENT;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if directory exists !") || ret != EISDIR)
+    return -EPROTO;
+
+  sgx_status = sgx_rmdir(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to delete directory !"))
+    return -EPROTO;
+
+  return 0;
+}
+
+int App::fuse_opendir(const char *dirpath, struct fuse_file_info *) {
+  string path = clean_path(dirpath);
+  int ret;
+  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (ret == -ENOENT)
+    return -ENOENT;
+  if (ret == EEXIST)
+    return -EPROTO;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
+    return -EPROTO;
+
+  sgx_status = sgx_opendir(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to open directory !"))
     return -EPROTO;
 
   return 0;

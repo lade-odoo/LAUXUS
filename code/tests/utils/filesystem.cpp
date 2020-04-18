@@ -58,7 +58,7 @@ TEST_CASE( "1: Newly created filesystem, everything must return -ENOENT", "[mult
   FileSystem *fs = _create_fs();
 
   REQUIRE( fs->edit_user_entitlement("/test", Node::OWNER_RIGHT, 1) == -ENOENT );
-  REQUIRE( fs->readdir().size() == 0 );
+  REQUIRE( fs->readdir("/").size() == 0 );
   REQUIRE( fs->get_rights("/test") == -ENOENT );
   REQUIRE( fs->entry_type("/test") == -ENOENT );
   REQUIRE( fs->file_size("/test") == -ENOENT );
@@ -143,7 +143,7 @@ TEST_CASE( "3: Filesystem can list files in a directory", "[multi-file:filesyste
   REQUIRE( fs->file_size("/test1") == 0 );
   REQUIRE( fs->file_size("/test2") == 0 );
 
-  vector<string> ls = fs->readdir();
+  vector<string> ls = fs->readdir("/");
   REQUIRE( ls.size() == 2 );
   REQUIRE( ls[0].compare("test1") == 0 );
   REQUIRE( ls[1].compare("test2") == 0 );

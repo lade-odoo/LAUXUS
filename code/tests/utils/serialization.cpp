@@ -8,6 +8,7 @@
 using namespace std;
 
 
+// ... crashing
 SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]" ) {
   string path = "/tmp/nexus_tests_empty.txt";
   GIVEN( "A non existing file" ) {

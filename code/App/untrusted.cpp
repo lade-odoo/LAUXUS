@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string>
 
-
+using namespace std;
 
 
 // OCall implementations
@@ -26,33 +26,33 @@ int EMUL_API ocall_dump(const char *path, const size_t size, const char *buffer)
 }
 
 int EMUL_API ocall_dump_in_dir(const char *dir, const char *file, const size_t size, const char *buffer) {
-  std::string path(dir); path.append("/"); path.append(file);
+  string path(dir); path.append("/"); path.append(file);
   return dump(path, size, buffer);
 }
 
 int EMUL_API ocall_dump_append_in_dir(const char *dir, const char *file, const size_t size, const char *buffer) {
-  std::string path(dir); path.append("/"); path.append(file);
+  string path(dir); path.append("/"); path.append(file);
   return dump_append(path, size, buffer);
 }
 
 int EMUL_API ocall_dump_with_offset_in_dir(const char *dir, const char *file, const long offset, const size_t size, const char *buffer) {
-  std::string path(dir); path.append("/"); path.append(file);
+  string path(dir); path.append("/"); path.append(file);
   return dump_with_offset(path, offset, size, buffer);
 }
 
 
 int EMUL_API ocall_file_size(const char *dir, const char *uuid) {
-  std::string path(dir); path.append("/"); path.append(uuid);
+  string path(dir); path.append("/"); path.append(uuid);
   return file_size(path);
 }
 
 int EMUL_API ocall_load_file(const char *dir, const char *uuid, const long offset, const size_t size, char *buffer) {
-  std::string path(dir); path.append("/"); path.append(uuid);
+  string path(dir); path.append("/"); path.append(uuid);
   return load_with_offset(path, offset, size, buffer);
 }
 
 
 int EMUL_API ocall_delete_from_dir(const char *dir, const char *uuid) {
-  std::string path(dir); path.append("/"); path.append(uuid);
+  string path(dir); path.append("/"); path.append(uuid);
   return delete_file(path);
 }

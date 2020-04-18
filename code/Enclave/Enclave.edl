@@ -21,17 +21,21 @@ enclave {
 
         public int sgx_edit_user_entitlement([in, string] const char *path, unsigned char rights, int user_id);
 
-        public int sgx_ls_buffer_size();
-        public int sgx_readdir(char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_ls_buffer_size([in, string] const char *path);
+        public int sgx_readdir([in, string] const char *path, char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
 
         public int sgx_entry_type([in, string] const char *path);
         public int sgx_get_rights([in, string] const char *path);
 
         public int sgx_file_size([in, string] const char *filepath);
-        public int sgx_create_file([in, string] const char *reason, [in, string] const char *filename);
-        public int sgx_read_file([in, string] const char *reason, [in, string] const char *filename, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_write_file([in, string] const char *reason, [in, string] const char *filename, long offset, size_t data_size, [in, size=data_size] const char *data);
+        public int sgx_create_file([in, string] const char *reason, [in, string] const char *filepath);
+        public int sgx_read_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
+        public int sgx_write_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t data_size, [in, size=data_size] const char *data);
         public int sgx_unlink([in, string] const char *filepath);
+
+        public int sgx_mkdir([in, string] const char *reason, [in, string] const char *dirpath);
+        public int sgx_rmdir([in, string] const char *dirpath);
+        public int sgx_opendir([in, string] const char *dirpath);
     };
 
     untrusted {

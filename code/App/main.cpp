@@ -19,14 +19,20 @@ int main(int argc, char **argv) {
 
   nexus_oper.init = App::fuse_init;
   nexus_oper.destroy = App::fuse_destroy;
+
   nexus_oper.getattr = App::fuse_getattr;
   nexus_oper.fgetattr = App::fuse_fgetattr;
-  nexus_oper.readdir = App::fuse_readdir;
   nexus_oper.open = App::fuse_open;
   nexus_oper.create = App::fuse_create;
   nexus_oper.read = App::fuse_read;
   nexus_oper.write = App::fuse_write;
   nexus_oper.unlink = App::fuse_unlink;
+
+  nexus_oper.readdir = App::fuse_readdir;
+
+  nexus_oper.mkdir = App::fuse_mkdir;
+  nexus_oper.rmdir = App::fuse_rmdir;
+  nexus_oper.opendir = App::fuse_opendir;
 
 
   struct nexus_options *options = (struct nexus_options*) malloc(sizeof(struct nexus_options));
