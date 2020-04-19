@@ -11,16 +11,20 @@
 #include <string>
 #include <map>
 
+using namespace std;
+
 
 class User {
   public:
-    int id;
+    static const size_t UUID_SIZE = 21;
+    string uuid;
 
     User();
-    explicit User(const std::string &name, size_t pk_size, sgx_ec256_public_t *pk);
+    explicit User(const string &name, size_t pk_size, sgx_ec256_public_t *pk);
     ~User();
 
     bool is_root();
+    void set_root();
     bool equals(User *other);
 
     int validate_signature(const size_t challenge_size, const uint8_t *challenge,
@@ -37,9 +41,10 @@ class User {
     static int sign(const size_t challenge_size, const uint8_t *challenge,
                     const size_t sk_size, sgx_ec256_private_t *sk,
                     const size_t sig_size, sgx_ec256_signature_t *sig);
+    static string generate_uuid();
 
   private:
-    std::string name;
+    string name;
     size_t pk_size;
     sgx_ec256_public_t *pk;
 };

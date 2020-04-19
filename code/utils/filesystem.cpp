@@ -51,9 +51,9 @@ void FileSystem::init_dumping_folders(const string &CONTENT_DIR, const string &M
 }
 
 
-int FileSystem::edit_user_entitlement(const string &path, const unsigned char rights, const int user_id) {
+int FileSystem::edit_user_entitlement(const string &path, const unsigned char rights, const string user_uuid) {
   Node *node = this->supernode->retrieve_node(path);
-  User *user = this->supernode->retrieve_user(user_id);
+  User *user = this->supernode->retrieve_user(user_uuid);
   if (node == NULL || user == NULL)
     return -ENOENT;
   if (!node->has_user_rights(Node::OWNER_RIGHT, this->current_user))

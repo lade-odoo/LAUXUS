@@ -24,7 +24,7 @@ Node::Node(Node *parent, const string &uuid, const string &relative_path, AES_GC
   this->uuid = uuid;
 
   this->node_entries = new map<string, Node*>();
-  this->entitlements = new map<int, unsigned char>();
+  this->entitlements = new map<string, unsigned char>();
 }
 Node::Node(Node *parent, const string &uuid, AES_GCM_context *root_key):Node::Node(parent, uuid, "", root_key) {}
 
@@ -117,7 +117,7 @@ bool Node::has_user_rights(const unsigned char min_rights, User *user) {
   if (user->is_root())
     return true;
 
-  auto it = this->entitlements->find(user->id);
+  auto it = this->entitlements->find(user->uuid);
   if (it == this->entitlements->end())
     return false;
 
@@ -132,9 +132,9 @@ int Node::edit_user_entitlement(const unsigned char rights, User *user) {
   if (user->is_root() || this->node_type == SUPERNODE_TYPE)
     return -1;
 
-  auto it = this->entitlements->find(user->id);
+  auto it = this->entitlements->find(user->uuid);
   if (it == this->entitlements->end()) {
-    this->entitlements->insert(std::pair<int, unsigned char>(user->id, rights));
+    this->entitlements->insert(std::pair<string, unsigned char>(user->uuid, rights));
     return 0;
   }
 
@@ -146,7 +146,7 @@ int Node::remove_user_entitlement(User *user) {
   if (user->is_root())
     return -1;
 
-  auto it = this->entitlements->find(user->id);
+  auto it = this->entitlements->find(user->uuid);
   if (it == this->entitlements->end())
     return 0;
 
@@ -160,7 +160,7 @@ int Node::get_rights(User *user) {
   if (this->node_type == SUPERNODE_TYPE) // supernode must be readable by everyone
     return READ_RIGHT | EXEC_RIGHT;
 
-  auto it = this->entitlements->find(user->id);
+  auto it = this->entitlements->find(user->uuid);
   if (it == this->entitlements->end())
     return 0;
 
@@ -221,7 +221,7 @@ int Node::p_load_preamble(const size_t buffer_size, const char *buffer) {
 
 size_t Node::p_sensitive_size() {
   size_t size = sizeof(int) + this->relative_path.length()+1;
-  size += sizeof(int) + this->entitlements->size() * (sizeof(int) + sizeof(unsigned char));
+  size += sizeof(int) + this->entitlements->size() * (UUID_SIZE + sizeof(unsigned char));
   return size;
 }
 
@@ -237,10 +237,10 @@ int Node::p_dump_sensitive(const size_t buffer_size, char *buffer) {
   int entitlements_len = this->entitlements->size();
   memcpy(buffer+written, &entitlements_len, sizeof(int)); written += sizeof(int);
   for (auto it = this->entitlements->begin(); it != this->entitlements->end(); ++it) {
-    int user_id = it->first;
+    string uuid = it->first;
     unsigned char policy = it->second;
 
-    memcpy(buffer+written, &user_id, sizeof(int)); written += sizeof(int);
+    memcpy(buffer+written, uuid.c_str(), UUID_SIZE); written += UUID_SIZE;
     memcpy(buffer+written, &policy, sizeof(unsigned char)); written += sizeof(unsigned char);
   }
 
@@ -263,12 +263,13 @@ int Node::p_load_sensitive(const size_t buffer_size, const char *buffer) {
   int entitlements_len = 0;
   memcpy(&entitlements_len, buffer+read, sizeof(int)); read += sizeof(int);
   for (int i = 0; i < entitlements_len; i++) {
-    int user_id = 0; unsigned char policy = 0;
+    string uuid(UUID_SIZE-1, ' ');
+    unsigned char policy = 0;
 
-    memcpy(&user_id, buffer+read, sizeof(int)); read += sizeof(int);
+    memcpy(const_cast<char*>(uuid.data()), buffer+read, UUID_SIZE); read += UUID_SIZE;
     memcpy(&policy, buffer+read, sizeof(unsigned char)); read += sizeof(unsigned char);
 
-    this->entitlements->insert(std::pair<int, unsigned char>(user_id, policy));
+    this->entitlements->insert(std::pair<string, unsigned char>(uuid, policy));
   }
 
   return read;

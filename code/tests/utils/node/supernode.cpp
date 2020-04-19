@@ -17,7 +17,7 @@ SCENARIO( "Supernode can be dumped and loaded to a buffer.", "[multi-file:supern
 
     REQUIRE( User::generate_keys(pk_size, pk, sk_size, sk) == 0 );
     User *user = new User("test", pk_size, pk);
-    user->id = 0;
+    user->set_root();
 
     Supernode *node = new Supernode("Test", root_key);
     REQUIRE( node->add_user(user) == user );
@@ -74,9 +74,9 @@ SCENARIO( "Supernode can store users, they can be added / retrieved / removed.",
     WHEN( "a user is added" ) {
       REQUIRE( node->add_user(user) == user );
       REQUIRE( node->add_user(user2) == user2 );
-      THEN( "checking its id should give us back the user" ) {
-        REQUIRE( node->retrieve_user(0) == user );
-        REQUIRE( node->retrieve_user(1) == user2 );
+      THEN( "checking its uuid should give us back the user" ) {
+        REQUIRE( node->retrieve_user(user->uuid) == user );
+        REQUIRE( node->retrieve_user(user2->uuid) == user2 );
       }
       AND_THEN( "checking if he is in the list should give us back the user" ) {
         REQUIRE( node->check_user(user) == user );
@@ -91,20 +91,15 @@ SCENARIO( "Supernode can store users, they can be added / retrieved / removed.",
     REQUIRE( node->add_user(user3) == user3 );
 
     WHEN( "the user is removed" ) {
-      REQUIRE( node->remove_user_from_id(0) == NULL );
-      REQUIRE( node->remove_user_from_id(1) == user2 );
-      THEN( "checking its id should not give us back the user" ) {
-        REQUIRE( node->retrieve_user(0) == user );
-        REQUIRE( node->retrieve_user(1) == NULL );
+      REQUIRE( node->remove_user_from_uuid(user->uuid) == NULL );
+      REQUIRE( node->remove_user_from_uuid(user2->uuid) == user2 );
+      THEN( "checking its uuid should not give us back the user" ) {
+        REQUIRE( node->retrieve_user(user->uuid) == user );
+        REQUIRE( node->retrieve_user(user2->uuid) == NULL );
       }
       AND_THEN( "checking if he is in the list should not give us back the user" ) {
         REQUIRE( node->check_user(user) == user );
         REQUIRE( node->check_user(user2) == NULL );
-      }
-      AND_THEN( "adding a should not interfer with id assignment" ) {
-        User *user4 = new User("test4", pk_size, pk);
-        REQUIRE( node->add_user(user4) == user4 );
-        REQUIRE( user4->id == 3 );
       }
     }
   }

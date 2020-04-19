@@ -12,7 +12,7 @@ using namespace std;
 
 Supernode::Supernode(const string &filename, AES_GCM_context *root_key):Node::Node(NULL, filename, "/", root_key) {
   this->node_type = Node::SUPERNODE_TYPE;
-  this->allowed_users = new map<int, User*>();
+  this->allowed_users = new map<string, User*>();
 }
 
 Supernode::~Supernode() {
@@ -77,7 +77,7 @@ int Supernode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
       return -1;
     read += step;
 
-    this->allowed_users->insert(pair<int, User*>(user->id, user));
+    this->allowed_users->insert(pair<string, User*>(user->uuid, user));
   }
   return read;
 }
@@ -87,22 +87,19 @@ User *Supernode::add_user(User *user) {
   if (check_user(user) != NULL)
     return NULL;
 
-  int max_id = -1;
-  for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it)
-    if (it->first > max_id)
-      max_id = it->first;
+  if (this->allowed_users->size() == 0)
+    user->set_root();
 
-  user->id = max_id + 1;
-  this->allowed_users->insert(pair<int, User*>(user->id, user));
+  this->allowed_users->insert(pair<string, User*>(user->uuid, user));
   return user;
 }
 
-User *Supernode::remove_user_from_id(int user_id) {
-  User *removed = this->retrieve_user(user_id);
+User *Supernode::remove_user_from_uuid(string user_uuid) {
+  User *removed = this->retrieve_user(user_uuid);
   if (removed == NULL || removed->is_root())
     return NULL;
 
-  this->allowed_users->erase(removed->id);
+  this->allowed_users->erase(removed->uuid);
   return removed;
 }
 
@@ -114,8 +111,8 @@ User *Supernode::check_user(User *user) {
   return NULL;
 }
 
-User *Supernode::retrieve_user(int user_id) {
-  auto it = this->allowed_users->find(user_id);
+User *Supernode::retrieve_user(string user_uuid) {
+  auto it = this->allowed_users->find(user_uuid);
   if (it == this->allowed_users->end())
     return NULL;
 

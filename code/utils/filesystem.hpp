@@ -26,7 +26,7 @@ class FileSystem {
     ~FileSystem();
     void init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR);
 
-    int edit_user_entitlement(const string &path, const unsigned char rights, const int user_id);
+    int edit_user_entitlement(const string &path, const unsigned char rights, const string user_uuid);
 
     int get_rights(const string &path);
     int entry_type(const string &path);

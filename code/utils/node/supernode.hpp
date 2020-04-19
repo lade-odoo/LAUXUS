@@ -20,12 +20,12 @@ class Supernode: public Node {
     bool equals(Supernode *other);
 
     User *add_user(User *user);
-    User *remove_user_from_id(int user_id);
+    User *remove_user_from_uuid(string user_uuid);
     User *check_user(User *user);
-    User *retrieve_user(int user_id);
+    User *retrieve_user(string user_uuid);
 
   private:
-    map<int, User*> *allowed_users;
+    map<string, User*> *allowed_users;
 
   protected:
     size_t p_sensitive_size();

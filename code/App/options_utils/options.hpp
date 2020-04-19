@@ -3,11 +3,12 @@
 
 struct nexus_options {
   int new_user, add_user, create_fs, show_help, edit_policies_user, remove_user;
-  int edited_user_id, user_id , policy, deleted_user_id;
+  int policy;
 
   char *user_pk_file, *user_sk_file;
 	char *new_username, *new_user_pk_file, *new_user_sk_file;
   char *policy_filename;
+  char *edited_user_uuid, *user_uuid, *deleted_user_uuid;
 };
 
 

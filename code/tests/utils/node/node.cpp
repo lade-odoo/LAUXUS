@@ -70,7 +70,6 @@ SCENARIO( "Node can be dumped and loaded to a buffer.", "[multi-file:node]" ) {
 
     REQUIRE( User::generate_keys(pk_size, pk, sk_size, sk) == 0 );
     User *user = new User("test", pk_size, pk);
-    user->id = 1;
 
     string uuid = Node::generate_uuid();
     Node *node = new Node(NULL, uuid, "Test", root_key);
@@ -102,7 +101,6 @@ SCENARIO( "Node can store an access list, they can add / remove / check users.",
 
   REQUIRE( User::generate_keys(pk_size, pk, sk_size, sk) == 0 );
   User *user = new User("test", pk_size, pk);
-  user->id = 1;
 
   AES_GCM_context *root_key = new AES_GCM_context();
   string uuid = Node::generate_uuid();

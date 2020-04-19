@@ -57,7 +57,7 @@ void* App::fuse_init(struct fuse_conn_info *conn) {
     exit(1);
   }
   struct nexus_options *options = (struct nexus_options*) fuse_get_context()->private_data;
-  if (nexus_login(options->user_sk_file, options->user_id) < 0) {
+  if (nexus_login(options->user_sk_file, options->user_uuid) < 0) {
     cout << "Failed to login in the filesystem !" << endl;
     exit(1);
   }
@@ -112,14 +112,14 @@ int App::nexus_load() {
   return 0;
 }
 
-int App::nexus_login(const char *sk_path, int user_id) {
+int App::nexus_login(const char *sk_path, const char *user_uuid) {
   size_t e_supernode_size = file_size(SUPERNODE_PATH);
   char e_supernode[e_supernode_size];
   if (load(SUPERNODE_PATH, e_supernode) < 0)
     return -1;
 
   int ret;
-  sgx_status_t sgx_status = sgx_login(ENCLAVE_ID, &ret, sk_path, user_id, e_supernode_size, e_supernode);
+  sgx_status_t sgx_status = sgx_login(ENCLAVE_ID, &ret, sk_path, user_uuid, e_supernode_size, e_supernode);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to login to the filesystem !", ret))
     return -1;
 
@@ -370,19 +370,19 @@ int App::nexus_add_user(const char *username, const char *pk_file) {
   return ret;
 }
 
-int App::nexus_remove_user(int user_id) {
+int App::nexus_remove_user(const char *user_uuid) {
   int ret;
-  sgx_status_t sgx_status = sgx_remove_user(ENCLAVE_ID, &ret, user_id);
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to remove a user !"))
+  sgx_status_t sgx_status = sgx_remove_user(ENCLAVE_ID, &ret, user_uuid);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to remove a user !", ret))
     return -1;
 
-  return ret;
+  return 0;
 }
 
 
-int App::nexus_edit_user_entitlement(const int user_id, const char *path, const unsigned char rights) {
+int App::nexus_edit_user_entitlement(const char *user_uuid, const char *path, const unsigned char rights) {
   int ret;
-  sgx_status_t status = sgx_edit_user_entitlement(ENCLAVE_ID, &ret, path, rights, user_id);
+  sgx_status_t status = sgx_edit_user_entitlement(ENCLAVE_ID, &ret, path, rights, user_uuid);
   if (status != SGX_SUCCESS || ret < 0) {
     cout << "Impossible to edit this user policies." << endl;
     exit(1);

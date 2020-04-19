@@ -16,7 +16,7 @@ class App {
     static void* fuse_init(struct fuse_conn_info *conn);
     static int nexus_create();
     static int nexus_load();
-    static int nexus_login(const char *sk_path, int user_id);
+    static int nexus_login(const char *sk_path, const char *user_uuid);
 
     static void fuse_destroy(void* private_data);
     static int nexus_destroy();
@@ -37,9 +37,9 @@ class App {
 
     static int nexus_create_user(const char *username, const char *pk_file, const char *sk_file);
     static int nexus_add_user(const char *username, const char *pk_file);
-    static int nexus_remove_user(int user_id);
+    static int nexus_remove_user(const char *user_uuid);
 
-    static int nexus_edit_user_entitlement(const int user_id, const char *filepath, const unsigned char policy);
+    static int nexus_edit_user_entitlement(const char *user_uuid, const char *filepath, const unsigned char policy);
 
   private:
     static int init_enclave();

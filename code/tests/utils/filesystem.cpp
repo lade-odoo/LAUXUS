@@ -57,7 +57,7 @@ User* _create_user() {
 TEST_CASE( "1: Newly created filesystem, everything must return -ENOENT", "[multi-file:filesystem]" ) {
   FileSystem *fs = _create_fs();
 
-  REQUIRE( fs->edit_user_entitlement("/test", Node::OWNER_RIGHT, 1) == -ENOENT );
+  REQUIRE( fs->edit_user_entitlement("/test", Node::OWNER_RIGHT, "") == -ENOENT );
   REQUIRE( fs->readdir("/").size() == 0 );
   REQUIRE( fs->get_rights("/test") == -ENOENT );
   REQUIRE( fs->entry_type("/test") == -ENOENT );
@@ -166,21 +166,21 @@ TEST_CASE( "5: Filesystem can allow specific user entitlements", "[multi-file:fi
 
   // current_user = root
   fs->current_user = root;
-  REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->id) == -1 );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->id) == -1 );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->id) == 0 );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->id) == 0 );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, 10) == -ENOENT );
+  REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->uuid) == -1 );
+  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->uuid) == -1 );
+  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->uuid) == 0 );
+  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->uuid) == 0 );
+  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, "10") == -ENOENT );
   REQUIRE( fs->get_rights("/") == (Node::READ_RIGHT | Node::WRITE_RIGHT | Node::EXEC_RIGHT) );
   REQUIRE( fs->get_rights("/test2") == (Node::READ_RIGHT | Node::WRITE_RIGHT | Node::EXEC_RIGHT) );
 
   // current_user = lambda
   fs->current_user = lambda;
-  REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->id) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->id) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->id) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->id) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, 10) == -ENOENT );
+  REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->uuid) == -EACCES );
+  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->uuid) == -EACCES );
+  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->uuid) == -EACCES );
+  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->uuid) == -EACCES );
+  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, "10") == -ENOENT );
   REQUIRE( fs->get_rights("/") == (Node::READ_RIGHT | Node::EXEC_RIGHT) );
   REQUIRE( fs->get_rights("/test1") == (int)Node::READ_RIGHT );
   REQUIRE( fs->get_rights("/test2") == (int)Node::WRITE_RIGHT );

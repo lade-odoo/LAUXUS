@@ -8,6 +8,7 @@
 #include "sgx_trts.h"
 
 #include <cerrno>
+#include <string>
 
 
 static FileSystem* FILE_SYSTEM;
@@ -93,9 +94,9 @@ int sgx_destroy_filesystem(const char *rk_path, const char *ark_path, const char
 }
 
 
-int sgx_login(const char *sk_path, int user_id, size_t e_supernode_size, const char *e_supernode) {
+int sgx_login(const char *sk_path, const char *user_uuid, size_t e_supernode_size, const char *e_supernode) {
   // check if the user exists
-  User *user = FILE_SYSTEM->supernode->retrieve_user(user_id);
+  User *user = FILE_SYSTEM->supernode->retrieve_user(user_uuid);
   if (user == NULL)
     return -EACCES;
 
@@ -159,7 +160,10 @@ int sgx_create_user(const char *username, const char *pk_path, const char *sk_pa
   // set the current user if not yet one
   if (FILE_SYSTEM->current_user == NULL)
     FILE_SYSTEM->current_user = user;
-  return user->id;
+
+  std::string msg = "New user successfully created with UUID: " + user->uuid + ".";
+  ocall_print((char*)msg.c_str());
+  return 0;
 }
 
 int sgx_add_user(const char *username, size_t pk_size, const char *pk) {
@@ -171,27 +175,29 @@ int sgx_add_user(const char *username, size_t pk_size, const char *pk) {
   User *user = new User(username, pk_size, (sgx_ec256_public_t*)pk);
   if (FILE_SYSTEM->supernode->add_user(user) == NULL)
     return -EEXIST;
-  return user->id;
+
+  std::string msg = "New user successfully added with UUID: " + user->uuid + ".";
+  ocall_print((char*)msg.c_str());
+  return 0;
 }
 
-int sgx_remove_user(int user_id) {
+int sgx_remove_user(const char *user_uuid) {
   if (FILE_SYSTEM->current_user == NULL)
     return -EPROTO;
   if (!FILE_SYSTEM->current_user->is_root())
     return -EACCES;
 
-  User *removed = FILE_SYSTEM->supernode->remove_user_from_id(user_id);
+  User *removed = FILE_SYSTEM->supernode->remove_user_from_uuid(user_uuid);
   if (removed == NULL)
     return -EEXIST;
 
-  int removed_user_id = removed->id;
   delete removed;
-  return removed_user_id;
+  return 0;
 }
 
 
-int sgx_edit_user_entitlement(const char *path, const unsigned char rights, const int user_id) {
-  return FILE_SYSTEM->edit_user_entitlement(path, rights, user_id);
+int sgx_edit_user_entitlement(const char *path, const unsigned char rights, const char* user_uuid) {
+  return FILE_SYSTEM->edit_user_entitlement(path, rights, user_uuid);
 }
 
 
