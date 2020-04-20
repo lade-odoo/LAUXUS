@@ -27,8 +27,7 @@ void sgx_init_dumping_folders(const char *content_dir, const char* meta_dir, con
   FILE_SYSTEM->init_dumping_folders(content_dir, meta_dir, audit_dir);
 }
 
-int sgx_init_existing_filesystem(const char *supernode_path, size_t rk_sealed_size, const char *sealed_rk,
-                    size_t ark_sealed_size, const char *sealed_ark, size_t e_supernode_size, const char *e_supernode) {
+int sgx_init_existing_filesystem(size_t rk_sealed_size, const char *sealed_rk, size_t ark_sealed_size, const char *sealed_ark) {
   // allocating plain root keys
   uint32_t rk_plain_size = AES_GCM_context::size_without_mac();
   uint32_t ark_plain_size = AES_GCM_context::size_without_mac();
@@ -47,12 +46,9 @@ int sgx_init_existing_filesystem(const char *supernode_path, size_t rk_sealed_si
   AES_GCM_context *audit_root_key = new AES_GCM_context();
   if (audit_root_key->load_without_mac(ark_plain_size, (char*)ark_plain) < 0)
     return -EPROTO;
-  Supernode *node = new Supernode(FileSystem::get_relative_path(supernode_path), root_key);
-  if (node->e_load(e_supernode_size, e_supernode) < 0)
-    return -EPROTO;
 
   // Create the filesystem
-  FILE_SYSTEM = new FileSystem(root_key, audit_root_key, node, FileSystem::DEFAULT_BLOCK_SIZE);
+  FILE_SYSTEM = new FileSystem(root_key, audit_root_key, FileSystem::DEFAULT_BLOCK_SIZE);
   return 0;
 }
 
@@ -94,15 +90,19 @@ int sgx_destroy_filesystem(const char *rk_path, const char *ark_path, const char
 }
 
 
-int sgx_login(const char *sk_path, const char *user_uuid, size_t e_supernode_size, const char *e_supernode) {
-  // check if the user exists
-  User *user = FILE_SYSTEM->supernode->retrieve_user(user_uuid);
-  if (user == NULL)
-    return -EACCES;
-
+int sgx_login(const char *sk_path, const char *user_uuid, const char *supernode_path) {
   // Respond the required nonce
   uint8_t nonce[32];
   sgx_read_rand(nonce, 32);
+
+  // ocall to sign challenge given nonce
+  int ret;
+  size_t sig_size = sizeof(sgx_ec256_signature_t); sgx_ec256_signature_t sig[sig_size];
+  if (ocall_file_size(&ret, ".", supernode_path) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
+  size_t e_supernode_size = ret; char e_supernode[e_supernode_size];
+  if (ocall_sign_challenge(&ret, sk_path, 32, (char*)nonce, sig_size, (char*)sig, e_supernode_size, e_supernode) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
 
   // Create the challenge
   size_t challenge_size = 32 + e_supernode_size;
@@ -110,11 +110,16 @@ int sgx_login(const char *sk_path, const char *user_uuid, size_t e_supernode_siz
   std::memcpy(challenge, nonce, 32);
   std::memcpy(challenge+32, e_supernode, e_supernode_size);
 
-  // ocall to sign challenge given nonce
-  int ret;
-  size_t sig_size = sizeof(sgx_ec256_signature_t); sgx_ec256_signature_t sig[sig_size];
-  if (ocall_sign_challenge(&ret, sk_path, 32, (char*)nonce, sig_size, (char*)sig) != SGX_SUCCESS || ret < 0)
+  // Load supernode
+  Supernode *node = new Supernode(FileSystem::get_relative_path(supernode_path), FILE_SYSTEM->root_key);
+  if (node->e_load(e_supernode_size, e_supernode) < 0)
     return -EPROTO;
+  FILE_SYSTEM->link_supernode(node);
+
+  // check if the user exists
+  User *user = FILE_SYSTEM->supernode->retrieve_user(user_uuid);
+  if (user == NULL)
+    return -EACCES;
 
   // validate signature
   if (user->validate_signature(challenge_size, challenge, sig_size, sig) < 0)

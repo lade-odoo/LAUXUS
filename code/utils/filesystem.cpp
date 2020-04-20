@@ -33,6 +33,8 @@ FileSystem::FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_ke
   this->block_size = block_size;
   this->current_user = NULL;
 }
+FileSystem::FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key,
+        size_t block_size):FileSystem::FileSystem(root_key, audit_root_key, NULL, block_size) {}
 
 FileSystem::~FileSystem() {
   delete this->root_key;
@@ -48,6 +50,10 @@ void FileSystem::init_dumping_folders(const string &CONTENT_DIR, const string &M
   this->e_write_meta_to_disk(this->supernode);
   this->load_metadata(this->supernode);
   this->load_content(this->supernode);
+}
+
+void FileSystem::link_supernode(Supernode *node) {
+  this->supernode = node;
 }
 
 

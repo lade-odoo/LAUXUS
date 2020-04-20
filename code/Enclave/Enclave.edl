@@ -5,13 +5,11 @@ enclave {
         /* define ECALLs here. */
         public int sgx_init_new_filesystem([in, string] const char *supernode_path);
         public void sgx_init_dumping_folders([in, string] const char *content_dir, [in, string] const char* meta_dir, [in, string] const char *audit_dir);
-        public int sgx_init_existing_filesystem([in, string] const char *supernode_path,
-                                size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
-                                size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark,
-                                size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
+        public int sgx_init_existing_filesystem(size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
+                                                size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark);
         public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path, [in, string] const char *supernode_path);
 
-        public int sgx_login([in, string] const char *sk_path, [in, string] const char *user_uuid, size_t e_supernode_size, [in, size=e_supernode_size] const char *e_supernode);
+        public int sgx_login([in, string] const char *sk_path, [in, string] const char *user_uuid, [in, string] const char *supernode_path);
         public int sgx_sign_message(size_t challenge_size, [in, size=challenge_size] const char *challenge,
                                     size_t sk_size, [in, size=sk_size] const char *sk, size_t sig_size, [out, size=sig_size] char *sig);
 
@@ -53,6 +51,7 @@ enclave {
         int ocall_load_file([in, string] const char *dir, [in, string] const char *uuid, long offset, size_t size, [out, size=size] char *buffer);
 
         int ocall_sign_challenge([in, string] const char *sk_path, size_t nonce_size, [in, size=nonce_size] const char *nonce,
-                                size_t sig_size, [out, size=sig_size] char *sig) allow(sgx_sign_message);
+                                size_t sig_size, [out, size=sig_size] char *sig,
+                                size_t e_supernode_size, [out, size=e_supernode_size] char *e_supernode) allow(sgx_sign_message);
     };
 };

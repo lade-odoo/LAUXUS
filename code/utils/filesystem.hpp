@@ -23,8 +23,10 @@ class FileSystem {
     User *current_user;
 
     FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key, Supernode *supernode, size_t block_size);
+    FileSystem(AES_GCM_context *root_key, AES_GCM_context *audit_root_key, size_t block_size);
     ~FileSystem();
     void init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR);
+    void link_supernode(Supernode *node);
 
     int edit_user_entitlement(const string &path, const unsigned char rights, const string user_uuid);
 

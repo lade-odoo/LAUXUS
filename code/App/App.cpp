@@ -61,6 +61,9 @@ void* App::fuse_init(struct fuse_conn_info *conn) {
     cout << "Failed to login in the filesystem !" << endl;
     exit(1);
   }
+  sgx_status_t sgx_status = sgx_init_dumping_folders(ENCLAVE_ID, (char*)CONTENT_DIR.c_str(), (char*)META_DIR.c_str(), (char*)AUDIT_DIR.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !"))
+    exit(1);
 
   return &ENCLAVE_ID;
 }
@@ -95,18 +98,12 @@ int App::nexus_load() {
 
   int rk_sealed_size = file_size(RK_PATH); char sealed_rk[rk_sealed_size];
   int ark_sealed_size = file_size(ARK_PATH); char sealed_ark[ark_sealed_size];
-  int e_supernode_size = file_size(SUPERNODE_PATH); char e_supernode[e_supernode_size];
-  if (load(RK_PATH, sealed_rk) < 0 || load(ARK_PATH, sealed_ark) < 0 || load(SUPERNODE_PATH, e_supernode) < 0)
+  if (load(RK_PATH, sealed_rk) < 0 || load(ARK_PATH, sealed_ark) < 0)
     return -1;
 
   int ret;
-  sgx_status_t sgx_status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, (char*)SUPERNODE_PATH.c_str(),
-                              rk_sealed_size, sealed_rk, ark_sealed_size, sealed_ark, e_supernode_size, e_supernode);
+  sgx_status_t sgx_status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk, ark_sealed_size, sealed_ark);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !", ret))
-    return -1;
-
-  sgx_status = sgx_init_dumping_folders(ENCLAVE_ID, (char*)CONTENT_DIR.c_str(), (char*)META_DIR.c_str(), (char*)AUDIT_DIR.c_str());
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !"))
     return -1;
 
   return 0;
@@ -119,7 +116,7 @@ int App::nexus_login(const char *sk_path, const char *user_uuid) {
     return -1;
 
   int ret;
-  sgx_status_t sgx_status = sgx_login(ENCLAVE_ID, &ret, sk_path, user_uuid, e_supernode_size, e_supernode);
+  sgx_status_t sgx_status = sgx_login(ENCLAVE_ID, &ret, sk_path, user_uuid, (char*)SUPERNODE_PATH.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to login to the filesystem !", ret))
     return -1;
 
@@ -393,15 +390,16 @@ int App::nexus_edit_user_entitlement(const char *user_uuid, const char *path, co
 
 
 
-int ocall_sign_challenge(const char *sk_path, size_t nonce_size, const char *nonce, size_t sig_size, char *sig) {
+int ocall_sign_challenge(const char *sk_path, size_t nonce_size, const char *nonce,
+                        size_t sig_size, char *sig, size_t e_supernode_size, char *e_supernode) {
   // load sk
   size_t sk_size = file_size(sk_path); char sk[sk_size];
   if (load(sk_path, sk) < 0)
     return -1;
 
   // load encrypted supernode
-  size_t e_supernode_size = file_size(SUPERNODE_PATH); char e_supernode[e_supernode_size];
-  if (load(SUPERNODE_PATH, e_supernode) < 0)
+  int loaded = load(SUPERNODE_PATH, e_supernode);
+  if (loaded < 0 || loaded != (int)e_supernode_size)
     return -1;
 
   // construct the challenge
