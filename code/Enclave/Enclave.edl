@@ -7,7 +7,7 @@ enclave {
         public void sgx_init_dumping_folders([in, string] const char *content_dir, [in, string] const char* meta_dir, [in, string] const char *audit_dir);
         public int sgx_init_existing_filesystem(size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
                                                 size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark);
-        public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path, [in, string] const char *supernode_path);
+        public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path);
 
         public int sgx_login([in, string] const char *sk_path, [in, string] const char *user_uuid, [in, string] const char *supernode_path);
         public int sgx_sign_message(size_t challenge_size, [in, size=challenge_size] const char *challenge,

@@ -45,6 +45,8 @@ class FileSystem {
     int rm_directory(const string &reason, const string &dirpath);
     int open_directory(const string &dirpath);
 
+    int e_write_meta_to_disk(Node *node);
+
     // Static functioncs
     static string get_directory(const string &filepath);
     static string get_relative_path(const string &filepath);
@@ -59,7 +61,6 @@ class FileSystem {
     int load_metadata(Node *parent);
     int load_content(Node *parent);
 
-    int e_write_meta_to_disk(Node *node);
     int e_write_file_to_disk(Filenode *node, const long up_offset, const size_t up_size);
     int e_append_audit_to_disk(Node *node, const string &reason);
 

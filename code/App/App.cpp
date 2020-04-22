@@ -131,8 +131,7 @@ void App::fuse_destroy(void* private_data) {
 
 int App::nexus_destroy() {
   int ret;
-  sgx_status_t sgx_status = sgx_destroy_filesystem(ENCLAVE_ID, &ret,
-            (char*)RK_PATH.c_str(), (char*)ARK_PATH.c_str(), (char*)SUPERNODE_PATH.c_str());
+  sgx_status_t sgx_status = sgx_destroy_filesystem(ENCLAVE_ID, &ret, (char*)RK_PATH.c_str(), (char*)ARK_PATH.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to destroy the filesystem !", ret))
     return -1;
 

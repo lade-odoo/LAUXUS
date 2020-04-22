@@ -51,7 +51,7 @@ int sgx_init_existing_filesystem(size_t rk_sealed_size, const char *sealed_rk, s
   return 0;
 }
 
-int sgx_destroy_filesystem(const char *rk_path, const char *ark_path, const char *supernode_path) {
+int sgx_destroy_filesystem(const char *rk_path, const char *ark_path) {
   // buffer for root keys plaintext
   size_t rk_plain_size = AES_GCM_context::size_without_mac(); char plain_rk[rk_plain_size];
   size_t ark_plain_size = AES_GCM_context::size_without_mac(); char plain_ark[ark_plain_size];
@@ -70,18 +70,11 @@ int sgx_destroy_filesystem(const char *rk_path, const char *ark_path, const char
   if (status != SGX_SUCCESS)
     return -EPROTO;
 
-  // buffer for encrypted supernode
-  size_t e_supernode_size = FILE_SYSTEM->supernode->e_size(); char e_supernode[e_supernode_size];
-  if (FILE_SYSTEM->supernode->e_dump(e_supernode_size, e_supernode) < 0)
-    return -EPROTO;
-
   // saving the informations
   int ret;
   if (ocall_dump(&ret, rk_path, rk_seal_size, seal_rk) != SGX_SUCCESS || ret < 0)
     return -EPROTO;
   if (ocall_dump(&ret, ark_path, ark_seal_size, seal_ark) != SGX_SUCCESS || ret < 0)
-    return -EPROTO;
-  if (ocall_dump(&ret, supernode_path, e_supernode_size, e_supernode) != SGX_SUCCESS || ret < 0)
     return -EPROTO;
 
   delete FILE_SYSTEM;
@@ -165,6 +158,9 @@ int sgx_create_user(const char *username, const char *pk_path, const char *sk_pa
   if (FILE_SYSTEM->current_user == NULL)
     FILE_SYSTEM->current_user = user;
 
+  if (FILE_SYSTEM->e_write_meta_to_disk(FILE_SYSTEM->supernode) < 0)
+    return -EPROTO;
+
   std::string msg = "New user successfully created with UUID: " + user->uuid + ".";
   ocall_print((char*)msg.c_str());
   return 0;
@@ -180,6 +176,9 @@ int sgx_add_user(const char *username, size_t pk_size, const char *pk) {
   if (FILE_SYSTEM->supernode->add_user(user) == NULL)
     return -EEXIST;
 
+  if (FILE_SYSTEM->e_write_meta_to_disk(FILE_SYSTEM->supernode) < 0)
+    return -EPROTO;
+
   std::string msg = "New user successfully added with UUID: " + user->uuid + ".";
   ocall_print((char*)msg.c_str());
   return 0;
@@ -194,6 +193,9 @@ int sgx_remove_user(const char *user_uuid) {
   User *removed = FILE_SYSTEM->supernode->remove_user_from_uuid(user_uuid);
   if (removed == NULL)
     return -EEXIST;
+
+  if (FILE_SYSTEM->e_write_meta_to_disk(FILE_SYSTEM->supernode) < 0)
+    return -EPROTO;
 
   delete removed;
   return 0;

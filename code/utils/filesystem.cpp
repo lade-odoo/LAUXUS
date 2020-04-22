@@ -46,9 +46,6 @@ void FileSystem::init_dumping_folders(const string &CONTENT_DIR, const string &M
   this->CONTENT_DIR = CONTENT_DIR;
   this->META_DIR = META_DIR;
   this->AUDIT_DIR = AUDIT_DIR;
-
-  if (this->supernode != NULL)
-    this->e_write_meta_to_disk(this->supernode);
 }
 
 void FileSystem::link_supernode(Supernode *node) {
