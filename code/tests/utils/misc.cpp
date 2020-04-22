@@ -42,7 +42,24 @@ TEST_CASE( "3: Computation of get_relative_path", "[multi-file:misc]" ) {
   REQUIRE( get_relative_path("/a_dir").compare("a_dir") == 0 );
 }
 
-TEST_CASE( "3: Computation of clean_path", "[multi-file:misc]" ) {
+TEST_CASE( "4: Computation of get_parent_path", "[multi-file:misc]" ) {
+  REQUIRE( get_parent_path("/").compare("/") == 0 );
+  REQUIRE( get_parent_path("/file").compare("/") == 0 );
+  REQUIRE( get_parent_path("/a_file.txt").compare("/") == 0 );
+  REQUIRE( get_parent_path("/a_dir/a_file.txt").compare("/") == 0 );
+  REQUIRE( get_parent_path("a_dir/a_file.txt").compare("a_dir") == 0 );
+  REQUIRE( get_parent_path("a_file.txt").compare("a_file.txt") == 0 );
+}
+
+TEST_CASE( "5: Computation of get_child_path", "[multi-file:misc]" ) {
+  REQUIRE( get_child_path("/").compare("") == 0 );
+  REQUIRE( get_child_path("/file").compare("file") == 0 );
+  REQUIRE( get_child_path("/a_file.txt").compare("a_file.txt") == 0 );
+  REQUIRE( get_child_path("/a_dir/a_file.txt").compare("a_dir/a_file.txt") == 0 );
+  REQUIRE( get_child_path("a_dir/a_file.txt").compare("a_file.txt") == 0 );
+}
+
+TEST_CASE( "6: Computation of clean_path", "[multi-file:misc]" ) {
   REQUIRE( clean_path("/").compare("/") == 0 );
   REQUIRE( clean_path("/////////").compare("/") == 0 );
   REQUIRE( clean_path("/folder1/file.txt").compare("/folder1/file.txt") == 0 );

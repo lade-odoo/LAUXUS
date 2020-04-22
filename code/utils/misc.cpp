@@ -39,6 +39,20 @@ string get_relative_path(const string &filepath) {
   return clean_path(filepath.substr(index+1));
 }
 
+string get_parent_path(const string &path) {
+  size_t index = path.find("/");
+  if (index == string::npos)
+    return path;
+  return clean_path(path.substr(0, index+1));
+}
+
+string get_child_path(const string &path) {
+  size_t index = path.find("/");
+  if (index == string::npos)
+    return "";
+  return clean_path(path.substr(index+1));
+}
+
 string clean_path(const string &path) {
   string trimmed = path;
   size_t position;
