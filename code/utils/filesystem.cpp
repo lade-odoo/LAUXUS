@@ -97,7 +97,7 @@ int FileSystem::file_size(const string &filepath) {
   Filenode *node = dynamic_cast<Filenode*>(this->supernode->retrieve_node(filepath));
   if (node == NULL)
     return -ENOENT;
-  return node->file_size();
+  return node->content->size();
 }
 
 int FileSystem::create_file(const string &reason, const string &filepath) {
@@ -141,7 +141,7 @@ int FileSystem::read_file(const string &reason, const string &filepath, const lo
   if (e_append_audit_to_disk(node, reason) < 0)
     return -EPROTO;
 
-  return node->read(offset, buffer_size, buffer);
+  return node->content->read(offset, buffer_size, buffer);
 }
 
 int FileSystem::write_file(const string &reason, const string &filepath, const long offset, const size_t data_size, const char *data) {
@@ -154,7 +154,7 @@ int FileSystem::write_file(const string &reason, const string &filepath, const l
   if (e_append_audit_to_disk(node, reason) < 0)
     return -EPROTO;
 
-  int ret = node->write(offset, data_size, data);
+  int ret = node->content->write(offset, data_size, data);
   if (ret < 0)
     return ret;
 
@@ -340,7 +340,7 @@ int FileSystem::load_content(Node *parent) {
         if (buffer_size < 0)
           return -1;
         else if (buffer_size > 0) {
-          if (node->e_load_content(offset, buffer_size, buffer) < 0)
+          if (node->content->e_load(offset, buffer_size, buffer) < 0)
             return -1;
 
           free(buffer);
@@ -368,8 +368,8 @@ int FileSystem::e_write_meta_to_disk(Node *node) {
 
 int FileSystem::e_write_file_to_disk(Filenode *node, const long up_offset, const size_t up_size) {
   // dump and encrypt metadata content
-  size_t e_size = node->e_content_size(up_offset, up_size); char cypher[e_size];
-  int offset = node->e_dump_content(up_offset, up_size, e_size, cypher);
+  size_t e_size = node->content->e_size(up_offset, up_size); char cypher[e_size];
+  int offset = node->content->e_dump(up_offset, up_size, e_size, cypher);
   if (offset < 0)
     return -EPROTO;
 

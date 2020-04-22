@@ -105,25 +105,3 @@ int Filenode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
 
   return read;
 }
-
-
-size_t Filenode::file_size() {
-  return this->content->size();
-}
-int Filenode::write(const long offset, const size_t data_size, const char *data) {
-  return this->content->write(offset, data_size, data);
-}
-int Filenode::read(const long offset, const size_t buffer_size, char *buffer) {
-  return this->content->read(offset, buffer_size, buffer);
-}
-
-
-int Filenode::e_content_size(const long up_offset, const size_t up_size) {
-  return this->content->e_size(up_offset, up_size);
-}
-int Filenode::e_dump_content(const long up_offset, const size_t up_size, const size_t buffer_size, char *buffer) {
-  return this->content->e_dump(up_offset, up_size, buffer_size, buffer);
-}
-int Filenode::e_load_content(const long offset, const size_t buffer_size, const char *buffer) {
-  return this->content->e_load(offset, buffer_size, buffer);
-}
