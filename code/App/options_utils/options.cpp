@@ -35,9 +35,9 @@ static const struct fuse_opt option_spec[] = {
   OPTION("--remove_user", remove_user),
   OPTION("--deleted_user_uuid=%s", deleted_user_uuid),
 
-	OPTION("--edit_policies_user", edit_policies_user),
-	OPTION("--policy=%d", policy),
-	OPTION("--policy_filename=%s", policy_filename),
+	OPTION("--edit_entitlement_user", edit_entitlement_user),
+	OPTION("--rights=%d", rights),
+	OPTION("--entitlement_filename=%s", entitlement_filename),
 	OPTION("--edited_user_uuid=%s", edited_user_uuid),
 	FUSE_OPT_END
 };
@@ -59,7 +59,7 @@ struct fuse_args parse_args(int argc, char **argv, struct nexus_options *options
   options->auditor_pk_file = strdup((char*)(binary_path + "/auditor_ecc-256-public-key.spki").c_str());
   options->auditor_sk_file = strdup((char*)(binary_path + "/auditor_ecc-256-private-key.p8").c_str());
   options->user_uuid = options->edited_user_uuid = NULL;
-  options->policy = -1;
+  options->rights = -1;
 
   /* Parse options */
 	if (fuse_opt_parse(&args, options, option_spec, NULL) == -1) {
@@ -101,11 +101,11 @@ struct fuse_args parse_args(int argc, char **argv, struct nexus_options *options
     } else {
       missing_arg = true;
     }
-  } else if (options->edit_policies_user) {
+  } else if (options->edit_entitlement_user) {
     cout << "Updating a user access right ..." << endl;
-    if (options->user_uuid != NULL && options->edited_user_uuid != NULL && options->policy_filename != NULL &&
-          options->policy >= 0 && options->policy <= 8) {
-      *result = edit_user_policy(options);
+    if (options->user_uuid != NULL && options->edited_user_uuid != NULL && options->entitlement_filename != NULL &&
+          options->rights >= 0 && options->rights <= 8) {
+      *result = edit_user_entitlement(options);
       return args;
     } else {
       missing_arg = true;
@@ -183,16 +183,20 @@ int remove_user(struct nexus_options *options) {
   return 1;
 }
 
-int edit_user_policy(struct nexus_options *options) {
-  // if( App::nexus_load_fs(options) < 0)...
-  //   return -1;
-  //
-  // if (App::nexus_edit_user_policy(options->edited_user_uuid, options->policy_filename, options->policy) < 0)
-  //   return -1;
-  //
-  // App::nexus_destroy(NULL);
-  // cout << "User successfully added." << endl;
-  // return 1;
+int edit_user_entitlement(struct nexus_options *options) {
+  if( App::nexus_load() < 0)
+    return -1;
+  if( App::nexus_login(options->user_sk_file, options->user_uuid) < 0)
+    return -1;
+
+  if (App::nexus_load_node(options->entitlement_filename) < 0)
+    return -1;
+  if (App::nexus_edit_user_entitlement(options->edited_user_uuid, options->entitlement_filename, options->rights) < 0)
+    return -1;
+
+  App::nexus_destroy();
+  cout << "User entitlement successfully updated." << endl;
+  return 1;
 }
 
 
@@ -232,14 +236,14 @@ void show_help(const char *progname) {
 	       "    --user_uuid=<s>             UUID of the user who initiate the action.\n"
 	       "    --user_sk_file=<s>          Path to the private key of the user who initiated the action.\n"
 	       "    --user_pk_file=<s>          Path to the public key of the user who initiated the action.\n"
-	       "    --deleted_user_uuidid=<d>   UUID of the user to remove.\n"
-	       "------ Editing file access policy for a user ------\n"
-	       "    --edit_policies_user        Edit the access right of a user to a file.\n"
+	       "    --deleted_user_uuid=<s>     UUID of the user to remove.\n"
+	       "------ Editing user entitlement for a file ------\n"
+	       "    --edit_entitlement_user     Edit the access right of a user to a file.\n"
 	       "    --user_uuid=<s>             UUID of the user who initiate the action.\n"
 	       "    --user_sk_file=<s>          Path to the private key of the user who initiated the action.\n"
 	       "    --user_pk_file=<s>          Path to the public key of the user who initiated the action.\n"
-	       "    --policy_filename=<s>       Path to the file on which the policy should be updated.\n"
-	       "    --policy=<d>                The standard access fight to the given file.\n"
-	       "    --edited_user_uuid=<d>      UUID of the user to which the access should be updated.\n"
+	       "    --entitlement_filename=<s>  Path to the file on which the entitlement should be updated.\n"
+	       "    --rights=<d>                The standard access fight to the given file.\n"
+	       "    --edited_user_uuid=<s>      UUID of the user to which the access should be updated.\n"
 	       "\n");
 }

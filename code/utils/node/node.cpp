@@ -117,12 +117,12 @@ bool Node::has_user_rights(const unsigned char min_rights, User *user) {
   if (user->is_root())
     return true;
 
+  if (this->node_type == SUPERNODE_TYPE) // supernode must be readable by everyone
+    return min_rights == (min_rights & (READ_RIGHT | EXEC_RIGHT));
+
   auto it = this->entitlements->find(user->uuid);
   if (it == this->entitlements->end())
     return false;
-
-  if (this->node_type == SUPERNODE_TYPE) // supernode must be readable by everyone
-    return min_rights == (min_rights & (READ_RIGHT | EXEC_RIGHT));
   if (it->second == OWNER_RIGHT)
     return true;
   return min_rights == (min_rights & it->second);
@@ -238,10 +238,10 @@ int Node::p_dump_sensitive(const size_t buffer_size, char *buffer) {
   memcpy(buffer+written, &entitlements_len, sizeof(int)); written += sizeof(int);
   for (auto it = this->entitlements->begin(); it != this->entitlements->end(); ++it) {
     string uuid = it->first;
-    unsigned char policy = it->second;
+    unsigned char rights = it->second;
 
     memcpy(buffer+written, uuid.c_str(), UUID_SIZE); written += UUID_SIZE;
-    memcpy(buffer+written, &policy, sizeof(unsigned char)); written += sizeof(unsigned char);
+    memcpy(buffer+written, &rights, sizeof(unsigned char)); written += sizeof(unsigned char);
   }
 
   return written;
@@ -264,12 +264,12 @@ int Node::p_load_sensitive(const size_t buffer_size, const char *buffer) {
   memcpy(&entitlements_len, buffer+read, sizeof(int)); read += sizeof(int);
   for (int i = 0; i < entitlements_len; i++) {
     string uuid(UUID_SIZE-1, ' ');
-    unsigned char policy = 0;
+    unsigned char rights = 0;
 
     memcpy(const_cast<char*>(uuid.data()), buffer+read, UUID_SIZE); read += UUID_SIZE;
-    memcpy(&policy, buffer+read, sizeof(unsigned char)); read += sizeof(unsigned char);
+    memcpy(&rights, buffer+read, sizeof(unsigned char)); read += sizeof(unsigned char);
 
-    this->entitlements->insert(std::pair<string, unsigned char>(uuid, policy));
+    this->entitlements->insert(std::pair<string, unsigned char>(uuid, rights));
   }
 
   return read;

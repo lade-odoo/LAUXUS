@@ -17,6 +17,7 @@ enclave {
         public int sgx_add_user([in, string] const char *username, size_t pk_size, [in, size=pk_size] const char *pk);
         public int sgx_remove_user([in, string] const char *user_uuid);
 
+        public int sgx_load_node([in, string] const char *path);
         public int sgx_edit_user_entitlement([in, string] const char *path, unsigned char rights, [in, string] const char *user_uuid);
 
         public int sgx_ls_buffer_size([in, string] const char *path);

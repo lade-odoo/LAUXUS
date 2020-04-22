@@ -28,6 +28,7 @@ class FileSystem {
     void init_dumping_folders(const string &CONTENT_DIR, const string &META_DIR, const string &AUDIT_DIR);
     void link_supernode(Supernode *node);
 
+    int load_node(Node *parent, const string &path);
     int edit_user_entitlement(const string &path, const unsigned char rights, const string user_uuid);
 
     int get_rights(const string &path);
@@ -47,6 +48,8 @@ class FileSystem {
     // Static functioncs
     static string get_directory(const string &filepath);
     static string get_relative_path(const string &filepath);
+    string get_parent_path(const string &path);
+    string get_child_path(const string &path);
     static string clean_path(const string &path);
 
   private:

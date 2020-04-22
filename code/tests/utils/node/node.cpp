@@ -117,7 +117,7 @@ SCENARIO( "Node can store an access list, they can add / remove / check users.",
         REQUIRE( !node->has_user_rights(Node::OWNER_RIGHT, user) );
         REQUIRE( !node->has_user_rights(Node::EXEC_RIGHT, user) );
       }
-      AND_THEN( "getting its attribute should give us the same policy" ) {
+      AND_THEN( "getting its attribute should give us the same right" ) {
         REQUIRE( node->get_rights(user) == (Node::WRITE_RIGHT | Node::READ_RIGHT) );
       }
     }
@@ -134,7 +134,7 @@ SCENARIO( "Node can store an access list, they can add / remove / check users.",
         REQUIRE( !node->has_user_rights(Node::WRITE_RIGHT, user) );
         REQUIRE( !node->has_user_rights(Node::OWNER_RIGHT, user) );
       }
-      AND_THEN( "getting its attribute should give us a policy of 0" ) {
+      AND_THEN( "getting its attribute should give us a right of 0" ) {
         REQUIRE( node->get_rights(user) == 0 );
       }
     }

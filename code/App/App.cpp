@@ -61,9 +61,6 @@ void* App::fuse_init(struct fuse_conn_info *conn) {
     cout << "Failed to login in the filesystem !" << endl;
     exit(1);
   }
-  sgx_status_t sgx_status = sgx_init_dumping_folders(ENCLAVE_ID, (char*)CONTENT_DIR.c_str(), (char*)META_DIR.c_str(), (char*)AUDIT_DIR.c_str());
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !"))
-    exit(1);
 
   return &ENCLAVE_ID;
 }
@@ -104,6 +101,9 @@ int App::nexus_load() {
   int ret;
   sgx_status_t sgx_status = sgx_init_existing_filesystem(ENCLAVE_ID, &ret, rk_sealed_size, sealed_rk, ark_sealed_size, sealed_ark);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !", ret))
+    return -1;
+  sgx_status = sgx_init_dumping_folders(ENCLAVE_ID, (char*)CONTENT_DIR.c_str(), (char*)META_DIR.c_str(), (char*)AUDIT_DIR.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to initialize the filesystem !"))
     return -1;
 
   return 0;
@@ -377,11 +377,24 @@ int App::nexus_remove_user(const char *user_uuid) {
 }
 
 
+int App::nexus_load_node(const char *path) {
+  int ret;
+  string cleaned_path = clean_path(path);
+  sgx_status_t status = sgx_load_node(ENCLAVE_ID, &ret, (char*)cleaned_path.c_str());
+  if (status != SGX_SUCCESS || ret < 0) {
+    cout << "Impossible to load the given node." << endl;
+    exit(1);
+  }
+
+  return 0;
+}
+
 int App::nexus_edit_user_entitlement(const char *user_uuid, const char *path, const unsigned char rights) {
   int ret;
-  sgx_status_t status = sgx_edit_user_entitlement(ENCLAVE_ID, &ret, path, rights, user_uuid);
+  string cleaned_path = clean_path(path);
+  sgx_status_t status = sgx_edit_user_entitlement(ENCLAVE_ID, &ret, (char*)cleaned_path.c_str(), rights, user_uuid);
   if (status != SGX_SUCCESS || ret < 0) {
-    cout << "Impossible to edit this user policies." << endl;
+    cout << "Impossible to edit this user entitlement." << endl;
     exit(1);
   }
 

@@ -47,15 +47,30 @@ void FileSystem::init_dumping_folders(const string &CONTENT_DIR, const string &M
   this->META_DIR = META_DIR;
   this->AUDIT_DIR = AUDIT_DIR;
 
-  this->e_write_meta_to_disk(this->supernode);
-  this->load_metadata(this->supernode);
-  this->load_content(this->supernode);
+  if (this->supernode != NULL)
+    this->e_write_meta_to_disk(this->supernode);
 }
 
 void FileSystem::link_supernode(Supernode *node) {
   this->supernode = node;
 }
 
+
+int FileSystem::load_node(Node *parent, const string &path) {
+  string parent_path = FileSystem::get_parent_path(path);
+  string child_path = FileSystem::get_child_path(path);
+
+  Node *node = parent->retrieve_node(parent_path);
+  if (node->relative_path.compare(path) == 0)
+    return 0;
+  else if (node->node_type == Node::FILENODE_TYPE)
+    return -1;
+  else {
+    if (this->load_metadata(node) < 0)
+      return -1;
+    return this->load_node(node, child_path);
+  }
+}
 
 int FileSystem::edit_user_entitlement(const string &path, const unsigned char rights, const string user_uuid) {
   Node *node = this->supernode->retrieve_node(path);
@@ -279,14 +294,16 @@ int FileSystem::rm_directory(const string &reason, const string &dirpath) {
 }
 
 int FileSystem::open_directory(const string &dirpath) {
-  Dirnode *node = dynamic_cast<Dirnode*>(this->supernode->retrieve_node(dirpath));
+  Node *node = this->supernode->retrieve_node(dirpath);
   if (node == NULL)
     return -ENOENT;
   if (!node->has_user_rights(Node::READ_RIGHT | Node::EXEC_RIGHT, this->current_user))
     return -EACCES;
 
-  this->load_metadata(node);
-  this->load_content(node);
+  if (this->load_metadata(node) < 0)
+    return -EPROTO;
+  if (this->load_content(node) < 0)
+    return -EPROTO;
 
   return 0;
 }
@@ -447,6 +464,20 @@ string FileSystem::get_directory(const string &filepath) {
 string FileSystem::get_relative_path(const string &filepath) {
   size_t index = filepath.find_last_of("/");
   return clean_path(filepath.substr(index+1));
+}
+
+string FileSystem::get_parent_path(const string &path) {
+  size_t index = path.find("/");
+  if (index == string::npos)
+    return path;
+  return clean_path(path.substr(0, index+1));
+}
+
+string FileSystem::get_child_path(const string &path) {
+  size_t index = path.find("/");
+  if (index == string::npos)
+    return "";
+  return clean_path(path.substr(index+1));
 }
 
 string FileSystem::clean_path(const string &path) {

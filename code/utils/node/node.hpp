@@ -50,7 +50,7 @@ class Node: public Metadata {
 
   private:
     Node *parent;
-    map<string, unsigned char> *entitlements; // mapping user_uuid - policy ORWX
+    map<string, unsigned char> *entitlements; // mapping user_uuid - rights ORWX
 
     bool is_correct_node(string parent_path);
 

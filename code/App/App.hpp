@@ -39,7 +39,8 @@ class App {
     static int nexus_add_user(const char *username, const char *pk_file);
     static int nexus_remove_user(const char *user_uuid);
 
-    static int nexus_edit_user_entitlement(const char *user_uuid, const char *filepath, const unsigned char policy);
+    static int nexus_load_node(const char *path);
+    static int nexus_edit_user_entitlement(const char *user_uuid, const char *path, const unsigned char rights);
 
   private:
     static int init_enclave();

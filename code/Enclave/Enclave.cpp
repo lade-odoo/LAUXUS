@@ -4,7 +4,6 @@
 
 #include "Enclave_t.h"
 #include "sgx_tseal.h"
-#include "sgx_tcrypto.h"
 #include "sgx_trts.h"
 
 #include <cerrno>
@@ -200,6 +199,10 @@ int sgx_remove_user(const char *user_uuid) {
   return 0;
 }
 
+
+int sgx_load_node(const char *path) {
+  return FILE_SYSTEM->load_node(FILE_SYSTEM->supernode, path);
+}
 
 int sgx_edit_user_entitlement(const char *path, const unsigned char rights, const char* user_uuid) {
   return FILE_SYSTEM->edit_user_entitlement(path, rights, user_uuid);
