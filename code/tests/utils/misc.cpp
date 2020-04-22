@@ -28,35 +28,29 @@ TEST_CASE( "1: Computation of tokenize", "[multi-file:misc]" ) {
   REQUIRE( result[1].compare("Token2") == 0 );
 }
 
-TEST_CASE( "2: Computation of get_directory", "[multi-file:misc]" ) {
-  REQUIRE( get_directory("/").compare("/") == 0 );
-  REQUIRE( get_directory("/file").compare("/") == 0 );
-  REQUIRE( get_directory("/a_file.txt").compare("/") == 0 );
-  REQUIRE( get_directory("/a_dir/a_file.txt").compare("/a_dir") == 0 );
+TEST_CASE( "2: Computation of get_directory_path", "[multi-file:misc]" ) {
+  REQUIRE( get_directory_path("/").compare("/") == 0 );
+  REQUIRE( get_directory_path("/a_file.txt").compare("/") == 0 );
+  REQUIRE( get_directory_path("/a_dir/a_file.txt").compare("/a_dir") == 0 );
 }
 
 TEST_CASE( "3: Computation of get_relative_path", "[multi-file:misc]" ) {
-  REQUIRE( get_relative_path("/a_file.txt").compare("a_file.txt") == 0 );
-  REQUIRE( get_relative_path("/a_file.txt").compare("a_file.txt") == 0 );
-  REQUIRE( get_relative_path("/a_dir/a_file.txt").compare("a_file.txt") == 0 );
-  REQUIRE( get_relative_path("/a_dir").compare("a_dir") == 0 );
+  REQUIRE( get_relative_path("/file.txt").compare("file.txt") == 0 );
+  REQUIRE( get_relative_path("/dir/file.txt").compare("file.txt") == 0 );
+  REQUIRE( get_relative_path("/dir/").compare("dir") == 0 );
+  REQUIRE( get_relative_path("/dir").compare("dir") == 0 );
 }
 
 TEST_CASE( "4: Computation of get_parent_path", "[multi-file:misc]" ) {
   REQUIRE( get_parent_path("/").compare("/") == 0 );
-  REQUIRE( get_parent_path("/file").compare("/") == 0 );
-  REQUIRE( get_parent_path("/a_file.txt").compare("/") == 0 );
-  REQUIRE( get_parent_path("/a_dir/a_file.txt").compare("/") == 0 );
   REQUIRE( get_parent_path("a_dir/a_file.txt").compare("a_dir") == 0 );
-  REQUIRE( get_parent_path("a_file.txt").compare("a_file.txt") == 0 );
+  REQUIRE( get_parent_path("/dir/file.txt").compare("/") == 0 );
 }
 
 TEST_CASE( "5: Computation of get_child_path", "[multi-file:misc]" ) {
   REQUIRE( get_child_path("/").compare("") == 0 );
-  REQUIRE( get_child_path("/file").compare("file") == 0 );
-  REQUIRE( get_child_path("/a_file.txt").compare("a_file.txt") == 0 );
-  REQUIRE( get_child_path("/a_dir/a_file.txt").compare("a_dir/a_file.txt") == 0 );
-  REQUIRE( get_child_path("a_dir/a_file.txt").compare("a_file.txt") == 0 );
+  REQUIRE( get_child_path("/file.txt").compare("file.txt") == 0 );
+  REQUIRE( get_child_path("/dir/file.txt").compare("dir/file.txt") == 0 );
 }
 
 TEST_CASE( "6: Computation of clean_path", "[multi-file:misc]" ) {

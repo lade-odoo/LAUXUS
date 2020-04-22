@@ -29,28 +29,32 @@ vector<string> tokenize(const size_t buffer_size, const char *entries, const cha
 }
 
 
-string get_directory(const string &filepath) {
-  size_t index = filepath.find_last_of("/");
-  return clean_path(filepath.substr(0, index + 1));
+string get_directory_path(const string &path) {
+  string cleaned = clean_path(path);
+  size_t index = cleaned.find_last_of("/");
+  return clean_path(cleaned.substr(0, index + 1));
 }
 
-string get_relative_path(const string &filepath) {
-  size_t index = filepath.find_last_of("/");
-  return clean_path(filepath.substr(index+1));
+string get_relative_path(const string &path) {
+  string cleaned = clean_path(path);
+  size_t index = cleaned.find_last_of("/");
+  return clean_path(cleaned.substr(index + 1));
 }
 
 string get_parent_path(const string &path) {
-  size_t index = path.find("/");
+  string cleaned = clean_path(path);
+  size_t index = cleaned.find("/");
   if (index == string::npos)
     return path;
-  return clean_path(path.substr(0, index+1));
+  return clean_path(cleaned.substr(0, index + 1));
 }
 
 string get_child_path(const string &path) {
-  size_t index = path.find("/");
+  string cleaned = clean_path(path);
+  size_t index = cleaned.find("/");
   if (index == string::npos)
     return "";
-  return clean_path(path.substr(index+1));
+  return clean_path(cleaned.substr(index + 1));
 }
 
 string clean_path(const string &path) {
