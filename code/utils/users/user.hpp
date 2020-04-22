@@ -25,6 +25,8 @@ class User {
 
     bool is_root();
     void set_root();
+    bool is_auditor();
+    void set_auditor();
     bool equals(User *other);
 
     int validate_signature(const size_t challenge_size, const uint8_t *challenge,

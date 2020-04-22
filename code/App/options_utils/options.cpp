@@ -21,6 +21,9 @@ static const struct fuse_opt option_spec[] = {
 	OPTION("--user_uuid=%s", user_uuid),
 
 	OPTION("--create_fs", create_fs),
+	OPTION("--auditor_username=%s", auditor_username),
+  OPTION("--auditor_pk_file=%s", auditor_pk_file),
+  OPTION("--auditor_sk_file=%s", auditor_sk_file),
 
 	OPTION("--new_user", new_user),
   OPTION("--new_user_pk_file=%s", new_user_pk_file),
@@ -53,6 +56,8 @@ struct fuse_args parse_args(int argc, char **argv, struct nexus_options *options
 	   values are specified */
 	options->user_pk_file = strdup((char*)(binary_path + "/ecc-256-public-key.spki").c_str());
   options->user_sk_file = strdup((char*)(binary_path + "/ecc-256-private-key.p8").c_str());
+  options->auditor_pk_file = strdup((char*)(binary_path + "/auditor_ecc-256-public-key.spki").c_str());
+  options->auditor_sk_file = strdup((char*)(binary_path + "/auditor_ecc-256-private-key.p8").c_str());
   options->user_uuid = options->edited_user_uuid = NULL;
   options->policy = -1;
 
@@ -66,7 +71,7 @@ struct fuse_args parse_args(int argc, char **argv, struct nexus_options *options
   bool missing_arg = false;
 	if (options->create_fs) {
     cout << "Creating the filesystem ..." << endl;
-    if (options->new_username != NULL) {
+    if (options->new_username != NULL && options->auditor_username != NULL) {
       *result = create_fs(options);
       return args;
     } else {
@@ -129,7 +134,11 @@ struct fuse_args parse_args(int argc, char **argv, struct nexus_options *options
 int create_fs(struct nexus_options *options) {
   if (App::nexus_create() < 0)
     return -1;
+  cout << "--------- Administrator ---------" << endl;
   if (App::nexus_create_user(options->new_username, options->user_pk_file, options->user_sk_file) < 0)
+    return -1;
+  cout << "------------ Auditor ------------" << endl;
+  if (App::nexus_create_user(options->auditor_username, options->auditor_pk_file, options->auditor_sk_file) < 0)
     return -1;
 
   App::nexus_destroy();
@@ -200,6 +209,9 @@ void show_help(const char *progname) {
 	       "    --new_username=<s>          The username of the new user to create.\n"
 	       "    --user_sk_file=<s>          Path where to store the private key of the administrator.\n"
 	       "    --user_pk_file=<s>          Path where to store the public key of the administrator.\n"
+	       "    --auditor_username=<s>      The username of the auditor user.\n"
+	       "    --auditor_sk_file=<s>       Path where to store the private key of the auditor.\n"
+	       "    --auditor_pk_file=<s>       Path where to store the public key of the auditor.\n"
 	       "---------------- Creating a new user ----------------\n"
  	       "    --new_user                  Creates a new users provided its public key.\n"
 	       "    --user_uuid=<s>             UUID of the user who initiate the action.\n"

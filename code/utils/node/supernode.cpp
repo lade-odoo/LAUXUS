@@ -89,6 +89,8 @@ User *Supernode::add_user(User *user) {
 
   if (this->allowed_users->size() == 0)
     user->set_root();
+  if (this->allowed_users->size() == 1)
+    user->set_auditor();
 
   this->allowed_users->insert(pair<string, User*>(user->uuid, user));
   return user;

@@ -6,7 +6,8 @@ struct nexus_options {
   int policy;
 
   char *user_pk_file, *user_sk_file;
-	char *new_username, *new_user_pk_file, *new_user_sk_file;
+  char *auditor_pk_file, *auditor_sk_file;
+	char *new_username, *auditor_username, *new_user_pk_file, *new_user_sk_file;
   char *policy_filename;
   char *edited_user_uuid, *user_uuid, *deleted_user_uuid;
 };

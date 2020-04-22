@@ -39,9 +39,14 @@ User::~User() {
 bool User::is_root() {
   return this->uuid.compare("0000-00-00-00-000000") == 0;
 }
-
 void User::set_root() {
   this->uuid = "0000-00-00-00-000000";
+}
+bool User::is_auditor() {
+  return this->uuid.compare("1111-11-11-11-111111") == 0;
+}
+void User::set_auditor() {
+  this->uuid = "1111-11-11-11-111111";
 }
 
 bool User::equals(User *other) {
