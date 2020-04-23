@@ -25,19 +25,17 @@ class Node: public Metadata {
     unsigned char node_type = -1;
 
     string relative_path, uuid;
-    map<string, Node*> *node_entries; // mapping relative_path - node
+    map<string, string> *node_entries; // mapping relative_path - uuid
 
-    Node(Node *parent, const string &uuid, const string &relative_path, AES_GCM_context *root_key);
-    Node(Node *parent, const string &uuid, AES_GCM_context *root_key);
+    Node(const string &uuid, const string &relative_path, AES_GCM_context *root_key);
+    Node(const string &uuid, AES_GCM_context *root_key);
     ~Node();
 
     bool equals(Node *other);
     string absolute_path();
 
-    Node* retrieve_node(string relative_path);
-    int add_node_entry(Node *node);
-    int link_node_entry(string uuid, Node *node);
-    int remove_node_entry(Node *node);
+    int add_node_entry(string relative_path, string uuid);
+    int remove_node_entry(string relative_path);
 
     bool has_user_rights(const unsigned char min_rights, User *user);
     int edit_user_entitlement(const unsigned char rights, User *user);
@@ -49,10 +47,7 @@ class Node: public Metadata {
 
 
   private:
-    Node *parent;
     map<string, unsigned char> *entitlements; // mapping user_uuid - rights ORWX
-
-    bool is_correct_node(string parent_path);
 
 
   protected:

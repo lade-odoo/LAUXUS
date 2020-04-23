@@ -13,8 +13,8 @@ using namespace std;
 
 class Dirnode: public Node {
   public:
-    Dirnode(Node *parent, const string &uuid, AES_GCM_context *root_key);
-    Dirnode(Node *parent, const string &uuid, const std::string &relative_path, AES_GCM_context *root_key);
+    Dirnode(const string &uuid, AES_GCM_context *root_key);
+    Dirnode(const string &uuid, const std::string &relative_path, AES_GCM_context *root_key);
 };
 
 #endif /*__DIRNODE_HPP__*/
