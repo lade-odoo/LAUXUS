@@ -39,7 +39,8 @@ bool Supernode::equals(Supernode *other) {
 
 
 size_t Supernode::p_sensitive_size() {
-  size_t size = sizeof(int);
+  size_t size = Node::p_sensitive_size();
+  size += sizeof(int);
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
     User *user = it->second;
     size += user->size();
@@ -51,10 +52,12 @@ int Supernode::p_dump_sensitive(const size_t buffer_size, char *buffer) {
   if (buffer_size < this->p_sensitive_size())
     return -1;
 
-  size_t written = 0;
-  int users_len = this->allowed_users->size();
-  memcpy(buffer, &users_len, sizeof(int)); written += sizeof(int);
+  int written = Node::p_dump_sensitive(buffer_size, buffer);
+  if (written < 0)
+    return -1;
 
+  int users_len = this->allowed_users->size();
+  memcpy(buffer+written, &users_len, sizeof(int)); written += sizeof(int);
   for (auto it = this->allowed_users->begin(); it != this->allowed_users->end(); ++it) {
     User *user = it->second;
     int step = user->dump(buffer_size-written, buffer+written);
@@ -66,10 +69,12 @@ int Supernode::p_dump_sensitive(const size_t buffer_size, char *buffer) {
 }
 
 int Supernode::p_load_sensitive(const size_t buffer_size, const char *buffer) {
-  size_t read = 0;
-  int users_len = 0;
+  int read = Node::p_load_sensitive(buffer_size, buffer);
+  if (read < 0)
+    return -1;
 
-  memcpy(&users_len, buffer, sizeof(int)); read += sizeof(int);
+  int users_len = 0;
+  memcpy(&users_len, buffer+read, sizeof(int)); read += sizeof(int);
   for (int i = 0; i < users_len; i++) {
     User *user = new User();
     int step = user->load(buffer_size-read, buffer+read);

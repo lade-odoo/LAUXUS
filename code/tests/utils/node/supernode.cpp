@@ -6,6 +6,7 @@
 
 #include <string>
 #include <cstring>
+#include <iostream>
 
 
 SCENARIO( "Supernode can be dumped and loaded to a buffer.", "[multi-file:supernode]" ) {
@@ -21,6 +22,7 @@ SCENARIO( "Supernode can be dumped and loaded to a buffer.", "[multi-file:supern
 
     Supernode *node = new Supernode("Test", root_key);
     REQUIRE( node->add_user(user) == user );
+    REQUIRE( node->add_node_entry("Test", Node::generate_uuid()) == 0 );
 
     WHEN( "dumping it to a buffer" ) {
       size_t b_size = node->e_size();
