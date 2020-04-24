@@ -9,7 +9,6 @@
 using namespace std;
 
 
-// ... crashing
 SCENARIO( "Files can be dumped / loaded / deleted.", "[multi-file:serialization]" ) {
   create_directory("/tmp/nexus_tests");
   string path = "/tmp/nexus_tests/empty.txt";

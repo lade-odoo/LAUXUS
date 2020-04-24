@@ -1,4 +1,4 @@
-#include "../utils/filesystem.hpp"
+#include "../utils/filesystem/filesystem.hpp"
 #include "../utils/encryption/aes_gcm.hpp"
 #include "../utils/users/user.hpp"
 
@@ -202,10 +202,6 @@ int sgx_remove_user(const char *user_uuid) {
 }
 
 
-int sgx_load_node(const char *path) {
-  return FILE_SYSTEM->load_node(FILE_SYSTEM->supernode, path);
-}
-
 int sgx_edit_user_entitlement(const char *path, const unsigned char rights, const char* user_uuid) {
   return FILE_SYSTEM->edit_user_entitlement(path, rights, user_uuid);
 }
@@ -265,7 +261,4 @@ int sgx_mkdir(const char *reason, const char *dirpath) {
 }
 int sgx_rmdir(const char *reason, const char *dirpath) {
   return FILE_SYSTEM->rm_directory(reason, dirpath);
-}
-int sgx_opendir(const char *dirpath) {
-  return FILE_SYSTEM->open_directory(dirpath);
 }

@@ -122,7 +122,7 @@ Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/node/node.cpp Enclave/utils/node/supernode.cpp Enclave/utils/node/dirnode.cpp Enclave/utils/node/filenode.cpp Enclave/utils/node/filenode_content.cpp Enclave/utils/node/node_audit.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
 Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/encryption/aes_gcm.cpp Enclave/utils/encryption/aes_ctr.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/filesystem.cpp
+Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/filesystem/filesystem.cpp Enclave/utils/filesystem/serialization.cpp Enclave/utils/filesystem/utils.cpp
 # Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 

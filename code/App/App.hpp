@@ -33,13 +33,11 @@ class App {
 
     static int fuse_mkdir(const char *dirpath, mode_t);
     static int fuse_rmdir(const char *dirpath);
-    static int fuse_opendir(const char *dirpath, struct fuse_file_info *);
 
     static int nexus_create_user(const char *username, const char *pk_file, const char *sk_file);
     static int nexus_add_user(const char *username, const char *pk_file);
     static int nexus_remove_user(const char *user_uuid);
 
-    static int nexus_load_node(const char *path);
     static int nexus_edit_user_entitlement(const char *user_uuid, const char *path, const unsigned char rights);
 
   private:

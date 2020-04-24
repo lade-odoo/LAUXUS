@@ -48,7 +48,7 @@ using namespace std;
 
 
 struct fuse_args parse_args(int argc, char **argv, struct nexus_options *options, int *result) {
-  string binary_path = get_directory(string(argv[0]));
+  string binary_path = get_directory_path(string(argv[0]));
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
   /* Set defaults -- we have to use strdup so that
@@ -189,8 +189,6 @@ int edit_user_entitlement(struct nexus_options *options) {
   if( App::nexus_login(options->user_sk_file, options->user_uuid) < 0)
     return -1;
 
-  if (App::nexus_load_node(options->entitlement_filename) < 0)
-    return -1;
   if (App::nexus_edit_user_entitlement(options->edited_user_uuid, options->entitlement_filename, options->rights) < 0)
     return -1;
 

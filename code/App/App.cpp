@@ -325,24 +325,6 @@ int App::fuse_rmdir(const char *dirpath) {
   return 0;
 }
 
-int App::fuse_opendir(const char *dirpath, struct fuse_file_info *) {
-  string path = clean_path(dirpath);
-  int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (ret == EEXIST)
-    return -EPROTO;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
-    return -EPROTO;
-
-  sgx_status = sgx_opendir(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to open directory !"))
-    return -EPROTO;
-
-  return 0;
-}
-
 
 int App::nexus_create_user(const char *username, const char *pk_file, const char *sk_file) {
   int ret;
@@ -375,18 +357,6 @@ int App::nexus_remove_user(const char *user_uuid) {
   return 0;
 }
 
-
-int App::nexus_load_node(const char *path) {
-  int ret;
-  string cleaned_path = clean_path(path);
-  sgx_status_t status = sgx_load_node(ENCLAVE_ID, &ret, (char*)cleaned_path.c_str());
-  if (status != SGX_SUCCESS || ret < 0) {
-    cout << "Impossible to load the given node." << endl;
-    exit(1);
-  }
-
-  return 0;
-}
 
 int App::nexus_edit_user_entitlement(const char *user_uuid, const char *path, const unsigned char rights) {
   int ret;

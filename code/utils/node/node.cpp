@@ -13,7 +13,6 @@
 #include <string>
 #include <cstring>
 #include <map>
-#include <iostream>
 
 using namespace std;
 
@@ -45,6 +44,8 @@ bool Node::equals(Node *other) {
   // check children entries
   for (auto it = this->node_entries->begin(); it != this->node_entries->end(); ++it)
     if (other->node_entries->find(it->first) == other->node_entries->end())
+      return false;
+    else if (other->node_entries->find(it->first)->second != it->second)
       return false;
 
   // check entitlements

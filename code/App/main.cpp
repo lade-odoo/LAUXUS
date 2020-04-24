@@ -14,7 +14,7 @@ static struct fuse_operations nexus_oper;
 
 
 int main(int argc, char **argv) {
-  string binary_path =  get_directory(string(argv[0]));
+  string binary_path =  get_directory_path(string(argv[0]));
   App::init(binary_path);
 
   nexus_oper.init = App::fuse_init;
@@ -32,7 +32,6 @@ int main(int argc, char **argv) {
 
   nexus_oper.mkdir = App::fuse_mkdir;
   nexus_oper.rmdir = App::fuse_rmdir;
-  nexus_oper.opendir = App::fuse_opendir;
 
 
   struct nexus_options *options = (struct nexus_options*) malloc(sizeof(struct nexus_options));

@@ -1,6 +1,6 @@
 #include "../catch.hpp"
 #include "../../utils/misc.hpp"
-#include "../../utils/filesystem.hpp"
+#include "../../utils/filesystem/filesystem.hpp"
 #include "../../utils/serialization.hpp"
 #include "../../utils/node/node.hpp"
 #include "../../utils/node/supernode.hpp"
@@ -40,6 +40,7 @@ FileSystem* _create_fs(User *root=NULL, User *lambda=NULL, size_t block_size=Fil
   FileSystem *fs = new FileSystem(root_key, audit_root_key, supernode, block_size);
   fs->init_dumping_folders(CONTENT_DIR, META_DIR, AUDIT_DIR);
   fs->current_user = root;
+  fs->e_write_meta_to_disk(fs->supernode);
 
   return fs;
 }
@@ -96,7 +97,8 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
 
     REQUIRE( fs->create_file("Testing purpose", "/test") == 0 );
     REQUIRE( fs->file_size("/test") == 0 );
-    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 16, NULL) == 0 );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 0, NULL) == 0 );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 16, NULL) < 0 );
 
     REQUIRE( fs->write_file("Testing purpose", "/test", 0, 16, "This is a test !") == 16 );
     REQUIRE( fs->file_size("/test") == 16 );
@@ -109,12 +111,10 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
     char buffer[30];
     REQUIRE( fs->read_file("Testing purpose", "/test", 0, 30, buffer) == 30 );
     REQUIRE( memcmp(buffer, "This is a more advanced test !", 30) == 0 );
-    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 40, buffer) == 30 );
-    REQUIRE( memcmp(buffer, "This is a more advanced test !", 30) == 0 );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 40, buffer) == -EPROTO );
     REQUIRE( fs->read_file("Testing purpose", "/test", 10, 20, buffer) == 20 );
     REQUIRE( memcmp(buffer, "more advanced test !", 20) == 0 );
-    REQUIRE( fs->read_file("Testing purpose", "/test", 10, 40, buffer) == 20 );
-    REQUIRE( memcmp(buffer, "more advanced test !", 6) == 0 );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 10, 40, buffer) == -EPROTO );
 
     REQUIRE( fs->unlink("Testing purpose", "/test") == 0 );
     REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
@@ -125,72 +125,111 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
   }
 }
 
-TEST_CASE( "4: Filesystem can list files in a directory", "[multi-file:filesystem]" ) {
-  User *user = _create_user();
-  FileSystem *fs = _create_fs(user);
-
-  REQUIRE( fs->create_file("Testing purpose", "/test1") == 0 );
-  REQUIRE( fs->create_file("Testing purpose", "/test2") == 0 );
-  REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 3 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 3 );
-
-  REQUIRE( fs->entry_type("/") == EISDIR );
-  REQUIRE( fs->entry_type("/test1") == EEXIST );
-  REQUIRE( fs->entry_type("/test2") == EEXIST );
-
-  REQUIRE( fs->file_size("/test1") == 0 );
-  REQUIRE( fs->file_size("/test2") == 0 );
-
-  vector<string> ls = fs->readdir("/");
-  REQUIRE( ls.size() == 2 );
-  REQUIRE( find(ls.begin(), ls.end(), "test1") != ls.end() );
-  REQUIRE( find(ls.begin(), ls.end(), "test2") != ls.end() );
-
-  REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
-  REQUIRE( fs->unlink("Testing purpose", "/test2") == 0 );
-  REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 1 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
-
-  delete fs;
-}
-
-TEST_CASE( "5: Filesystem can allow specific user entitlements", "[multi-file:filesystem]" ) {
-  User *root = _create_user();
-  User *lambda = _create_user();
-  FileSystem *fs = _create_fs(root, lambda);
-
-  REQUIRE( fs->create_file("Testing purpose", "/test1") == 0 );
-  REQUIRE( fs->create_file("Testing purpose", "/test2") == 0 );
-
-  // current_user = root
-  fs->current_user = root;
-  REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->uuid) == -1 );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->uuid) == -1 );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->uuid) == 0 );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->uuid) == 0 );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, "10") == -ENOENT );
-  REQUIRE( fs->get_rights("/") == (Node::READ_RIGHT | Node::WRITE_RIGHT | Node::EXEC_RIGHT) );
-  REQUIRE( fs->get_rights("/test2") == (Node::READ_RIGHT | Node::WRITE_RIGHT | Node::EXEC_RIGHT) );
-
-  // current_user = lambda
-  fs->current_user = lambda;
-  REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->uuid) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->uuid) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->uuid) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->uuid) == -EACCES );
-  REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, "10") == -ENOENT );
-  REQUIRE( fs->get_rights("/") == (Node::READ_RIGHT | Node::EXEC_RIGHT) );
-  REQUIRE( fs->get_rights("/test1") == (int)Node::READ_RIGHT );
-  REQUIRE( fs->get_rights("/test2") == (int)Node::WRITE_RIGHT );
-
-  fs->current_user = root;
-  REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
-  REQUIRE( fs->unlink("Testing purpose", "/test2") == 0 );
-  REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-  REQUIRE( read_directory(META_DIR).size() == 1 );
-  REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
-
-  delete fs;
-}
+// TEST_CASE( "4: Filesystem can list files in a directory", "[multi-file:filesystem]" ) {
+//   User *user = _create_user();
+//   FileSystem *fs = _create_fs(user);
+//
+//   REQUIRE( fs->create_file("Testing purpose", "/test1") == 0 );
+//   REQUIRE( fs->create_file("Testing purpose", "/test2") == 0 );
+//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+//   REQUIRE( read_directory(META_DIR).size() == 3 );
+//   REQUIRE( read_directory(AUDIT_DIR).size() == 3 );
+//
+//   REQUIRE( fs->entry_type("/") == EISDIR );
+//   REQUIRE( fs->entry_type("/test1") == EEXIST );
+//   REQUIRE( fs->entry_type("/test2") == EEXIST );
+//
+//   REQUIRE( fs->file_size("/test1") == 0 );
+//   REQUIRE( fs->file_size("/test2") == 0 );
+//
+//   vector<string> ls = fs->readdir("/");
+//   REQUIRE( ls.size() == 2 );
+//   REQUIRE( find(ls.begin(), ls.end(), "test1") != ls.end() );
+//   REQUIRE( find(ls.begin(), ls.end(), "test2") != ls.end() );
+//
+//   REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
+//   REQUIRE( fs->unlink("Testing purpose", "/test2") == 0 );
+//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+//   REQUIRE( read_directory(META_DIR).size() == 1 );
+//   REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
+//
+//   delete fs;
+// }
+//
+// TEST_CASE( "5: Filesystem can allow specific user entitlements", "[multi-file:filesystem]" ) {
+//   User *root = _create_user();
+//   User *lambda = _create_user();
+//   FileSystem *fs = _create_fs(root, lambda);
+//
+//   REQUIRE( fs->create_file("Testing purpose", "/test1") == 0 );
+//   REQUIRE( fs->create_file("Testing purpose", "/test2") == 0 );
+//
+//   // current_user = root
+//   fs->current_user = root;
+//   REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->uuid) == -1 );
+//   REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->uuid) == -1 );
+//   REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->uuid) == 0 );
+//   REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->uuid) == 0 );
+//   REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, "10") == -ENOENT );
+//   REQUIRE( fs->get_rights("/") == (Node::READ_RIGHT | Node::WRITE_RIGHT | Node::EXEC_RIGHT) );
+//   REQUIRE( fs->get_rights("/test2") == (Node::READ_RIGHT | Node::WRITE_RIGHT | Node::EXEC_RIGHT) );
+//
+//   // current_user = lambda
+//   fs->current_user = lambda;
+//   REQUIRE( fs->edit_user_entitlement("/", Node::READ_RIGHT, root->uuid) == -EACCES );
+//   REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, root->uuid) == -EACCES );
+//   REQUIRE( fs->edit_user_entitlement("/test1", Node::READ_RIGHT, lambda->uuid) == -EACCES );
+//   REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, lambda->uuid) == -EACCES );
+//   REQUIRE( fs->edit_user_entitlement("/test2", Node::WRITE_RIGHT, "10") == -ENOENT );
+//   REQUIRE( fs->get_rights("/") == (Node::READ_RIGHT | Node::EXEC_RIGHT) );
+//   REQUIRE( fs->get_rights("/test1") == (int)Node::READ_RIGHT );
+//   REQUIRE( fs->get_rights("/test2") == (int)Node::WRITE_RIGHT );
+//
+//   fs->current_user = root;
+//   REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
+//   REQUIRE( fs->unlink("Testing purpose", "/test2") == 0 );
+//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+//   REQUIRE( read_directory(META_DIR).size() == 1 );
+//   REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
+//
+//   delete fs;
+// }
+//
+// TEST_CASE( "6: Filesystem allow hierarchy", "[multi-file:filesystem]" ) {
+//   User *user = _create_user();
+//   FileSystem *fs = _create_fs(user);
+//
+//   REQUIRE( fs->create_file("Testing purpose", "/test1") == 0 );
+//   REQUIRE( fs->create_directory("Testing purpose", "/dir") == 0 );
+//   REQUIRE( fs->create_file("Testing purpose", "/dir/test2") == 0 );
+//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+//   REQUIRE( read_directory(META_DIR).size() == 4 );
+//   REQUIRE( read_directory(AUDIT_DIR).size() == 4 );
+//
+//   REQUIRE( fs->entry_type("/") == EISDIR );
+//   REQUIRE( fs->entry_type("/test1") == EEXIST );
+//   REQUIRE( fs->entry_type("/dir") == EISDIR );
+//   REQUIRE( fs->entry_type("/dir/test2") == EEXIST );
+//
+//   REQUIRE( fs->file_size("/test1") == 0 );
+//   REQUIRE( fs->file_size("/dir/test2") == 0 );
+//
+//   vector<string> ls = fs->readdir("/");
+//   REQUIRE( ls.size() == 2 );
+//   REQUIRE( find(ls.begin(), ls.end(), "test1") != ls.end() );
+//   REQUIRE( find(ls.begin(), ls.end(), "dir") != ls.end() );
+//
+//   vector<string> ls2 = fs->readdir("/dir");
+//   REQUIRE( ls2.size() == 1 );
+//   REQUIRE( find(ls2.begin(), ls2.end(), "test2") != ls2.end() );
+//
+//   REQUIRE( fs->unlink("Testing purpose", "/test1") == 0 );
+//   REQUIRE( fs->rm_directory("Testing purpose", "/dir") == -ENOTEMPTY );
+//   REQUIRE( fs->unlink("Testing purpose", "/dir/test2") == 0 );
+//   REQUIRE( fs->rm_directory("Testing purpose", "/dir") == 0 );
+//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+//   REQUIRE( read_directory(META_DIR).size() == 1 );
+//   REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
+//
+//   delete fs;
+// }
