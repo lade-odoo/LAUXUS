@@ -14,20 +14,20 @@ FilenodeContent::FilenodeContent(size_t block_size, map<size_t, AES_CTR_context*
   this->block_size = block_size;
   this->aes_ctr_ctxs = aes_ctr_ctxs;
 
-  this->plain = new map<size_t, vector<char>*>();
-  this->cipher = new map<size_t, vector<char>*>();
+  this->plain = new map<size_t, vector<char>>();
+  this->cipher = new map<size_t, vector<char>>();
 }
 
 FilenodeContent::~FilenodeContent() {
-  for (auto it = this->plain->begin(); it != this->plain->end(); ++it) {
-    vector<char> *block = it->second;
-    delete block;
-  }
-
-  for (auto it = this->cipher->begin(); it != this->cipher->end(); ++it) {
-    vector<char> *block = it->second;
-    delete block;
-  }
+  // for (auto it = this->plain->begin(); it != this->plain->end(); ++it) {
+  //   vector<char> block = it->second;
+  //   delete block;
+  // }
+  //
+  // for (auto it = this->cipher->begin(); it != this->cipher->end(); ++it) {
+  //   vector<char> block = it->second;
+  //   delete block;
+  // }
 
   delete this->plain; delete this->cipher;
 }
@@ -45,18 +45,18 @@ int FilenodeContent::write(const long offset, const size_t data_size, const char
   // fill as much as we can inside available blocks
   size_t index = 0;
   for (index = block_required["start_block"]; index <= block_required["end_block"] && this->plain->count(index) > 0; index++, offset_in_block=0) {
-    vector<char> *block = (*this->plain)[index];
+    vector<char> &block = (*this->plain)[index];
 
     auto size_to_write = data_size - written;
     if (this->block_size < (offset_in_block + size_to_write)) {
       size_to_write = this->block_size - offset_in_block;
-      this->size += this->block_size - block->size();
-      block->resize(this->block_size);
+      this->size += this->block_size - block.size();
+      block.resize(this->block_size);
     } else {
-      this->size += offset_in_block + size_to_write - block->size();
-      block->resize(offset_in_block + size_to_write);
+      this->size += offset_in_block + size_to_write - block.size();
+      block.resize(offset_in_block + size_to_write);
     }
-    memcpy(&(*block)[0]+offset_in_block, data+written, size_to_write);
+    memcpy(&(block)[0]+offset_in_block, data+written, size_to_write);
     written += size_to_write;
 
     if (this->encrypt_block(index) < 0)
@@ -69,10 +69,10 @@ int FilenodeContent::write(const long offset, const size_t data_size, const char
     if (this->block_size < bytes_to_write)
       bytes_to_write = this->block_size;
 
-    vector<char> *block = new vector<char>(bytes_to_write);
-    memcpy(&(*block)[0], data + written, bytes_to_write);
+    vector<char> block = vector<char>(bytes_to_write);
+    memcpy(&(block)[0], data + written, bytes_to_write);
 
-    this->plain->insert(pair<size_t, vector<char>*>(index, block));
+    this->plain->insert(pair<size_t, vector<char>>(index, block));
     this->aes_ctr_ctxs->insert(pair<size_t, AES_CTR_context*>(index, new AES_CTR_context()));
     written += bytes_to_write;
     this->size += bytes_to_write;
@@ -96,13 +96,13 @@ int FilenodeContent::read(const long offset, const size_t buffer_size, char *buf
   for (size_t index = block_required["start_block"]; index <= block_required["end_block"] && read < buffer_size; index++, offset_in_block=0) {
     if (this->plain->count(index) <= 0)
       break;
-    vector<char> *block = (*this->plain)[index];
+    vector<char> &block = (*this->plain)[index];
 
     auto size_to_copy = buffer_size - read;
-    if (size_to_copy > block->size()-offset_in_block)
-      size_to_copy = block->size()-offset_in_block;
+    if (size_to_copy > block.size()-offset_in_block)
+      size_to_copy = block.size()-offset_in_block;
 
-    memcpy(buffer+read, &(*block)[0]+offset_in_block, size_to_copy);
+    memcpy(buffer+read, &(block)[0]+offset_in_block, size_to_copy);
     read += size_to_copy;
   }
   return read;
@@ -113,7 +113,7 @@ int FilenodeContent::e_size(const long up_offset, const size_t up_size) {
   map<string, size_t> block_required = FilenodeContent::block_required(this->block_size, up_offset, up_size);
 
   size_t size = (block_required["end_block"]-block_required["start_block"]) * this->block_size;
-  size += (*this->cipher)[block_required["end_block"]]->size();
+  size += (*this->cipher)[block_required["end_block"]].size();
   return size;
 }
 
@@ -122,9 +122,9 @@ int FilenodeContent::e_dump(const long up_offset, const size_t up_size, const si
   size_t written = 0;
 
   for (size_t index = block_required["start_block"]; index <= block_required["end_block"]; index++) {
-    vector<char> *block = (*this->cipher)[index];
-    memcpy(buffer+written, &(*block)[0], block->size());
-    written += block->size();
+    vector<char> &block = (*this->cipher)[index];
+    memcpy(buffer+written, &(block)[0], block.size());
+    written += block.size();
   }
 
   return block_required["start_block"] * this->block_size; // return the offset on which it should start editing the file
@@ -139,10 +139,10 @@ int FilenodeContent::e_load(const long up_offset, const size_t up_size, const si
     if (size_to_read > this->block_size)
       size_to_read = this->block_size;
 
-    vector<char> *block = new vector<char>(size_to_read);
-    memcpy(&(*block)[0], buffer+read, size_to_read);
+    vector<char> block = vector<char>(size_to_read);
+    memcpy(&(block)[0], buffer+read, size_to_read);
     read += size_to_read;
-    this->cipher->insert(pair<size_t, vector<char>*>(index, block));
+    this->cipher->insert(pair<size_t, vector<char>>(index, block));
     if (this->decrypt_block(index) < 0)
       return -1;
   }
@@ -152,28 +152,28 @@ int FilenodeContent::e_load(const long up_offset, const size_t up_size, const si
 
 
 int FilenodeContent::encrypt_block(const size_t block_index) {
-  vector<char> *plain_block = (*this->plain)[block_index];
+  vector<char> &plain_block = (*this->plain)[block_index];
   AES_CTR_context *ctx = (*this->aes_ctr_ctxs)[block_index];
   if (this->cipher->count(block_index) > 0) // already exists
-    (*this->cipher)[block_index]->resize(plain_block->size());
+    (*this->cipher)[block_index].resize(plain_block.size());
   else
-    this->cipher->insert(pair<size_t, vector<char>*>(block_index, new vector<char>(plain_block->size())));
+    this->cipher->insert(pair<size_t, vector<char>>(block_index, vector<char>(plain_block.size())));
 
-  vector<char> *cipher_block = (*this->cipher)[block_index];
-  return ctx->encrypt((uint8_t*)&(*plain_block)[0], plain_block->size(), (uint8_t*)&(*cipher_block)[0]);
+  vector<char> &cipher_block = (*this->cipher)[block_index];
+  return ctx->encrypt((uint8_t*)&(plain_block)[0], plain_block.size(), (uint8_t*)&(cipher_block)[0]);
 }
 
 int FilenodeContent::decrypt_block(const size_t block_index) {
-  vector<char> *cipher_block = (*this->cipher)[block_index];
+  vector<char> &cipher_block = (*this->cipher)[block_index];
   AES_CTR_context *ctx = (*this->aes_ctr_ctxs)[block_index];
 
   if (block_index < this->plain->size()) // already exists
-    (*this->plain)[block_index]->resize(cipher_block->size());
+    (*this->plain)[block_index].resize(cipher_block.size());
   else
-    this->plain->insert(pair<size_t, vector<char>*>(block_index, new vector<char>(cipher_block->size())));
+    this->plain->insert(pair<size_t, vector<char>>(block_index, vector<char>(cipher_block.size())));
 
-  vector<char> *plain_block = (*this->plain)[block_index];
-  return ctx->decrypt((uint8_t*)&(*cipher_block)[0], cipher_block->size(), (uint8_t*)&(*plain_block)[0]);
+  vector<char> &plain_block = (*this->plain)[block_index];
+  return ctx->decrypt((uint8_t*)&(cipher_block)[0], cipher_block.size(), (uint8_t*)&(plain_block)[0]);
 }
 
 

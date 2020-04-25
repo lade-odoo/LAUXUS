@@ -30,7 +30,7 @@ class FilenodeContent {
 
   private:
     size_t block_size;
-    map<size_t, vector<char>*> *plain, *cipher;
+    map<size_t, vector<char>> *plain, *cipher;
     map<size_t, AES_CTR_context*> *aes_ctr_ctxs;
 
     int encrypt_block(const size_t block_index);
