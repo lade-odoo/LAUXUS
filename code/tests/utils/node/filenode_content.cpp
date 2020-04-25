@@ -50,8 +50,8 @@ TEST_CASE( "2: Content can be read and written", "[multi-file:filenode_content]"
   FilenodeContent *content = new FilenodeContent(10, keys);
 
   REQUIRE( content->read(0, 0, NULL) == 0 );
-  REQUIRE( content->read(10, 0, NULL) == -1 );
-  REQUIRE( content->read(0, 1, NULL) == -1 );
+  REQUIRE( content->read(10, 0, NULL) == 0 );
+  REQUIRE( content->read(0, 1, NULL) == 0 );
   REQUIRE( content->write(0, 0, NULL) == 0 );
   REQUIRE( content->write(10, 0, NULL) == -1 );
 

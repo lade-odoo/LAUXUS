@@ -14,6 +14,7 @@
 #  include "sgx_error.h"
 #endif
 
+#include <cerrno>
 #include <cstring>
 #include <string>
 

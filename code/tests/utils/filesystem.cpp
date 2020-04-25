@@ -98,7 +98,7 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
     REQUIRE( fs->create_file("Testing purpose", "/test") == 0 );
     REQUIRE( fs->file_size("/test") == 0 );
     REQUIRE( fs->read_file("Testing purpose", "/test", 0, 0, NULL) == 0 );
-    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 16, NULL) < 0 );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 16, NULL) == 0 );
 
     REQUIRE( fs->write_file("Testing purpose", "/test", 0, 16, "This is a test !") == 16 );
     REQUIRE( fs->file_size("/test") == 16 );
@@ -111,10 +111,12 @@ TEST_CASE( "3: Filesystem can write and read file", "[multi-file:filesystem]" ) 
     char buffer[30];
     REQUIRE( fs->read_file("Testing purpose", "/test", 0, 30, buffer) == 30 );
     REQUIRE( memcmp(buffer, "This is a more advanced test !", 30) == 0 );
-    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 40, buffer) == -EPROTO );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 0, 40, buffer) == 30 );
+    REQUIRE( memcmp(buffer, "This is a more advanced test !", 30) == 0 );
     REQUIRE( fs->read_file("Testing purpose", "/test", 10, 20, buffer) == 20 );
     REQUIRE( memcmp(buffer, "more advanced test !", 20) == 0 );
-    REQUIRE( fs->read_file("Testing purpose", "/test", 10, 40, buffer) == -EPROTO );
+    REQUIRE( fs->read_file("Testing purpose", "/test", 10, 40, buffer) == 20 );
+    REQUIRE( memcmp(buffer, "more advanced test !", 20) == 0 );
 
     REQUIRE( fs->unlink("Testing purpose", "/test") == 0 );
     REQUIRE( read_directory(CONTENT_DIR).size() == 0 );

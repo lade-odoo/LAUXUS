@@ -64,7 +64,7 @@ string FileSystem::clean_path(const string &path) {
   size_t position;
   while ((position = trimmed.find("//")) != string::npos)
     trimmed = trimmed.replace(position, 2, "/");
-  while (trimmed.length() > 1 && trimmed.back() == '/')
+  while (trimmed.length() > 1 && trimmed[trimmed.length()-1] == '/')
     trimmed.pop_back();
 
   return trimmed;

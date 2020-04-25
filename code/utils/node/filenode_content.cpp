@@ -90,11 +90,12 @@ int FilenodeContent::read(const long offset, const size_t buffer_size, char *buf
 
   if (buffer_size == 0 && offset == 0)
     return 0;
-  if (this->plain->count(block_required["start_block"]) <= 0 || this->plain->count(block_required["end_block"]) <= 0
-        || (*this->plain)[block_required["start_block"]]->size() <= offset_in_block)
-    return -1;
+  if (this->plain->count(block_required["start_block"]) <= 0)
+    return 0;
 
   for (size_t index = block_required["start_block"]; index <= block_required["end_block"] && read < buffer_size; index++, offset_in_block=0) {
+    if (this->plain->count(index) <= 0)
+      break;
     vector<char> *block = (*this->plain)[index];
 
     auto size_to_copy = buffer_size - read;

@@ -233,6 +233,11 @@ Enclave/utils/users/%.o: utils/users/%.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
+Enclave/utils/filesystem/%.o: utils/filesystem/%.cpp
+	@mkdir -p Enclave/utils/filesystem/
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 Enclave/utils/%.o: utils/%.cpp
 	@mkdir -p Enclave/utils/
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@

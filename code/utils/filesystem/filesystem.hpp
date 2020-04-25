@@ -68,6 +68,8 @@ class FileSystem {
     int e_load_fileblocks_from_disk(const string &uuid, const size_t start_block, const size_t end_block, char **buffer);
 
     int delete_from_disk(Node *node, const string &from_dir);
+
+    int _return_and_free(int rt, const vector<Node*> &nodes);
 };
 
 struct NodeDeleter {
