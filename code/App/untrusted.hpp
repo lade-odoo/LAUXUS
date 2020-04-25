@@ -18,6 +18,8 @@
 
   int ocall_delete_from_dir(const char *dir, const char *uuid);
 
+  int ocall_get_current_time(const size_t time_size, char *time);
+
 #if EMULATING
   }
 #endif

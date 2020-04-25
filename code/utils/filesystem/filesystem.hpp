@@ -34,6 +34,7 @@ class FileSystem {
 
     int get_rights(const string &path);
     int entry_type(const string &path);
+    int get_times(const string &path, const size_t times_size, char *times);
 
     int file_size(const string &filepath);
     int open_file(const string &filepath, const int asked_rights);

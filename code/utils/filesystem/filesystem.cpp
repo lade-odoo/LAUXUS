@@ -56,6 +56,8 @@ int FileSystem::edit_user_entitlement(const string &path, const unsigned char ri
   int ret = node->edit_user_entitlement(rights, user);
   if (ret < 0)
     return _return_and_free(ret, to_release);
+
+  node->update_ctime();
   if (e_write_meta_to_disk(node) < 0)
     return _return_and_free(-EPROTO, to_release);
 
@@ -81,6 +83,22 @@ int FileSystem::entry_type(const string &path) {
   if (node->node_type == Node::SUPERNODE_TYPE || node->node_type == Node::DIRNODE_TYPE)
     return _return_and_free(EISDIR, to_release);
   return _return_and_free(EEXIST, to_release);
+}
+
+int FileSystem::get_times(const string &path, const size_t times_size, char *times) {
+  if (times_size != 3*sizeof(time_t))
+    return -1;
+
+  vector<Node*> to_release;
+  Node *node = this->retrieve_node(path); to_release.push_back(node);
+  if (node == NULL)
+    return _return_and_free(-ENOENT, to_release);
+
+  memcpy(times+0*sizeof(time_t), &(node->atime), sizeof(time_t));
+  memcpy(times+1*sizeof(time_t), &(node->mtime), sizeof(time_t));
+  memcpy(times+2*sizeof(time_t), &(node->ctime), sizeof(time_t));
+
+  return _return_and_free(times_size, to_release);
 }
 
 
@@ -123,6 +141,8 @@ int FileSystem::create_file(const string &reason, const string &filepath) {
   filenode->edit_user_entitlement(Node::OWNER_RIGHT, this->current_user);
   parent->add_node_entry(filenode->relative_path, filenode->uuid);
 
+  filenode->update_atime(); filenode->update_mtime(); filenode->update_ctime();
+
   if (e_append_audit_to_disk(parent, reason) < 0)
     return _return_and_free(-EPROTO, to_release);
   if (e_write_meta_to_disk(parent) < 0)
@@ -148,6 +168,11 @@ int FileSystem::read_file(const string &reason, const string &filepath, const lo
 
   if (this->load_content(node, offset, buffer_size) < 0)
     return _return_and_free(-EPROTO, to_release);
+
+  node->update_atime();
+  if (e_write_meta_to_disk(node) < 0)
+    return _return_and_free(-EPROTO, to_release);
+
   return _return_and_free(node->content->read(offset, buffer_size, buffer), to_release);
 }
 
@@ -168,6 +193,7 @@ int FileSystem::write_file(const string &reason, const string &filepath, const l
   if (ret < 0)
     return _return_and_free(ret, to_release);
 
+  node->update_mtime();
   if (e_write_meta_to_disk(node) < 0)
     return _return_and_free(-EPROTO, to_release);
   if (e_write_file_to_disk(node, offset, data_size) < 0)
@@ -237,6 +263,8 @@ vector<string> FileSystem::readdir(const string &path) {
       entries.push_back(children->relative_path);
   }
 
+  parent->update_atime();
+  e_write_meta_to_disk(parent);
   _return_and_free(0, to_release);
   return entries;
 }
@@ -260,6 +288,7 @@ int FileSystem::create_directory(const string &reason, const string &dirpath) {
   dirnode->edit_user_entitlement(Node::OWNER_RIGHT, this->current_user);
   parent->add_node_entry(dirnode->relative_path, dirnode->uuid);
 
+  node->update_mtime();
   if (e_append_audit_to_disk(parent, reason) < 0)
     return _return_and_free(-EPROTO, to_release);
   if (e_write_meta_to_disk(parent) < 0)

@@ -10,6 +10,7 @@
 #endif
 
 #include <stdio.h>
+#include <ctime>
 #include <string>
 
 using namespace std;
@@ -49,6 +50,15 @@ int EMUL_API ocall_file_size(const char *dir, const char *uuid) {
 int EMUL_API ocall_load_file(const char *dir, const char *uuid, const long offset, const size_t size, char *buffer) {
   string path(dir); path.append("/"); path.append(uuid);
   return load_with_offset(path, offset, size, buffer);
+}
+
+
+int EMUL_API ocall_get_current_time(const size_t time_size, char *b_time) {
+  if (time_size != sizeof(time_t))
+    return -1;
+  time_t current = time(NULL);
+  memcpy(b_time, &current, time_size);
+  return time_size;
 }
 
 

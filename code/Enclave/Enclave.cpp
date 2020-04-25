@@ -239,6 +239,9 @@ int sgx_entry_type(const char *path) {
 int sgx_get_rights(const char *path) {
   return FILE_SYSTEM->get_rights(path);
 }
+int sgx_get_times(const char *path, size_t times_size, char *times) {
+  return FILE_SYSTEM->get_times(path, times_size, times);
+}
 
 int sgx_file_size(const char *filepath) {
   return FILE_SYSTEM->file_size(filepath);

@@ -5,6 +5,7 @@
 #include "../users/user.hpp"
 #include "../encryption/aes_gcm.hpp"
 
+#include <time.h>
 #include <string>
 #include <map>
 
@@ -25,6 +26,7 @@ class Node: public Metadata {
     unsigned char node_type = -1;
 
     string relative_path, uuid;
+    time_t atime, mtime, ctime;
     map<string, string> *node_entries; // mapping relative_path - uuid
 
     Node(const string &uuid, const string &relative_path, AES_GCM_context *root_key);
@@ -42,12 +44,18 @@ class Node: public Metadata {
     int remove_user_entitlement(User *user);
     int get_rights(User *user);
 
+    int update_atime();
+    int update_mtime();
+    int update_ctime();
+
     // Static functions
     static string generate_uuid();
 
 
   private:
     map<string, unsigned char> *entitlements; // mapping user_uuid - rights ORWX
+
+    int update_time(time_t *time);
 
 
   protected:

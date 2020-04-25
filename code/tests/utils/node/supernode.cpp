@@ -6,7 +6,6 @@
 
 #include <string>
 #include <cstring>
-#include <iostream>
 
 
 SCENARIO( "Supernode can be dumped and loaded to a buffer.", "[multi-file:supernode]" ) {

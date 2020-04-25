@@ -144,7 +144,7 @@ int App::fuse_getattr(const char *path, struct stat *stbuf) {
 	memset(stbuf, 0, sizeof(struct stat));
   stbuf->st_uid = getuid();
   stbuf->st_gid = getgid();
-  stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = time(NULL);
+  // stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = time(NULL);
 
   int ret;
   string cleaned_path = clean_path(path);
@@ -153,6 +153,14 @@ int App::fuse_getattr(const char *path, struct stat *stbuf) {
     return -EPROTO;
   if (ret == -ENOENT)
     return -ENOENT;
+
+  char times[3*sizeof(time_t)]; int ret2;
+  sgx_status = sgx_get_times(ENCLAVE_ID, &ret2, (char*)cleaned_path.c_str(), 3*sizeof(time_t), times);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to load node times !", ret2))
+    return -EPROTO;
+  memcpy(&(stbuf->st_atime), times+0*sizeof(time_t), sizeof(time_t));
+  memcpy(&(stbuf->st_mtime), times+1*sizeof(time_t), sizeof(time_t));
+  memcpy(&(stbuf->st_ctime), times+2*sizeof(time_t), sizeof(time_t));
 
   int rights = 0;
   sgx_status = sgx_get_rights(ENCLAVE_ID, &rights, (char*)cleaned_path.c_str());
@@ -243,6 +251,7 @@ int App::fuse_read(const char *filepath, char *buf, size_t size, off_t offset,
 
 int App::fuse_write(const char *filepath, const char *data, size_t size, off_t offset,
                 struct fuse_file_info *fi) {
+  cout << "================= WRITING " << filepath << " ==================" << endl;
   string path = clean_path(filepath);
   int ret;
   sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());

@@ -5,8 +5,10 @@
 
 #include "../../flag.h"
 #if EMULATING
+#  include "../../tests/SGX_Emulator/Enclave_t.hpp"
 #  include "../../tests/SGX_Emulator/sgx_trts.hpp"
 #else
+#   include "../../Enclave/Enclave_t.h"
 #   include "sgx_trts.h"
 #endif
 
@@ -24,6 +26,8 @@ Node::Node(const string &uuid, const string &relative_path, AES_GCM_context *roo
 
   this->node_entries = new map<string, string>();
   this->entitlements = new map<string, unsigned char>();
+
+  this->update_atime(); this->update_mtime(); this->update_ctime();
 }
 Node::Node(const string &uuid, AES_GCM_context *root_key):Node::Node(uuid, "", root_key) {}
 
@@ -55,7 +59,6 @@ bool Node::equals(Node *other) {
 
   return Metadata::equals(other);
 }
-
 
 
 int Node::add_node_entry(string relative_path, string uuid) {
@@ -135,20 +138,30 @@ int Node::get_rights(User *user) {
 
 
 size_t Node::p_preamble_size() {
-  return sizeof(unsigned char);
+  return sizeof(unsigned char) + 3*sizeof(time_t);
 }
 
 int Node::p_dump_preamble(const size_t buffer_size, char *buffer) {
   if (buffer_size < this->p_preamble_size())
     return -1;
 
-  std::memcpy(buffer, &this->node_type, sizeof(unsigned char));
-  return sizeof(unsigned char);
+  int written = 0;
+  std::memcpy(buffer, &this->node_type, sizeof(unsigned char)); written += sizeof(unsigned char);
+  std::memcpy(buffer+written, &(this->atime), sizeof(time_t)); written += sizeof(time_t);
+  std::memcpy(buffer+written, &(this->mtime), sizeof(time_t)); written += sizeof(time_t);
+  std::memcpy(buffer+written, &(this->ctime), sizeof(time_t)); written += sizeof(time_t);
+  return written;
 }
 
 int Node::p_load_preamble(const size_t buffer_size, const char *buffer) {
-  std::memcpy(&this->node_type, buffer, sizeof(unsigned char));
-  return sizeof(unsigned char);
+  int read = 0;
+
+  std::memcpy(&this->node_type, buffer, sizeof(unsigned char)); read += sizeof(unsigned char);
+  std::memcpy(&(this->atime), buffer+read, sizeof(time_t)); read += sizeof(time_t);
+  std::memcpy(&(this->mtime), buffer+read, sizeof(time_t)); read += sizeof(time_t);
+  std::memcpy(&(this->ctime), buffer+read, sizeof(time_t)); read += sizeof(time_t);
+
+  return read;
 }
 
 
@@ -240,6 +253,17 @@ int Node::p_load_sensitive(const size_t buffer_size, const char *buffer) {
   }
 
   return read;
+}
+
+
+int Node::update_atime() { update_time(&(this->atime)); }
+int Node::update_mtime() { update_time(&(this->mtime)); }
+int Node::update_ctime() { update_time(&(this->ctime)); }
+int Node::update_time(time_t *time) {
+  int ret;
+  if (ocall_get_current_time(&ret, sizeof(time_t), (char*)time) != SGX_SUCCESS || ret < 0)
+    return -1;
+  return 0;
 }
 
 
