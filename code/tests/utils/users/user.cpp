@@ -46,7 +46,9 @@ SCENARIO( "A user can dump his keys to a buffer then retrieve them.", "[multi-fi
         User *loaded = new User();
         REQUIRE( loaded->load(b_size, buffer) == (int)b_size );
         REQUIRE( loaded->equals(user) );
+        delete loaded;
       }
     }
   }
+  delete user;
 }
