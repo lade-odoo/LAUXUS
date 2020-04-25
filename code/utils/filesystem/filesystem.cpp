@@ -341,8 +341,11 @@ int FileSystem::rm_directory(const string &reason, const string &dirpath) {
 int FileSystem::_return_and_free(int rt, const vector<Node*> &nodes) {
   for (auto it = nodes.begin(); it != nodes.end(); ++it) {
     Node *node = *it;
-    if (node != NULL && node->node_type != Node::SUPERNODE_TYPE)
-      delete node;
+    if (node != NULL && node->node_type == Node::FILENODE_TYPE) {
+      delete (Filenode*)node;
+    } else if (node != NULL && node->node_type == Node::DIRNODE_TYPE) {
+      delete (Dirnode*)node;
+    }
   }
   return rt;
 }

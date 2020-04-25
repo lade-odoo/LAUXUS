@@ -75,11 +75,4 @@ class FileSystem {
     int _return_and_free(int rt, const vector<Node*> &nodes);
 };
 
-struct NodeDeleter {
-  void operator()(Node* node) const {
-    if (node->node_type != Node::SUPERNODE_TYPE)
-      delete node;
-  }
-};
-
 #endif /*__FILESYSTEM_HPP__*/
