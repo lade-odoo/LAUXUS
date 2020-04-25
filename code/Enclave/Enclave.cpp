@@ -243,6 +243,9 @@ int sgx_get_rights(const char *path) {
 int sgx_file_size(const char *filepath) {
   return FILE_SYSTEM->file_size(filepath);
 }
+int sgx_open_file(const char *filepath, int asked_rights) {
+  return FILE_SYSTEM->open_file(filepath, asked_rights);
+}
 int sgx_create_file(const char *reason, const char *filepath) {
   return FILE_SYSTEM->create_file(reason, filepath);
 }
@@ -256,6 +259,10 @@ int sgx_unlink(const char *reason, const char *filepath) {
   return FILE_SYSTEM->unlink(reason, filepath);
 }
 
+
+int sgx_opendir(const char *dirpath, int asked_rights) {
+  return FILE_SYSTEM->open_directory(dirpath, asked_rights);
+}
 int sgx_mkdir(const char *reason, const char *dirpath) {
   return FILE_SYSTEM->create_directory(reason, dirpath);
 }

@@ -53,7 +53,7 @@ TEST_CASE( "2: Content can be read and written", "[multi-file:filenode_content]"
   REQUIRE( content->read(10, 0, NULL) == 0 );
   REQUIRE( content->read(0, 1, NULL) == 0 );
   REQUIRE( content->write(0, 0, NULL) == 0 );
-  REQUIRE( content->write(10, 0, NULL) == -1 );
+  REQUIRE( content->write(10, 0, NULL) == 0 );
 
   REQUIRE( content->write(0, 16, "This is a test !") == 16 );
   REQUIRE( content->size == 16 );

@@ -39,7 +39,7 @@ int FilenodeContent::write(const long offset, const size_t data_size, const char
 
   if (data_size == 0 && offset == 0)
     return 0;
-  if (offset > 0 && this->plain->count(block_required["start_block"]) <= 0) // can't write on non existing block with offset
+  if (offset_in_block > 0 && this->plain->count(block_required["start_block"]) <= 0) // can't write on non existing block with offset
     return -1;
 
   // fill as much as we can inside available blocks

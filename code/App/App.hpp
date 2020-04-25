@@ -23,7 +23,7 @@ class App {
 
     static int fuse_getattr(const char *path, struct stat *stbuf);
     static int fuse_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *);
-    static int fuse_open(const char *filepath, struct fuse_file_info *);
+    static int fuse_open(const char *filepath, struct fuse_file_info *fi);
     static int fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *);
     static int fuse_read(const char *filepath, char *buf, size_t size, off_t offset, struct fuse_file_info *);
     static int fuse_write(const char *filepath, const char *data, size_t size, off_t offset, struct fuse_file_info *);
@@ -31,6 +31,7 @@ class App {
 
     static int fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
+    static int fuse_opendir(const char *dirpath, struct fuse_file_info *fi);
     static int fuse_mkdir(const char *dirpath, mode_t);
     static int fuse_rmdir(const char *dirpath);
 

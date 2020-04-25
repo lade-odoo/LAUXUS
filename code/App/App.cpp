@@ -182,7 +182,7 @@ int App::fuse_fgetattr(const char *path, struct stat *stbuf,
 }
 
 
-int App::fuse_open(const char *filepath, struct fuse_file_info *) {//... must check access, do like
+int App::fuse_open(const char *filepath, struct fuse_file_info *fi) {
   string path = clean_path(filepath);
   int ret;
   sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
@@ -193,7 +193,17 @@ int App::fuse_open(const char *filepath, struct fuse_file_info *) {//... must ch
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !"))
     return -EPROTO;
 
-  return 0;
+  int asked_rights = 0;
+  if ((fi->flags & O_RDONLY) == O_RDONLY)
+    asked_rights += 4;
+  if ((fi->flags & O_WRONLY) == O_WRONLY)
+    asked_rights += 2;
+  if ((fi->flags & O_RDWR) == O_RDWR)
+    asked_rights = 6;
+  sgx_status = sgx_open_file(ENCLAVE_ID, &ret, (char*)path.c_str(), asked_rights);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to open file !"))
+    return -EPROTO;
+  return ret;
 }
 
 int App::fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *) {
@@ -232,7 +242,7 @@ int App::fuse_read(const char *filepath, char *buf, size_t size, off_t offset,
 }
 
 int App::fuse_write(const char *filepath, const char *data, size_t size, off_t offset,
-                struct fuse_file_info *) {
+                struct fuse_file_info *fi) {
   string path = clean_path(filepath);
   int ret;
   sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
@@ -290,6 +300,30 @@ int App::fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
   return 0;
 }
 
+
+int App::fuse_opendir(const char *dirpath, struct fuse_file_info *fi) {
+  string path = clean_path(dirpath);
+  int ret;
+  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (ret == -ENOENT)
+    return -ENOENT;
+  if (ret == EEXIST)
+    return -EPROTO;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if directory exists !"))
+    return -EPROTO;
+
+  int asked_rights = 0;
+  if ((fi->flags & O_RDONLY) == O_RDONLY)
+    asked_rights += 4;
+  if ((fi->flags & O_WRONLY) == O_WRONLY)
+    asked_rights += 2;
+  if ((fi->flags & O_RDWR) == O_RDWR)
+    asked_rights = 6;
+  sgx_status = sgx_opendir(ENCLAVE_ID, &ret, (char*)path.c_str(), asked_rights);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to open directory !"))
+    return -EPROTO;
+  return ret;
+}
 
 int App::fuse_mkdir(const char *dirpath, mode_t) {
   string path = clean_path(dirpath);

@@ -36,11 +36,13 @@ class FileSystem {
     int entry_type(const string &path);
 
     int file_size(const string &filepath);
+    int open_file(const string &filepath, const int asked_rights);
     int create_file(const string &reason, const string &filepath);
     int read_file(const string &reason, const string &filepath, const long offset, const size_t buffer_size, char *buffer);
     int write_file(const string &reason, const string &filepath, const long offset, const size_t data_size, const char *data);
     int unlink(const string &reason, const string &filepath);
 
+    int open_directory(const string &dirpath, const int asked_rights);
     vector<string> readdir(const string &path);
     int create_directory(const string &reason, const string &dirpath);
     int rm_directory(const string &reason, const string &dirpath);

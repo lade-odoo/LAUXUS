@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
 
   nexus_oper.readdir = App::fuse_readdir;
 
+  nexus_oper.opendir = App::fuse_opendir;
   nexus_oper.mkdir = App::fuse_mkdir;
   nexus_oper.rmdir = App::fuse_rmdir;
 

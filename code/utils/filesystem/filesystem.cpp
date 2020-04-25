@@ -93,6 +93,17 @@ int FileSystem::file_size(const string &filepath) {
   return _return_and_free(node->content->size, to_release);
 }
 
+int FileSystem::open_file(const string &filepath, const int asked_rights) {
+  vector<Node*> to_release;
+  Filenode *node = dynamic_cast<Filenode*>(this->retrieve_node(filepath)); to_release.push_back(node);
+  if (node == NULL)
+    return _return_and_free(-ENOENT, to_release);
+  if (!node->has_user_rights(asked_rights, this->current_user))
+    return _return_and_free(-EACCES, to_release);
+
+  return _return_and_free(0, to_release);
+}
+
 int FileSystem::create_file(const string &reason, const string &filepath) {
   vector<Node*> to_release;
   Node *node = this->retrieve_node(filepath); to_release.push_back(node);
@@ -199,6 +210,21 @@ int FileSystem::unlink(const string &reason, const string &filepath) {
   return _return_and_free(0, to_release);
 }
 
+
+int FileSystem::open_directory(const string &dirpath, const int asked_rights) {
+  vector<Node*> to_release;
+  Node *tmp = this->retrieve_node(dirpath), *node; to_release.push_back(tmp);
+  if (tmp->node_type == Node::SUPERNODE_TYPE)
+    node = dynamic_cast<Supernode*>(tmp);
+  else
+    node = dynamic_cast<Dirnode*>(tmp);
+  if (node == NULL)
+    return _return_and_free(-ENOENT, to_release);
+  if (!node->has_user_rights(asked_rights, this->current_user))
+    return _return_and_free(-EACCES, to_release);
+
+  return _return_and_free(0, to_release);
+}
 
 vector<string> FileSystem::readdir(const string &path) {
   vector<Node*> to_release;
