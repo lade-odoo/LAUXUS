@@ -16,5 +16,7 @@ sgx_status_t ocall_load_file(int *ret, const char *dir, const char *uuid, const 
 
 sgx_status_t ocall_delete_from_dir(int *ret, const char *dir, const char *uuid);
 
+sgx_status_t ocall_get_current_time(int *ret, const size_t time_size, char *time);
+
 
 #endif /*__ENCLAVE_T_HPP__*/

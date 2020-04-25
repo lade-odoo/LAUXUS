@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <string>
+#include <cstring>
 
 using namespace std;
 

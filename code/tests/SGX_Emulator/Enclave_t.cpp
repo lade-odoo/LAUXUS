@@ -40,3 +40,9 @@ sgx_status_t ocall_delete_from_dir(int *ret, const char *dir, const char *uuid) 
   *ret = Untrusted::ocall_delete_from_dir(dir, uuid);
   return SGX_SUCCESS;
 }
+
+
+sgx_status_t ocall_get_current_time(int *ret, const size_t time_size, char *time) {
+  *ret = Untrusted::ocall_get_current_time(time_size, time);
+  return SGX_SUCCESS;
+}
