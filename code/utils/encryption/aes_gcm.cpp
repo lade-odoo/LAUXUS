@@ -32,6 +32,11 @@ AES_GCM_context::~AES_GCM_context() {
 }
 
 
+void AES_GCM_context::update_iv() {
+  sgx_read_rand((uint8_t*)this->p_iv, 12);
+}
+
+
 int AES_GCM_context::dump(const size_t buffer_size, char *buffer) {
   if (buffer_size < 44)
     return -1;

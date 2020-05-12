@@ -19,16 +19,6 @@ FilenodeContent::FilenodeContent(size_t block_size, map<size_t, AES_CTR_context*
 }
 
 FilenodeContent::~FilenodeContent() {
-  // for (auto it = this->plain->begin(); it != this->plain->end(); ++it) {
-  //   vector<char> block = it->second;
-  //   delete block;
-  // }
-  //
-  // for (auto it = this->cipher->begin(); it != this->cipher->end(); ++it) {
-  //   vector<char> block = it->second;
-  //   delete block;
-  // }
-
   delete this->plain; delete this->cipher;
 }
 
@@ -154,6 +144,7 @@ int FilenodeContent::e_load(const long up_offset, const size_t up_size, const si
 int FilenodeContent::encrypt_block(const size_t block_index) {
   vector<char> &plain_block = (*this->plain)[block_index];
   AES_CTR_context *ctx = (*this->aes_ctr_ctxs)[block_index];
+  ctx->update_iv();
   if (this->cipher->count(block_index) > 0) // already exists
     (*this->cipher)[block_index].resize(plain_block.size());
   else

@@ -17,6 +17,7 @@ class Metadata {
     int e_load(const size_t buffer_size, const char *buffer);
 
     bool equals(Metadata *other);
+    void update_crypto_ctx();
 
   private:
     AES_GCM_context *root_key;

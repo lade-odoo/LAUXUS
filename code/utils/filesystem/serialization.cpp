@@ -62,6 +62,8 @@ int FileSystem::load_content(Filenode *node, const long offset, const size_t len
 
 
 int FileSystem::e_write_meta_to_disk(Node *node) {
+  node->update_crypto_ctx();
+
   // dump and encrypt metadata content
   size_t e_size = node->e_size(); char cypher[e_size];
   if (node->e_dump(e_size, cypher) < 0)

@@ -32,6 +32,11 @@ bool Metadata::equals(Metadata *other) {
 }
 
 
+void Metadata::update_crypto_ctx() {
+  this->aes_gcm_ctx->update_iv();
+}
+
+
 size_t Metadata::e_size() {
   size_t mac_size = AES_GCM_context::size() - AES_GCM_context::size_without_mac();
   return this->p_preamble_size() + mac_size + this->e_crypto_size() + this->e_sensitive_size();

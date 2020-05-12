@@ -30,6 +30,11 @@ AES_CTR_context::~AES_CTR_context() {
 }
 
 
+void AES_CTR_context::update_iv() {
+  sgx_read_rand((uint8_t*)this->p_ctr, 16);
+}
+
+
 int AES_CTR_context::dump(const size_t buffer_size, char *buffer) {
   if (buffer_size < 32)
     return -1;

@@ -20,6 +20,7 @@ class AES_GCM_context {
     AES_GCM_context();
     ~AES_GCM_context();
 
+    void update_iv();
 
     int dump(const size_t buffer_size, char *buffer);
     int dump_without_mac(const size_t buffer_size, char *buffer);
