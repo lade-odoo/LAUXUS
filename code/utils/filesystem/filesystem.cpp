@@ -284,7 +284,7 @@ int FileSystem::create_directory(const string &reason, const string &dirpath) {
 
   // create node
   string uuid = Node::generate_uuid();
-  Dirnode *dirnode = new Dirnode(uuid, relative_path, this->root_key); to_release.push_back(parent);
+  Dirnode *dirnode = new Dirnode(uuid, relative_path, this->root_key); to_release.push_back(dirnode);
   dirnode->edit_user_entitlement(Node::OWNER_RIGHT, this->current_user);
   parent->add_node_entry(dirnode->relative_path, dirnode->uuid);
 
