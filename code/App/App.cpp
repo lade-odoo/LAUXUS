@@ -251,7 +251,6 @@ int App::fuse_read(const char *filepath, char *buf, size_t size, off_t offset,
 
 int App::fuse_write(const char *filepath, const char *data, size_t size, off_t offset,
                 struct fuse_file_info *fi) {
-  cout << "================= WRITING " << filepath << " ==================" << endl;
   string path = clean_path(filepath);
   int ret;
   sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
