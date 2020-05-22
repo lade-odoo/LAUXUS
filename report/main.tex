@@ -1,8 +1,12 @@
-\documentclass{article}
+\documentclass[a4paper]{report}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{graphicx}
+\usepackage{caption}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{blindtext}
 \usepackage{fancyhdr}
+\usepackage{appendix}
 \graphicspath{{images/}{../images/}}
 
 \usepackage{blindtext}
@@ -12,7 +16,7 @@
 \pagestyle{fancy}
 \renewcommand{\footrulewidth}{0pt}
 \fancyhead[L]{Desausoi Laurent}
-\fancyhead[R]{Building a Secure DropBox}
+\fancyhead[R]{Building a Secure and Auditable DropBox}
 \fancyfoot[L]{LINGI2990}
 \fancyfoot[C]{Page \thepage}
 \fancyfoot[R]{June 2020}
@@ -23,7 +27,49 @@
 \tableofcontents
 \newpage
 
-\section{Problem Description}
-\subfile{sections/problem_description}
+\chapter{Introduction}
+\label{chapter:introduction}
+\subfile{sections/introduction}
+
+
+\chapter{Problem Description}
+\label{chapter:problem}
+\subfile{sections/problem/overview}
+\subfile{sections/problem/use_case}
+\subfile{sections/problem/design_goals}
+\subfile{sections/problem/why_a_challenge}
+\subfile{sections/problem/threat_model}
+
+\chapter{Theoretical Background}
+\label{chapter:theoric}
+% as explained previous chapter in order to solve our problem we need a new technology for keeping secret and layer for sys call. This is what we will discuss here ....
+
+% This huge vulnerability can be solved thanks to Trusted Execution Environment (TEE) allowing, in this situation, the users to manipulate the encryption keys without knowing them. They are handled and saved inside the TEE that certifies that no users on this computer can retrieve them, even the root user of the computer. More specifically, in this project, we chose to leverage SGX Enclave as TEE.
+% \subfile{sections/theoric/tee}
+% \subfile{sections/theoric/fuse}
+
+\chapter{LAUXUS}
+\label{chapter:lauxus}
+\subfile{sections/lauxus/approach}
+\subfile{sections/lauxus/architecture}
+\subfile{sections/lauxus/filesystem}
+\subfile{sections/lauxus/metadata}
+\subfile{sections/lauxus/audit}
+\subfile{sections/lauxus/user_management}
+\subfile{sections/lauxus/remote_sharing}
+
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\nocite{*}
+\bibliographystyle{acm}
+\bibliography{refs}
+
+
+\appendix
+\section*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+\renewcommand{\thesection}{\Alph{section}}
+\subfile{appendices}
+
 
 \end{document}

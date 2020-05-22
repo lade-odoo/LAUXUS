@@ -1,0 +1,27 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+% accroche = cloud storae lot of interests but as all decentralized solution it implies some securuity issues
+
+% theme general = partage de docs avec cloud - business need
+% probleme considérer - challengee faced + opportunity tech
+% poser contexte GDPR
+% motiver objectifs
+% donner vues à haut niveau sur réalisations et contributions
+
+\par Nowadays, Cloud Storage attracts a lot of interests but unfortunately, as all decentralised solutions this benefit comes at a cost of some security issues. On top of security, users privacy is a subject that is becoming a priority to most people. The most widespread Cloud Storage technologies are owned by companies like DropBox, Google Drive, OneDrive, etc. It has been proven throughout the years that companies like these suffered some security issues and if not, have been highly controversial considering users privacy.
+\par With this in mind, it could be interesting to move these security concerns to the client. What this means is that instead of trusting the Cloud Service to protect our information, we consider it is up to the client to design a protocol that secure his information before giving them to the Cloud Service. In this way, the users keeps only the advantages of the Cloud Service (mostly the sharing capabilities and the remote storage) while discarding the security issues.
+\par As said in the beginning, users privacy is an important concern to any user. It has becomes so important that regulations have been put in place to make sure companies respect that. The regulation instaured is the General Data Protection Regulation (GDPR). This regulation states that users should know how and when their data are being processed. This is something that all Storage provider lacks, once we share our data with other users we don't know how these users are using them (e.g: once we share a folder with a friend, we might want to know which file in the folder our friend is accessing and for what purpose).
+\par Furthermore, with current storage provider, we lack the opportunity to set a rigorous control policy allowing a user to only view or edit a file. This is quite powerful as we often face real life situation where we want peoples to view our work without being able to edit it.
+\par Also, in our security scenario (security at the client side) sharing capabilities becomes quite challenging. Indeed, if we secure our information with encryption, how are we supposed to securely share these information with other users ? The problem can be splitted in two: 
+\begin{enumerate}
+    \item Sharing the encryption key between users. This problem is trivial with a public server through the PKI (public key infrastructure) and the HTTPS protocol. This problem become way more difficult when the exchange is between two clients without the aid of external third party servers.
+    \item Revocation is extremely problematic with this approach. Indeed, as the encryption key as been previously shared with allowed users, the owner has no other choice but to change the encryption key (as all the allowed users knows the encryption key). This also means that the owner must furthermore re-encrypt all the shared information.
+\end{enumerate}
+\par An ideal solution for this problem would be that the client never knows the encryption key (the client software never reveals the key to the client). Sadly, no widespread technologies currently exists to enable that.\\
+
+\par With all these restrictions in mind, we designed LAUXUS: an auditable and secure Dropbox equivalent. This software is run on the client's computer and acts as a transparent layer encrypting information on the fly before uploading them on the Cloud Storage. Furthermore, this software only trust himself (and instances of himself) and shares the storage content only with other instance of itself. On top of that, information handled by LAUXUS never leaves the program itself. The above two functionalities are possible thanks to the new SGX Enclave developed by Intel.
+\par This paper contributes by developing and design a protocol respecting the above restrictions. Plus, it also acts as an interesting use case of SGX Enclave in the hope of making Enclave more widespread.
+\par This work is based on the paper written by J. Djoko called NeXuS\cite{djoko2019nexus}. At the time of choosing this theme, we were not aware of this paper. Plus, the code was only published nearly 1 year after the paper was written disabling us to work and enhance the existing code. The main contribution brought on top of NeXuS is a vulgarisation of his paper which is very short and extremely technical (from the point of view of a non expert), in the hope of helping the growth of SGX Enclaves outside the specialist area. Considering the functionalities themselves, we added the GDPR aspect that was not discussed in the initial paper.
+
+\end{document}
