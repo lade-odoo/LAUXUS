@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
   nexus_oper.create = App::fuse_create;
   nexus_oper.read = App::fuse_read;
   nexus_oper.write = App::fuse_write;
+  nexus_oper.truncate = App::fuse_truncate;
   nexus_oper.unlink = App::fuse_unlink;
 
   nexus_oper.readdir = App::fuse_readdir;

@@ -266,6 +266,22 @@ int App::fuse_write(const char *filepath, const char *data, size_t size, off_t o
   return ret;
 }
 
+int App::fuse_truncate(const char *filepath, off_t size) {
+  string path = clean_path(filepath);
+  int ret;
+  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (ret == -ENOENT)
+    return -ENOENT;
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check if file exists !") || ret != EEXIST)
+    return -EPROTO;
+
+  sgx_status = sgx_truncate_file(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to write file !"))
+    return -EPROTO;
+
+  return ret;
+}
+
 int App::fuse_unlink(const char *filepath) {
   string path = clean_path(filepath);
   int ret;

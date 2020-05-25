@@ -258,6 +258,9 @@ int sgx_read_file(const char *reason, const char *filepath, long offset, size_t 
 int sgx_write_file(const char *reason, const char *filepath, long offset, size_t data_size, const char *data) {
   return FILE_SYSTEM->write_file(reason, filepath, offset, data_size, data);
 }
+int sgx_truncate_file(const char *filepath) {
+  return FILE_SYSTEM->truncate_file(filepath);
+}
 int sgx_unlink(const char *reason, const char *filepath) {
   return FILE_SYSTEM->unlink(reason, filepath);
 }

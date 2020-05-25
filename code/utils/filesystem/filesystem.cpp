@@ -202,6 +202,15 @@ int FileSystem::write_file(const string &reason, const string &filepath, const l
   return _return_and_free(ret, to_release);
 }
 
+int FileSystem::truncate_file(const string &filepath) {
+  int ret = this->unlink("truncating purpose", filepath);
+  if (ret < 0)
+    return ret;
+
+  ret = this->create_file("truncating purpose", filepath);
+  return ret;
+}
+
 int FileSystem::unlink(const string &reason, const string &filepath) {
   vector<Node*> to_release;
   string parent_path = FileSystem::get_directory_path(filepath);
