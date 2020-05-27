@@ -2,6 +2,16 @@
 #define SGX_UTILS_H_
 
 #include <string>
+#include <cstring>
+#include <iostream>
+
+#include "../flag.h"
+#if EMULATING
+#   include "../tests/SGX_Emulator/sgx_error.hpp"
+#   include "../tests/SGX_Emulator/sgx_utils.hpp"
+#else
+#   include "sgx_urts.h"
+#endif
 
 using namespace std;
 

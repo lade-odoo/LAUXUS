@@ -1,7 +1,3 @@
-#include <string>
-#include <cstring>
-#include <iostream>
-#include "sgx_urts.h"
 #include "sgx_utils.h"
 
 #ifndef TRUE

@@ -2,7 +2,7 @@
 #define _SGX_TCRYPTO_H_
 
 #include "sgx_error.hpp"
-#include <cstdint>
+#include <stdint.h>
 
 
 #define SGX_AESCTR_KEY_SIZE             16

@@ -74,7 +74,7 @@ else
 endif
 
 # App_Cpp_Files := App/App.cpp $(wildcard App/Edger8rSyntax/*.cpp) $(wildcard App/TrustedLibrary/*.cpp)
-App_Cpp_Files := App/main.cpp App/untrusted.cpp App/App.cpp App/options_utils/options.cpp App/sgx_utils/sgx_utils.cpp utils/serialization.cpp utils/misc.cpp
+App_Cpp_Files := $(shell find App -name '*.cpp') $(shell find utils -name '*.cpp')
 # App_Include_Paths := -IInclude -IApp -I$(SGX_SDK)/include
 App_Include_Paths := -IApp -I$(SGX_SDK)/include
 
@@ -103,7 +103,7 @@ endif
 
 App_Cpp_Objects := $(App_Cpp_Files:.cpp=.o)
 
-App_Name := app
+App_Name := lauxus
 
 ######## Enclave Settings ########
 
@@ -117,12 +117,7 @@ endif
 Crypto_Library_Name := sgx_tcrypto
 
 # Enclave_Cpp_Files := Enclave/Enclave.cpp $(wildcard Enclave/Edger8rSyntax/*.cpp) $(wildcard Enclave/TrustedLibrary/*.cpp)
-Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/metadata.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/node/node.cpp Enclave/utils/node/supernode.cpp Enclave/utils/node/dirnode.cpp Enclave/utils/node/filenode.cpp Enclave/utils/node/filenode_content.cpp Enclave/utils/node/node_audit.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/users/user.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/encryption/aes_gcm.cpp Enclave/utils/encryption/aes_ctr.cpp
-Enclave_Cpp_Files := $(Enclave_Cpp_Files) Enclave/utils/filesystem/filesystem.cpp Enclave/utils/filesystem/serialization.cpp Enclave/utils/filesystem/utils.cpp
+Enclave_Cpp_Files := $(shell find Enclave -name '*.cpp') $(shell find utils -name '*.cpp')
 # Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 
@@ -138,8 +133,8 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 
 Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o)
 
-Enclave_Name := .nexus/enclave.so
-Signed_Enclave_Name := .nexus/enclave.signed.so
+Enclave_Name := .lauxus/enclave.so
+Signed_Enclave_Name := .lauxus/enclave.signed.so
 Enclave_Config_File := Enclave/Enclave.config.xml
 
 ifeq ($(SGX_MODE), HW)
@@ -150,15 +145,12 @@ endif
 endif
 endif
 
-# Tests settings
 
-Tests_Emul_Files := $(shell find tests/SGX_Emulator -name '*.cpp') App/untrusted.cpp
-Tests_Emul_Objects := $(Tests_Emul_Files:.cpp=.o)
-Tests_Cpp_Files := $(shell find utils -name '*.cpp')
-Tests_Cpp_Files := $(Tests_Cpp_Files)
-Tests_Cpp_Objects := $(Tests_Cpp_Files:.cpp=.o)
-Tests_Exec_Files := $(shell find tests/utils -name '*.cpp')
-Tests_Exec_Files := $(Tests_Exec_Files:.cpp=.test)
+######## Test Settings ########
+Tests_Cpp_Files := $(shell find tests/App -name '*.cpp') $(shell find tests/Enclave -name '*.cpp') $(shell find tests/utils -name '*.cpp')
+Tests_Exec_Files := $(Tests_Cpp_Files:.cpp=.test)
+Emul_Cpp_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
+Emul_Cpp_Objects := $(Emul_Cpp_Files:.cpp=.o)
 
 
 .PHONY: all run
@@ -181,17 +173,11 @@ ifneq ($(Build_Mode), HW_RELEASE)
 	@echo "RUN  =>  $(App_Name) [$(SGX_MODE)|$(SGX_ARCH), OK]"
 endif
 
-######## Utils ########
-
-utils/%.o: utils/%.cpp
-	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
 
 ######## App Objects ########
 
 App/Enclave_u.c: $(SGX_EDGER8R) Enclave/Enclave.edl
-	@mkdir .nexus
+	@mkdir .lauxus
 	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include
 	@echo "GEN  =>  $@"
 
@@ -218,31 +204,6 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@$(CC) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
-Enclave/utils/encryption/%.o: utils/encryption/%.cpp
-	@mkdir -p Enclave/utils/encryption/
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/utils/node/%.o: utils/node/%.cpp
-	@mkdir -p Enclave/utils/node/
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/utils/users/%.o: utils/users/%.cpp
-	@mkdir -p Enclave/utils/users/
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/utils/filesystem/%.o: utils/filesystem/%.cpp
-	@mkdir -p Enclave/utils/filesystem/
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-Enclave/utils/%.o: utils/%.cpp
-	@mkdir -p Enclave/utils/
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
 Enclave/%.o: Enclave/%.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
@@ -256,7 +217,7 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 	@echo "SIGN =>  $@"
 
 
-######## Test Objects ########
+######## Tests Objects ########
 
 tests/main.o: tests/main.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
@@ -266,16 +227,16 @@ tests/SGX_Emulator/%.o: tests/SGX_Emulator/%.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-tests/%.test: tests/%.o $(Tests_Emul_Objects) $(Tests_Cpp_Objects) tests/main.o
+tests/%.test: tests/%.o $(Emul_Cpp_Objects) $(App_Cpp_Objects) $(Enclave_Cpp_Objects) tests/main.o
 	@$(CXX) $(App_Cpp_Flags) $^ -o $@
 	@echo "LINK  =>  $<"
 
 
 .PHONY: test
-test: $(Tests_Exec_Files)
+test: tests/main.o $(Tests_Exec_Files)
 
 
 .PHONY: clean
 clean:
-	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Tests_Exec_Files) $(Tests_Emul_Objects)
-	@rm -rf .nexus Enclave/utils
+	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Tests_Exec_Files)
+	@rm -rf .lauxus

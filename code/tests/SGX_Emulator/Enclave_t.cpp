@@ -1,48 +1,39 @@
 #include "Enclave_t.hpp"
-#include "../../App/untrusted.hpp"
-
-#include <cstddef>
 
 
-sgx_status_t ocall_dump(int *ret, const char *path, const size_t size, const char *buffer) {
-  *ret = Untrusted::ocall_dump(path, size, buffer);
+sgx_status_t ocall_get_current_time(int *ret, time_t *time) {
+  *ret = OCALLS::ocall_get_current_time(time);
   return SGX_SUCCESS;
 }
 
-sgx_status_t ocall_dump_in_dir(int *ret, const char *dir, const char *file, const size_t size, const char *buffer) {
-  *ret = Untrusted::ocall_dump_in_dir(dir, file, size, buffer);
+sgx_status_t ocall_dump(int *ret, const char *path, size_t size, const uint8_t *content) {
+  *ret = OCALLS::ocall_dump(path, size, content);
+  return SGX_SUCCESS;
+}
+sgx_status_t ocall_dump_in_dir(int *ret, const char *dir, const lauxus_uuid_t *n_uuid, size_t size, const uint8_t *content) {
+  *ret = OCALLS::ocall_dump_in_dir(dir, n_uuid, size, content);
+  return SGX_SUCCESS;
+}
+sgx_status_t ocall_dump_append_in_dir(int *ret, const char *dir, const lauxus_uuid_t *n_uuid, size_t size, const uint8_t *content) {
+  *ret = OCALLS::ocall_dump_append_in_dir(dir, n_uuid, size, content);
+  return SGX_SUCCESS;
+}
+sgx_status_t ocall_dump_with_offset_in_dir(int *ret, const char *dir, const lauxus_uuid_t *n_uuid, long offset, size_t size, const uint8_t *content) {
+  *ret = OCALLS::ocall_dump_with_offset_in_dir(dir, n_uuid, offset, size, content);
   return SGX_SUCCESS;
 }
 
-sgx_status_t ocall_dump_append_in_dir(int *ret, const char *dir, const char *file, const size_t size, const char *buffer) {
-  *ret = Untrusted::ocall_dump_append_in_dir(dir, file, size, buffer);
+sgx_status_t ocall_load_file(int *ret, const char *dir, const lauxus_uuid_t *n_uuid, long offset, size_t size, uint8_t *content) {
+  *ret = OCALLS::ocall_load_file(dir, n_uuid, offset, size, content);
   return SGX_SUCCESS;
 }
 
-sgx_status_t ocall_dump_with_offset_in_dir(int *ret, const char *dir, const char *file, const long offset, const size_t size, const char *buffer) {
-  *ret = Untrusted::ocall_dump_with_offset_in_dir(dir, file, offset, size, buffer);
+sgx_status_t ocall_file_size(int *ret, const char *dir, const lauxus_uuid_t *n_uuid) {
+  *ret = OCALLS::ocall_file_size(dir, n_uuid);
   return SGX_SUCCESS;
 }
 
-
-sgx_status_t ocall_file_size(int *ret, const char *dir, const char *uuid) {
-  *ret = Untrusted::ocall_file_size(dir, uuid);
-  return SGX_SUCCESS;
-}
-
-sgx_status_t ocall_load_file(int *ret, const char *dir, const char *uuid, const long offset, const size_t size, char *buffer) {
-  *ret = Untrusted::ocall_load_file(dir, uuid, offset, size, buffer);
-  return SGX_SUCCESS;
-}
-
-
-sgx_status_t ocall_delete_from_dir(int *ret, const char *dir, const char *uuid) {
-  *ret = Untrusted::ocall_delete_from_dir(dir, uuid);
-  return SGX_SUCCESS;
-}
-
-
-sgx_status_t ocall_get_current_time(int *ret, const size_t time_size, char *time) {
-  *ret = Untrusted::ocall_get_current_time(time_size, time);
+sgx_status_t ocall_delete_from_dir(int *ret, const char *dir, const lauxus_uuid_t *n_uuid) {
+  *ret = OCALLS::ocall_delete_from_dir(dir, n_uuid);
   return SGX_SUCCESS;
 }
