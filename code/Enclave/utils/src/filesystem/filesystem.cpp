@@ -101,12 +101,9 @@ int FileSystem::open_file(const string &filepath, const lauxus_right_t asked_rig
   Filenode *node = dynamic_cast<Filenode*>(this->retrieve_node(filepath));
   if (node == NULL)
     return -ENOENT;
-  if (!node->has_user_rights(asked_rights, this->current_user)) {
-    this->free_node(filepath);
+  if (!node->has_user_rights(asked_rights, this->current_user))
     return -EACCES;
-  }
 
-  this->free_node(filepath);
   return 0;
 }
 int FileSystem::close_file(const string &filepath) {
@@ -116,7 +113,7 @@ int FileSystem::close_file(const string &filepath) {
 
 int FileSystem::create_file(const string &reason, const string &filepath) {
   Node *node = this->retrieve_node(filepath);
-  if (node != NULL) {// file already exists
+  if (node != NULL) { // file already exists
     this->free_node(filepath);
     return -EEXIST;
   }
@@ -143,12 +140,10 @@ int FileSystem::create_file(const string &reason, const string &filepath) {
     goto err;
 
   this->free_node(parent_path);
-  this->free_node(filepath);
   return 0;
 
 err:
   this->free_node(parent_path);
-  this->free_node(filepath);
   return -EPROTO;
 }
 
@@ -157,10 +152,8 @@ int FileSystem::read_file(const string &reason, const string &filepath, const lo
   Filenode *node = dynamic_cast<Filenode*>(this->retrieve_node(filepath));
   if (node == NULL)
     return -ENOENT;
-  if (!node->has_user_rights(lauxus_read_right(), this->current_user)) {
-    this->free_node(filepath);
+  if (!node->has_user_rights(lauxus_read_right(), this->current_user))
     return -EACCES;
-  }
 
   if (e_append_audit_to_disk(node, reason) < 0 ||
       this->load_content(node, offset, buffer_size) < 0)
@@ -171,11 +164,9 @@ int FileSystem::read_file(const string &reason, const string &filepath, const lo
     goto err;
   ret = node->content->read(offset, buffer_size, buffer);
   node->content->free_loaded();
-  this->free_node(filepath);
   return ret;
 
 err:
-  this->free_node(filepath);
   return -EPROTO;
 }
 
@@ -183,10 +174,8 @@ int FileSystem::write_file(const string &reason, const string &filepath, const l
   Filenode *node = dynamic_cast<Filenode*>(this->retrieve_node(filepath));
   if (node == NULL)
     return -ENOENT;
-  if (!node->has_user_rights(lauxus_write_right(), this->current_user)) {
-    this->free_node(filepath);
+  if (!node->has_user_rights(lauxus_write_right(), this->current_user))
     return -EACCES;
-  }
 
   int ret = 0;
   if (e_append_audit_to_disk(node, reason) < 0 ||
@@ -203,11 +192,9 @@ int FileSystem::write_file(const string &reason, const string &filepath, const l
     goto err;
 
   node->content->free_loaded();
-  this->free_node(filepath);
   return ret;
 
 err:
-  this->free_node(filepath);
   return -EPROTO;
 }
 

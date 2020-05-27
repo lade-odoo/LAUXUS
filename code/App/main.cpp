@@ -33,6 +33,7 @@ void setup_fuse() {
   lauxus_oper.create = fuse_create;
   lauxus_oper.read = fuse_read;
   lauxus_oper.write = fuse_write;
+  lauxus_oper.truncate = fuse_truncate;
   lauxus_oper.unlink = fuse_unlink;
 
   lauxus_oper.readdir = fuse_readdir;

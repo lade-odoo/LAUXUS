@@ -147,7 +147,7 @@ endif
 
 
 ######## Test Settings ########
-Tests_Cpp_Files := $(shell find tests/App -name '*.cpp') $(shell find tests/Enclave -name '*.cpp') $(shell find tests/utils -name '*.cpp')
+Tests_Cpp_Files := $(shell find tests/Enclave -name '*.cpp')
 Tests_Exec_Files := $(Tests_Cpp_Files:.cpp=.test)
 Emul_Cpp_Files := $(shell find tests/SGX_Emulator -name '*.cpp')
 Emul_Cpp_Objects := $(Emul_Cpp_Files:.cpp=.o)

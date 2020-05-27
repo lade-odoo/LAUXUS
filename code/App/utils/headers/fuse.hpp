@@ -41,6 +41,7 @@ int fuse_release(const char *filepath, struct fuse_file_info *fi);
 int fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *);
 int fuse_read(const char *filepath, char *buf, size_t size, off_t offset, struct fuse_file_info *);
 int fuse_write(const char *filepath, const char *data, size_t size, off_t offset, struct fuse_file_info *fi);
+int fuse_truncate(const char *filepath, off_t offset);
 int fuse_unlink(const char *filepath);
 
 int fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);

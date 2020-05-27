@@ -67,13 +67,13 @@ int fuse_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *)
 int fuse_open(const char *filepath, struct fuse_file_info *fi) {
   string path = clean_path(filepath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (ret == EISDIR)
-    return -EPROTO;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !"))
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (ret == EISDIR)
+  //   return -EPROTO;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !"))
+  //   return -EPROTO;
 
   lauxus_right_t asked_rights = {0, 0, 0, 0};
   if ((fi->flags & O_RDONLY) == O_RDONLY)
@@ -85,7 +85,7 @@ int fuse_open(const char *filepath, struct fuse_file_info *fi) {
     asked_rights.write = 1;
   }
 
-  sgx_status = sgx_open_file(ENCLAVE_ID, &ret, (char*)path.c_str(), asked_rights);
+  sgx_status_t sgx_status = sgx_open_file(ENCLAVE_ID, &ret, (char*)path.c_str(), asked_rights);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to open file !"))
     return -EPROTO;
   return ret;
@@ -94,15 +94,15 @@ int fuse_open(const char *filepath, struct fuse_file_info *fi) {
 int fuse_release(const char *filepath, struct fuse_file_info *fi) {
 	string path = clean_path(filepath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (ret == EISDIR)
-    return -EPROTO;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !"))
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (ret == EISDIR)
+  //   return -EPROTO;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !"))
+  //   return -EPROTO;
 
-  sgx_status = sgx_close_file(ENCLAVE_ID, &ret, (char*)path.c_str());
+  sgx_status_t sgx_status = sgx_close_file(ENCLAVE_ID, &ret, (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to open file !"))
     return -EPROTO;
   return ret;
@@ -111,13 +111,13 @@ int fuse_release(const char *filepath, struct fuse_file_info *fi) {
 int fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *) {
   string path = clean_path(filepath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret != -ENOENT)
-    return -ret;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to get node type !"))
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret != -ENOENT)
+  //   return -ret;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to get node type !"))
+  //   return -EPROTO;
 
-  sgx_status = sgx_create_file(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
+  sgx_status_t sgx_status = sgx_create_file(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to create file !"))
     return -EPROTO;
 
@@ -127,13 +127,13 @@ int fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *) {
 int fuse_read(const char *filepath, char *buf, size_t size, off_t offset, struct fuse_file_info *) {
   string path = clean_path(filepath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
+  //   return -EPROTO;
 
-  sgx_status = sgx_read_file(ENCLAVE_ID, &ret, "...", (char*)path.c_str(), (long)offset, size, (uint8_t*)buf);
+  sgx_status_t sgx_status = sgx_read_file(ENCLAVE_ID, &ret, "...", (char*)path.c_str(), (long)offset, size, (uint8_t*)buf);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to read file !"))
     return -EPROTO;
 
@@ -143,14 +143,30 @@ int fuse_read(const char *filepath, char *buf, size_t size, off_t offset, struct
 int fuse_write(const char *filepath, const char *data, size_t size, off_t offset, struct fuse_file_info *fi) {
   string path = clean_path(filepath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
+  //   return -EPROTO;
+
+  sgx_status_t sgx_status = sgx_write_file(ENCLAVE_ID, &ret, "...", (char*)path.c_str(), (long)offset, size, (uint8_t*)data);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to write file !"))
     return -EPROTO;
 
-  sgx_status = sgx_write_file(ENCLAVE_ID, &ret, "...", (char*)path.c_str(), (long)offset, size, (uint8_t*)data);
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to write file !"))
+  return ret;
+}
+
+int fuse_truncate(const char *filepath, off_t offset) {
+  string path = clean_path(filepath);
+  int ret;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
+  //   return -EPROTO;
+
+  sgx_status_t sgx_status = sgx_truncate_file(ENCLAVE_ID, &ret, (char*)path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to truncate file !"))
     return -EPROTO;
 
   return ret;
@@ -159,13 +175,13 @@ int fuse_write(const char *filepath, const char *data, size_t size, off_t offset
 int fuse_unlink(const char *filepath) {
   string path = clean_path(filepath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
+  //   return -EPROTO;
 
-  sgx_status = sgx_unlink(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
+  sgx_status_t sgx_status = sgx_unlink(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to unlink entry !"))
     return -EPROTO;
 
@@ -200,13 +216,13 @@ int fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 int fuse_mkdir(const char *dirpath, mode_t) {
   string path = clean_path(dirpath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret != -ENOENT)
-    return -ret;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !"))
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret != -ENOENT)
+  //   return -ret;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !"))
+  //   return -EPROTO;
 
-  sgx_status = sgx_mkdir(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
+  sgx_status_t sgx_status = sgx_mkdir(ENCLAVE_ID, &ret, "...", (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to create directory !"))
     return -EPROTO;
 
@@ -216,13 +232,13 @@ int fuse_mkdir(const char *dirpath, mode_t) {
 int fuse_rmdir(const char *dirpath) {
   string path = clean_path(dirpath);
   int ret;
-  sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
-  if (ret == -ENOENT)
-    return -ENOENT;
-  if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EISDIR)
-    return -EPROTO;
+  // sgx_status_t sgx_status = sgx_entry_type(ENCLAVE_ID, &ret, (char*)path.c_str());
+  // if (ret == -ENOENT)
+  //   return -ENOENT;
+  // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EISDIR)
+  //   return -EPROTO;
 
-  sgx_status = sgx_rmdir(ENCLAVE_ID, &ret, "..." , (char*)path.c_str());
+  sgx_status_t sgx_status = sgx_rmdir(ENCLAVE_ID, &ret, "..." , (char*)path.c_str());
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to delete directory !"))
     return -EPROTO;
 
