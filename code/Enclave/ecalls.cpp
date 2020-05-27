@@ -219,6 +219,13 @@ int EMUL_EAPI sgx_write_file(const char *reason, const char *filepath, long offs
   return FILE_SYSTEM->write_file(reason, filepath, offset, data_size, data);
 }
 
+int EMUL_EAPI sgx_truncate_file(const char *filepath) {
+  int ret = sgx_unlink("truncate purpose", filepath);
+  if (ret < 0)
+    return ret;
+  return sgx_create_file("truncate purpose", filepath);
+}
+
 int EMUL_EAPI sgx_unlink(const char *reason, const char *filepath) {
   if (FILE_SYSTEM == NULL || FILE_SYSTEM->current_user == NULL)
     return -EACCES;

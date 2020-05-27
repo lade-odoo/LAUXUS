@@ -60,7 +60,7 @@ int sgx_close_file(const char *filepath);
 int sgx_create_file(const char *reason, const char *filepath);
 int sgx_read_file(const char *reason, const char *filepath, long offset, size_t buffer_size, uint8_t *buffer);
 int sgx_write_file(const char *reason, const char *filepath, long offset, size_t data_size, const uint8_t *data);
-
+int sgx_truncate_file(const char *filepath);
 int sgx_unlink(const char *reason, const char *filepath);
 
 int sgx_mkdir(const char *reason, const char *dirpath);

@@ -40,6 +40,7 @@ enclave {
     public int sgx_create_file([in, string] const char *reason, [in, string] const char *filepath);
     public int sgx_read_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t buffer_size, [out, size=buffer_size] uint8_t *buffer);
     public int sgx_write_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t data_size, [in, size=data_size] const uint8_t *data);
+    public int sgx_truncate_file([in, string] const char *filepath);
     public int sgx_unlink([in, string] const char *reason, [in, string] const char *filepath);
 
     public int sgx_mkdir([in, string] const char *reason, [in, string] const char *dirpath);
