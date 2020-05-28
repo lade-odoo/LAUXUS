@@ -62,7 +62,7 @@ def per_size_test(prefix, max_iteration=100, max_seconds=60):
             'Time [s]', sizes, file_times)
 
 
-def per_block_size_test(prefix, max_iteration=50, max_seconds=60):
+def per_block_size_test(prefix, max_iteration=10, max_seconds=60):
     block_sizes = [ONE_KB, 10*ONE_KB, 50*ONE_KB, 100*ONE_KB]
     block_size_times = []
     for block_size in block_sizes:
