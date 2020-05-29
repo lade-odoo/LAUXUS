@@ -105,6 +105,30 @@ def per_offset_write_test(prefix):
             'Time [s]', offset_pos, offset_pos_times)
 
 
+def per_folder_depth_test(prefix, max_iteration=20, max_seconds=60):
+    per_folder_depth_times = []
+    depths = [1, 5, 10, 50, 100]
+    for i in [1, 5, 10, 50, 100]:
+        path = '../mount'
+        for j in range(i):
+            path += '/dir' + str(j)
+            try:
+                if not os.path.exists(path):
+                    os.mkdir(path)
+            except OSError:
+                print ("Creation of the directory %s failed" % path)
+
+        elapsed = 0; iteration = 0
+        full_start = time.time()
+        while time.time() - full_start < max_seconds and iteration < max_iteration:
+            start = time.time()
+            write_file(path+'/benchmark1.txt', S_FILE)
+            elapsed += time.time() - start
+            iteration += 1
+        per_folder_depth_times.append(elapsed/iteration)
+    write_to_csv(f'results/{prefix}_per_folder_depth_time.csv', 'Folder depth',
+            'Time [s]', depths, per_folder_depth_times)
+
 
 
 if __name__ == '__main__':
@@ -120,3 +144,5 @@ if __name__ == '__main__':
         per_file_count_test(sys.argv[2])
     elif sys.argv[1] == 'PER_OFFSET_WRITE':
         per_offset_write_test(sys.argv[2])
+    elif sys.argv[1] == 'PER_FOLDER_DEPTH':
+        per_folder_depth_test(sys.argv[2])

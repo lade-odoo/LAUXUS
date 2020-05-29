@@ -39,6 +39,8 @@ echo "[LAUXUS] Per block size ..."
 python3 benchmark.py PER_BLOCK_SIZE LAUXUS
 echo "[LAUXUS] Per offset write position ..."
 python3 benchmark.py PER_OFFSET_WRITE LAUXUS
+echo "[LAUXUS] Per folder depth ..."
+python3 benchmark.py PER_FOLDER_DEPTH LAUXUS
 
 echo "====================== NOTHING ======================"
 deactivate_FUSE
@@ -50,8 +52,10 @@ echo "[NOTHING] Per block size ..."
 python3 benchmark.py PER_BLOCK_SIZE NOTHING
 echo "[NOTHING] Per offset write position ..."
 python3 benchmark.py PER_OFFSET_WRITE NOTHING
+echo "[NOTHING] Per folder depth ..."
+python3 benchmark.py PER_FOLDER_DEPTH NOTHING
 
 
 echo "Cleaning ..."
-rm $mount_dir/*
+rm -rf $mount_dir/*
 rm /tmp/benchmark1.txt
