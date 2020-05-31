@@ -18,7 +18,8 @@ Node *FileSystem::_retrieve_node(Node *parent, const string &path) {
   string child_path = get_child_path(path);
 
   auto it = parent->node_entries->find(parent_path);
-  if (parent->relative_path.compare(path) == 0 || path.compare("") == 0)
+  // if (parent->relative_path.compare(path) == 0 || path.compare("") == 0)
+  if (path.compare("") == 0)
     return parent;
   else if (it == parent->node_entries->end())
     return NULL;
