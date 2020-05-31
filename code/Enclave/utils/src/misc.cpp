@@ -1,35 +1,35 @@
 #include "../headers/misc.hpp"
 
 
-string get_directory_path(const string &path) {
-  string cleaned = clean_path(path);
+string sgx_get_directory_path(const string &path) {
+  string cleaned = sgx_clean_path(path);
   size_t index = cleaned.find_last_of("/");
-  return clean_path(cleaned.substr(0, index + 1));
+  return sgx_clean_path(cleaned.substr(0, index + 1));
 }
 
-string get_relative_path(const string &path) {
-  string cleaned = clean_path(path);
+string sgx_get_relative_path(const string &path) {
+  string cleaned = sgx_clean_path(path);
   size_t index = cleaned.find_last_of("/");
-  return clean_path(cleaned.substr(index + 1));
+  return sgx_clean_path(cleaned.substr(index + 1));
 }
 
-string get_parent_path(const string &path) {
-  string cleaned = clean_path(path);
+string sgx_get_parent_path(const string &path) {
+  string cleaned = sgx_clean_path(path);
   size_t index = cleaned.find("/");
   if (index == string::npos)
     return path;
-  return clean_path(cleaned.substr(0, index + 1));
+  return sgx_clean_path(cleaned.substr(0, index + 1));
 }
 
-string get_child_path(const string &path) {
-  string cleaned = clean_path(path);
+string sgx_get_child_path(const string &path) {
+  string cleaned = sgx_clean_path(path);
   size_t index = cleaned.find("/");
   if (index == string::npos)
     return "";
-  return clean_path(cleaned.substr(index + 1));
+  return sgx_clean_path(cleaned.substr(index + 1));
 }
 
-string clean_path(const string &path) {
+string sgx_clean_path(const string &path) {
   string trimmed = path;
   size_t position;
   while ((position = trimmed.find("//")) != string::npos)

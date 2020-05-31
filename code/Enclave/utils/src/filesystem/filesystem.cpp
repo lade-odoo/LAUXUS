@@ -119,8 +119,8 @@ int FileSystem::create_file(const string &reason, const string &filepath) {
   }
 
   // relative path of the file
-  string parent_path = get_directory_path(filepath);
-  string relative_path = get_relative_path(filepath);
+  string parent_path = sgx_get_directory_path(filepath);
+  string relative_path = sgx_get_relative_path(filepath);
   Node *parent = this->retrieve_node(parent_path);
   if (parent == NULL)
     return -ENOENT;
@@ -199,8 +199,8 @@ err:
 }
 
 int FileSystem::unlink(const string &reason, const string &filepath) {
-  string parent_path = get_directory_path(filepath);
-  string relative_path = get_relative_path(filepath);
+  string parent_path = sgx_get_directory_path(filepath);
+  string relative_path = sgx_get_relative_path(filepath);
   Node *parent = this->retrieve_node(parent_path);
   if (parent == NULL)
     return -ENOENT;
@@ -267,8 +267,8 @@ int FileSystem::create_directory(const string &reason, const string &dirpath) {
   }
 
   // relative path of the file
-  string parent_path = get_directory_path(dirpath);
-  string relative_path = get_relative_path(dirpath);
+  string parent_path = sgx_get_directory_path(dirpath);
+  string relative_path = sgx_get_relative_path(dirpath);
   Node *parent = this->retrieve_node(parent_path);
   if (parent == NULL)
     return -ENOENT;
@@ -296,8 +296,8 @@ err:
 }
 
 int FileSystem::rm_directory(const string &reason, const string &dirpath) {
-  string parent_path = get_directory_path(dirpath);
-  string relative_path = get_relative_path(dirpath);
+  string parent_path = sgx_get_directory_path(dirpath);
+  string relative_path = sgx_get_relative_path(dirpath);
   Node *parent = this->retrieve_node(parent_path);
   if (parent == NULL)
     return -ENOENT;

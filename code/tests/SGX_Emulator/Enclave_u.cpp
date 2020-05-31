@@ -92,6 +92,10 @@ sgx_status_t sgx_write_file(sgx_enclave_id_t eid, int *ret, const char *reason, 
   *ret = ECALLS::sgx_write_file(reason, filepath, offset, data_size, data);
   return SGX_SUCCESS;
 }
+sgx_status_t sgx_truncate_file(sgx_enclave_id_t eid, int *ret, const char *filepath) {
+  *ret = ECALLS::sgx_truncate_file(filepath);
+  return SGX_SUCCESS;
+}
 sgx_status_t sgx_unlink(sgx_enclave_id_t eid, int *ret, const char *reason, const char *filepath) {
   *ret = ECALLS::sgx_unlink(reason, filepath);
   return SGX_SUCCESS;

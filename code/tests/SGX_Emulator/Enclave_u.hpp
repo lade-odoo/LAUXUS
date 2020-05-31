@@ -45,6 +45,7 @@ sgx_status_t sgx_close_file(sgx_enclave_id_t eid, int *ret, const char *filepath
 sgx_status_t sgx_create_file(sgx_enclave_id_t eid, int *ret, const char *reason, const char *filepath);
 sgx_status_t sgx_read_file(sgx_enclave_id_t eid, int *ret, const char *reason, const char *filepath, long offset, size_t buffer_size, uint8_t *buffer);
 sgx_status_t sgx_write_file(sgx_enclave_id_t eid, int *ret, const char *reason, const char *filepath, long offset, size_t data_size, const uint8_t *data);
+sgx_status_t sgx_truncate_file(sgx_enclave_id_t eid, int *ret, const char *filepath);
 sgx_status_t sgx_unlink(sgx_enclave_id_t eid, int *ret, const char *reason, const char *filepath);
 
 sgx_status_t sgx_mkdir(sgx_enclave_id_t eid, int *ret, const char *reason, const char *dirpath);

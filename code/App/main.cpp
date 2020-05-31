@@ -21,7 +21,8 @@ string RK_PATH, ARK_PATH, SUPERNODE_PATH;
 static struct fuse_operations lauxus_oper;
 
 
-
+#if EMULATING
+#else
 void setup_fuse() {
   lauxus_oper.init = fuse_init;
   lauxus_oper.destroy = fuse_destroy;
@@ -41,9 +42,6 @@ void setup_fuse() {
   lauxus_oper.rmdir = fuse_rmdir;
 }
 
-
-#if EMULATING
-#else
 int main(int argc, char **argv) {
   setup_fuse();
   BINARY_PATH = get_directory_path(argv[0]);

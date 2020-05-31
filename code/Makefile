@@ -74,7 +74,8 @@ else
 endif
 
 # App_Cpp_Files := App/App.cpp $(wildcard App/Edger8rSyntax/*.cpp) $(wildcard App/TrustedLibrary/*.cpp)
-App_Cpp_Files := $(shell find App -name '*.cpp') $(shell find utils -name '*.cpp')
+# App_Cpp_Files := $(shell find App -name '*.cpp') $(shell find utils -name '*.cpp')
+App_Cpp_Files := $(shell find App -type f -name '*.cpp' ! -name '*fuse.cpp' ! -name '*options.cpp') $(shell find utils -name '*.cpp')
 # App_Include_Paths := -IInclude -IApp -I$(SGX_SDK)/include
 App_Include_Paths := -IApp -I$(SGX_SDK)/include
 
@@ -205,7 +206,8 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@echo "CC   <=  $<"
 
 Enclave/%.o: Enclave/%.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	# @$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
 $(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects)

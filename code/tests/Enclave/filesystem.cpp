@@ -1,9 +1,11 @@
 #include "../catch.hpp"
+#include "../../utils/headers/rights.hpp"
 #include "../../Enclave/utils/headers/user.hpp"
 #include "../../App/utils/headers/serialisation.hpp"
-// #include "../../Enclave/utils/headers/filesystem.hpp"
+#include "../../Enclave/utils/headers/filesystem.hpp"
 #include "../../Enclave/utils/headers/nodes/node.hpp"
 #include "../../Enclave/utils/headers/nodes/supernode.hpp"
+#include "../../Enclave/utils/headers/encryption/ecc.hpp"
 
 #include <cerrno>
 #include <string>
@@ -13,65 +15,69 @@
 
 
 using namespace std;
-static string CONTENT_DIR = "/tmp/nexus_tests/contents";
-static string META_DIR = "/tmp/nexus_tests/metas";
-static string AUDIT_DIR = "/tmp/nexus_tests/audits";
+static string CONTENT_DIR = "/tmp/lauxus_tests/contents";
+static string META_DIR = "/tmp/lauxus_tests/metas";
+static string AUDIT_DIR = "/tmp/lauxus_tests/audits";
 
 
-// FileSystem* _create_fs(User *root=NULL, User *lambda=NULL, size_t block_size=DEFAULT_BLOCK_SIZE) {
-//   lauxus_gcm_t *root_key = (lauxus_gcm_t*) malloc(sizeof(lauxus_gcm_t)); lauxus_random_gcm(root_key);
-//   lauxus_gcm_t *audit_root_key = (lauxus_gcm_t*) malloc(sizeof(lauxus_gcm_t)); lauxus_random_gcm(audit_root_key);
-//   Supernode *supernode = new Supernode(root_key);
-//   if (root != NULL)
-//     REQUIRE( supernode->add_user(root) == root );
-//   if (lambda != NULL)
-//     REQUIRE( supernode->add_user(lambda) == lambda );
-//
-//   string dir = "/tmp/nexus_tests";
-//   create_directory(dir);
-//   create_directory(CONTENT_DIR);
-//   create_directory(META_DIR);
-//   create_directory(AUDIT_DIR);
-//
-//   assert(read_directory(CONTENT_DIR).size() == 0);
-//   assert(read_directory(META_DIR).size() == 0 || read_directory(META_DIR).size() == 1);
-//   assert(read_directory(AUDIT_DIR).size() == 0 || read_directory(AUDIT_DIR).size() == 1);
-//
-//   FileSystem *fs = new FileSystem(root_key, audit_root_key, supernode, CONTENT_DIR, META_DIR, AUDIT_DIR, block_size);
-//   fs->current_user = root;
-//   fs->e_write_meta_to_disk(fs->supernode);
-//
-//   return fs;
-// }
+FileSystem* _create_fs(User *root=NULL, User *lambda=NULL, size_t block_size=DEFAULT_BLOCK_SIZE) {
+  lauxus_gcm_t *root_key = (lauxus_gcm_t*) malloc(sizeof(lauxus_gcm_t)); lauxus_random_gcm(root_key);
+  lauxus_gcm_t *audit_root_key = (lauxus_gcm_t*) malloc(sizeof(lauxus_gcm_t)); lauxus_random_gcm(audit_root_key);
+  Supernode *supernode = new Supernode(root_key);
+  if (root != NULL)
+    REQUIRE( supernode->add_user(root) == root );
+  if (lambda != NULL)
+    REQUIRE( supernode->add_user(lambda) == lambda );
 
-// User* _create_user() {
-//   size_t pk_size = sizeof(sgx_ec256_public_t), sk_size = sizeof(sgx_ec256_private_t);
-//   sgx_ec256_public_t pk[pk_size];
-//   sgx_ec256_private_t sk[sk_size];
-//
-//   REQUIRE( User::generate_keys(pk_size, pk, sk_size, sk) == 0 );
-//   return new User("test", pk_size, pk);
-// }
+  string dir = "/tmp/lauxus_tests";
+  create_directory(dir);
+  create_directory(CONTENT_DIR);
+  create_directory(META_DIR);
+  create_directory(AUDIT_DIR);
 
-//
-// TEST_CASE( "1: Newly created filesystem, everything must return -ENOENT", "[multi-file:filesystem]" ) {
-//   FileSystem *fs = _create_fs();
-//
-//   REQUIRE( fs->edit_user_entitlement("/test", Node::OWNER_RIGHT, "") == -ENOENT );
-//   REQUIRE( fs->readdir("/").size() == 0 );
-//   REQUIRE( fs->get_rights("/test") == -ENOENT );
-//   REQUIRE( fs->entry_type("/test") == -ENOENT );
-//   REQUIRE( fs->file_size("/test") == -ENOENT );
-//   REQUIRE( fs->read_file("Testing purpose", "/test", 0, 10, NULL) == -ENOENT );
-//   REQUIRE( fs->write_file("Testing purpose", "/test", 0, 4, "Test") == -ENOENT );
-//   REQUIRE( fs->unlink("Testing purpose", "/test") == -ENOENT );
-//
-//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-//   REQUIRE( read_directory(META_DIR).size() == 1 );
-//
-//   delete fs;
-// }
-//
+  assert(read_directory(CONTENT_DIR).size() == 0);
+  assert(read_directory(META_DIR).size() == 0 || read_directory(META_DIR).size() == 1);
+  assert(read_directory(AUDIT_DIR).size() == 0 || read_directory(AUDIT_DIR).size() == 1);
+
+  FileSystem *fs = new FileSystem(root_key, audit_root_key, supernode, CONTENT_DIR, META_DIR, AUDIT_DIR, block_size);
+  fs->current_user = root;
+  fs->e_write_meta_to_disk(fs->supernode);
+
+  return fs;
+}
+
+User* _create_user() {
+  sgx_ec256_public_t *pk = (sgx_ec256_public_t*) malloc(sizeof(sgx_ec256_public_t));
+  sgx_ec256_private_t *sk = (sgx_ec256_private_t*) malloc(sizeof(sgx_ec256_private_t));
+
+  REQUIRE( lauxus_generate_ECC_keys(pk, sk) == 0 );
+  User *user = new User("test", pk);
+  free(pk); free(sk);
+  return user;
+}
+
+
+TEST_CASE( "1: Newly created filesystem, everything must return -ENOENT", "[multi-file:filesystem]" ) {
+  FileSystem *fs = _create_fs();
+  lauxus_uuid_t *uuid = (lauxus_uuid_t*) malloc(sizeof(lauxus_uuid_t)); lauxus_random_uuid(uuid);
+  lauxus_right_t rights;
+
+  REQUIRE( fs->edit_user_entitlement("/test", lauxus_owner_right(), uuid) == -ENOENT );
+  REQUIRE( fs->readdir("/").size() == 0 );
+  REQUIRE( fs->get_rights("/test", &rights) == -ENOENT );
+  REQUIRE( fs->entry_type("/test") == -ENOENT );
+  REQUIRE( fs->file_size("/test") == -ENOENT );
+  REQUIRE( fs->read_file("Testing purpose", "/test", 0, 10, NULL) == -ENOENT );
+  REQUIRE( fs->write_file("Testing purpose", "/test", 0, 4, (uint8_t*)"Test") == -ENOENT );
+  REQUIRE( fs->unlink("Testing purpose", "/test") == -ENOENT );
+
+  REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+  REQUIRE( read_directory(META_DIR).size() == 1 );
+
+  free(uuid);
+  delete fs;
+}
+
 // TEST_CASE( "2: Filesystem can create and delete file", "[multi-file:filesystem]" ) {
 //   User *user = _create_user();
 //   FileSystem *fs = _create_fs(user);
@@ -80,15 +86,15 @@ static string AUDIT_DIR = "/tmp/nexus_tests/audits";
 //   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
 //   REQUIRE( read_directory(META_DIR).size() == 2 );
 //   REQUIRE( read_directory(AUDIT_DIR).size() == 2 );
-//
-//   REQUIRE( fs->unlink("Testing purpose", "/test") == 0 );
-//   REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
-//   REQUIRE( read_directory(META_DIR).size() == 1 );
-//   REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
-//
+
+  // REQUIRE( fs->unlink("Testing purpose", "/test") == 0 );
+  // REQUIRE( read_directory(CONTENT_DIR).size() == 0 );
+  // REQUIRE( read_directory(META_DIR).size() == 1 );
+  // REQUIRE( read_directory(AUDIT_DIR).size() == 1 );
+
 //   delete fs;
 // }
-//
+
 // TEST_CASE( "3.a: Filesystem can write and read file", "[multi-file:filesystem]" ) {
 //   for (int block_size = 10; block_size < 20; block_size+=2) {
 //     User *user = _create_user();
