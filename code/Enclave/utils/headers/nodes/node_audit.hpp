@@ -11,11 +11,9 @@ using namespace std;
 
 class NodeAudit: public Metadata {
   public:
+    string reason;
     NodeAudit(string reason, lauxus_gcm_t *audit_root_key);
     NodeAudit(lauxus_gcm_t *audit_root_key);
-
-  private:
-    string reason;
 
   protected:
     size_t p_preamble_size();
