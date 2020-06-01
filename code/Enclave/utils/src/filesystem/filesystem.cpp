@@ -22,9 +22,14 @@ FileSystem::~FileSystem() {
   free(this->audit_root_key);
 
   for (auto it = this->loaded_node->begin(); it != this->loaded_node->end(); ++it)
-    delete it->second;
+    if (it->second->type == LAUXUS_FILENODE)
+      delete (Filenode*)it->second;
+    else if (it->second->type == LAUXUS_FILENODE)
+      delete (Dirnode*)it->second;
+
   delete this->loaded_node;
   delete this->supernode;
+  delete this->current_user;
 }
 
 
@@ -250,7 +255,10 @@ vector<string> FileSystem::readdir(const string &path) {
         children->has_user_rights(lauxus_read_right(), this->current_user) ||
         children->has_user_rights(lauxus_write_right(), this->current_user))
       entries.push_back(children->relative_path);
-    delete children;
+    if (children->type == LAUXUS_FILENODE)
+      delete (Filenode*)children;
+    else if (children->type == LAUXUS_DIRNODE)
+      delete (Dirnode*)children;
   }
 
   parent->update_atime();

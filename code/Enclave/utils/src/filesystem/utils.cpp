@@ -37,7 +37,10 @@ void FileSystem::free_node(const string &path) {
   if (this->supernode->relative_path.compare(path) != 0) {
     auto it = this->loaded_node->find(path);
     if (it != this->loaded_node->end()) {
-      delete it->second;
+      if (it->second->type == LAUXUS_FILENODE)
+        delete (Filenode*)it->second;
+      else if (it->second->type == LAUXUS_FILENODE)
+        delete (Dirnode*)it->second;
       this->loaded_node->erase(it);
     }
   }
