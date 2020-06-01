@@ -32,6 +32,8 @@ echo "[LAUXUS] Per offset write position ..."
 python3 benchmark.py PER_OFFSET_WRITE LAUXUS
 echo "[LAUXUS] Per folder depth ..."
 python3 benchmark.py PER_FOLDER_DEPTH LAUXUS
+echo "[LAUXUS] Per file size small write ..."
+python3 benchmark.py PER_FILE_SIZE_SMALL_WRITE LAUXUS
 
 echo "====================== NOTHING ======================"
 deactivate_FUSE
@@ -45,7 +47,9 @@ echo "[NOTHING] Per offset write position ..."
 python3 benchmark.py PER_OFFSET_WRITE NOTHING
 echo "[NOTHING] Per folder depth ..."
 python3 benchmark.py PER_FOLDER_DEPTH NOTHING
+echo "[NOTHING] Per file size small write ..."
+python3 benchmark.py PER_FILE_SIZE_SMALL_WRITE NOTHING
 
 
 echo "Cleaning ..."
-rm $mount_dir/*
+rm -rf $mount_dir/*
