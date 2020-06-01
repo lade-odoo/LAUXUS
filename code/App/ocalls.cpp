@@ -46,5 +46,6 @@ int EMUL_API ocall_file_size(const char *dir, const lauxus_uuid_t *u_uuid) {
 
 int EMUL_API ocall_delete_from_dir(const char *dir, const lauxus_uuid_t *u_uuid) {
   string path(dir); path.append("/"); path.append(u_uuid->v);
-  return remove((char*)path.c_str());
+  remove((char*)path.c_str());
+  return 0;
 }

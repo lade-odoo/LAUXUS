@@ -33,8 +33,8 @@ void User::set_auditor() {
 
 bool User::equals(User *other) {
   return this->name.compare(other->name) == 0 &&
-      memcmp(this->u_uuid, other->u_uuid, sizeof(lauxus_uuid_t)) &&
-      memcmp(this->pk_u, other->pk_u, sizeof(sgx_ec256_public_t));
+      memcmp(this->u_uuid->v, other->u_uuid->v, sizeof(lauxus_uuid_t)) == 0 &&
+      memcmp(this->pk_u, other->pk_u, sizeof(sgx_ec256_public_t)) == 0;
 }
 
 

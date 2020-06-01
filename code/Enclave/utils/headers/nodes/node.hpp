@@ -4,7 +4,6 @@
 #include "../../../../flag.h"
 #if EMULATING
 #   include "../../../../tests/SGX_Emulator/sgx_trts.hpp"
-// #   include "../../../../tests/SGX_Emulator/Enclave_t.hpp"
 #else
 #   include "sgx_trts.h"
 #   include "../../../../Enclave/Enclave_t.h"

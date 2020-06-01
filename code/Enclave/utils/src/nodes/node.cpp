@@ -213,7 +213,7 @@ int Node::p_load_sensitive(const size_t buffer_size, const uint8_t *buffer) {
     size_t entries_len = 0;
     memcpy(&entries_len, buffer+read, sizeof(size_t)); read += sizeof(size_t);
     for (int i = 0; i < entries_len; i++) {
-      int path_len = 0; string relative_path="";
+      size_t path_len = 0; string relative_path="";
       lauxus_uuid_t *uuid = (lauxus_uuid_t*) malloc(sizeof(lauxus_uuid_t));
 
       memcpy(&path_len, buffer+read, sizeof(size_t)); read += sizeof(size_t);
