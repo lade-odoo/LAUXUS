@@ -106,6 +106,14 @@ int FileSystem::e_write_file_to_disk(Filenode *node, const long up_offset, const
   return e_size;
 }
 
+int FileSystem::e_truncate_file_to_disk(Filenode *node, const long new_size) {
+  int ret;
+  if (ocall_truncate_file_in_dir(&ret, (char*)this->CONTENT_DIR.c_str(), node->n_uuid, new_size) != SGX_SUCCESS || ret < 0)
+    return -EPROTO;
+
+  return 0;
+}
+
 int FileSystem::e_append_audit_to_disk(Node *node, const string &reason) {
   NodeAudit audit(reason, this->audit_root_key);
 

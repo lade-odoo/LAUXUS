@@ -54,6 +54,7 @@ class FileSystem {
     int create_file(const string &reason, const string &filepath);
     int read_file(const string &reason, const string &filepath, const long offset, const size_t buffer_size, uint8_t *buffer);
     int write_file(const string &reason, const string &filepath, const long offset, const size_t data_size, const uint8_t *data);
+    int truncate_file(const string &filepath, const long new_size);
     int unlink(const string &reason, const string &filepath);
 
     int open_directory(const string &dirpath, const int asked_rights);
@@ -83,6 +84,7 @@ class FileSystem {
 
     // writing to file and appending
     int e_write_file_to_disk(Filenode *node, const long up_offset, const size_t up_size);
+    int e_truncate_file_to_disk(Filenode *node, const long new_size);
     int e_append_audit_to_disk(Node *node, const string &reason);
 
     // deleting from disk

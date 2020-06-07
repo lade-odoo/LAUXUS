@@ -165,7 +165,7 @@ int fuse_truncate(const char *filepath, off_t offset) {
   // if (!is_ecall_successful(sgx_status, "[SGX] Fail to check entry type !") || ret != EEXIST)
   //   return -EPROTO;
 
-  sgx_status_t sgx_status = sgx_truncate_file(ENCLAVE_ID, &ret, (char*)path.c_str());
+  sgx_status_t sgx_status = sgx_truncate_file(ENCLAVE_ID, &ret, (char*)path.c_str(), (long)offset);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to truncate file !"))
     return -EPROTO;
 

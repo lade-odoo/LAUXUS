@@ -32,6 +32,21 @@ bool Filenode::equals(Filenode *other) {
 }
 
 
+int Filenode::truncate_keys(int new_size) {
+  // only when new size smaller ATM
+  if (new_size > this->content->size)
+    return -1;
+  this->content->size = new_size;
+
+  map<string, size_t> block_required = FilenodeContent::block_required(this->content->block_size, 0, new_size);
+  for (size_t index=this->aes_ctr_ctxs->size()-1; index > block_required["end_block"]; index--) {
+    lauxus_ctr_t *ctx = this->aes_ctr_ctxs->find(index)->second;
+    this->aes_ctr_ctxs->erase(this->aes_ctr_ctxs->find(index));
+    free(ctx);
+  }
+}
+
+
 size_t Filenode::p_preamble_size() {
   return Node::p_preamble_size() + sizeof(size_t);
 }

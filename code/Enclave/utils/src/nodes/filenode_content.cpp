@@ -169,8 +169,10 @@ int FilenodeContent::decrypt_block(const size_t block_index) {
 // Static functions
 map<string, size_t> FilenodeContent::block_required(const size_t block_size, const long offset, const size_t length) {
   map<string, size_t> result;
-  result["start_block"] = (int)(offset/block_size);
-  result["end_block"] = (int)((offset+length-1)/block_size);
+  result["start_block"] = (size_t)(offset/block_size);
+  result["end_block"] = (size_t)((offset+length-1)/block_size);
+  if (offset+length < 1)
+    result["end_block"] = 0;
   result["offset_in_block"] = offset%block_size;
   return result;
 }

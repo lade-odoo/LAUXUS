@@ -203,6 +203,27 @@ err:
   return -EPROTO;
 }
 
+int FileSystem::truncate_file(const string &filepath, const long new_size) {
+  Filenode *node = dynamic_cast<Filenode*>(this->retrieve_node(filepath));
+  if (node == NULL)
+    return -ENOENT;
+  if (!node->has_user_rights(lauxus_write_right(), this->current_user))
+    return -EACCES;
+
+  if (node->truncate_keys(new_size) < 0)
+    return -EPROTO;
+
+  node->update_mtime(); node->update_ctime();
+  if (e_write_meta_to_disk(node) < 0 ||
+      e_truncate_file_to_disk(node, new_size) < 0)
+    goto err;
+
+  return 0;
+
+err:
+  return -EPROTO;
+}
+
 int FileSystem::unlink(const string &reason, const string &filepath) {
   string parent_path = sgx_get_directory_path(filepath);
   string relative_path = sgx_get_relative_path(filepath);

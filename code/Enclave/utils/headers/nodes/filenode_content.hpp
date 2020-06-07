@@ -14,6 +14,7 @@ using namespace std;
 class FilenodeContent {
   public:
     size_t size = 0;
+    size_t block_size;
 
     FilenodeContent(size_t block_size, map<size_t, lauxus_ctr_t*> *aes_ctr_ctxs);
     ~FilenodeContent();
@@ -31,7 +32,6 @@ class FilenodeContent {
     static map<string, size_t> block_required(const size_t block_size, const long offset, const size_t length);
 
   private:
-    size_t block_size;
     map<size_t, vector<uint8_t>> *plain, *cipher;
     map<size_t, lauxus_ctr_t*> *aes_ctr_ctxs;
 
