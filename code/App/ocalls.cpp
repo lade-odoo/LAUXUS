@@ -21,6 +21,10 @@ int EMUL_API ocall_dump_in_dir(const char *dir, const lauxus_uuid_t *n_uuid, siz
   string path(dir); path.append("/"); path.append(n_uuid->v);
   return dump(path, size, content);
 }
+int EMUL_API ocall_dump_trunc_in_dir(const char *dir, const lauxus_uuid_t *n_uuid, size_t size, const uint8_t *content) {
+  string path(dir); path.append("/"); path.append(n_uuid->v);
+  return dump_trunc(path, size, content);
+}
 int EMUL_API ocall_dump_append_in_dir(const char *dir, const lauxus_uuid_t *n_uuid, size_t size, const uint8_t *content) {
   string path(dir); path.append("/"); path.append(n_uuid->v);
   return dump_append(path, size, content);

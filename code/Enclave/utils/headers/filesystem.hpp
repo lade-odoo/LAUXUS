@@ -64,7 +64,7 @@ class FileSystem {
     int rm_directory(const string &reason, const string &dirpath);
 
 
-    int e_write_meta_to_disk(Node *node);
+    int e_write_meta_to_disk(Node *node, bool trunc=false);
 
   private:
     map<string, Node*> *loaded_node;

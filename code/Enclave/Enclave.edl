@@ -56,6 +56,7 @@ enclave {
 
     int ocall_dump([in, string] const char *path, size_t size, [in, size=size] const uint8_t *content);
     int ocall_dump_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, size_t size, [in, size=size] const uint8_t *content);
+    int ocall_dump_trunc_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, size_t size, [in, size=size] const uint8_t *content);
     int ocall_dump_append_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, size_t size, [in, size=size] const uint8_t *content);
     int ocall_dump_with_offset_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, long offset, size_t size, [in, size=size] const uint8_t *content);
     int ocall_truncate_file_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, long new_size);

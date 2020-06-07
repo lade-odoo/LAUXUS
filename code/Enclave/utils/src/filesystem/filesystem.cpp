@@ -261,7 +261,7 @@ int FileSystem::truncate_file(const string &filepath, const long new_size) {
     return -EPROTO;
 
   node->update_mtime(); node->update_ctime();
-  if (e_write_meta_to_disk(node) < 0 ||
+  if (e_write_meta_to_disk(node, true) < 0 ||
       e_truncate_file_to_disk(node, new_size) < 0)
     goto err;
 

@@ -75,7 +75,7 @@ int FileSystem::e_load_fileblocks_from_disk(const lauxus_uuid_t *n_uuid, const s
 }
 
 
-int FileSystem::e_write_meta_to_disk(Node *node) {
+int FileSystem::e_write_meta_to_disk(Node *node, bool trunc) {
   node->update_crypto_ctx();
 
   // dump and encrypt metadata content
@@ -85,8 +85,13 @@ int FileSystem::e_write_meta_to_disk(Node *node) {
 
   // save metadata content
   int ret;
-  if (ocall_dump_in_dir(&ret, (char*)this->META_DIR.c_str(), node->n_uuid, e_size, cypher) != SGX_SUCCESS || ret < 0)
-    return -EPROTO;
+  if (trunc) {
+    if (ocall_dump_trunc_in_dir(&ret, (char*)this->META_DIR.c_str(), node->n_uuid, e_size, cypher) != SGX_SUCCESS || ret < 0)
+      return -EPROTO;
+  } else {
+    if (ocall_dump_in_dir(&ret, (char*)this->META_DIR.c_str(), node->n_uuid, e_size, cypher) != SGX_SUCCESS || ret < 0)
+      return -EPROTO;
+  }
 
   return e_size;
 }

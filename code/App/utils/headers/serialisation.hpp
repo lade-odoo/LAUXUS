@@ -15,6 +15,7 @@ int load_with_offset(string &path, long offset, size_t size, uint8_t *content);
 
 int dump(string &path, size_t size, const uint8_t *content);
 int dump_append(string &path, size_t size, const uint8_t *content);
+int dump_trunc(string &path, size_t size, const uint8_t *content);
 int dump_with_offset(string &path, long offset, size_t size, const uint8_t *content);
 int truncate_file(string &path, const long new_size);
 

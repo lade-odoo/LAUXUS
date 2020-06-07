@@ -21,6 +21,12 @@ int load_with_offset(string &path, long offset, size_t size, uint8_t *content) {
 
 
 int dump(string &path, size_t size, const uint8_t *content) {
+  return dump_with_offset(path, 0, size, content);
+}
+int dump_append(string &path, size_t size, const uint8_t *content) {
+  return dump_with_offset(path, file_size(path), size, content);
+}
+int dump_trunc(string &path, size_t size, const uint8_t *content) {
   ofstream stream(path, ios::out | ios::binary | ios::trunc);
   if (stream.is_open()) {
     stream.write((char*)content, size);
@@ -28,9 +34,6 @@ int dump(string &path, size_t size, const uint8_t *content) {
     return size;
   }
   return -1;
-}
-int dump_append(string &path, size_t size, const uint8_t *content) {
-  return dump_with_offset(path, file_size(path), size, content);
 }
 int dump_with_offset(string &path, long offset, size_t size, const uint8_t *content) {
   if (file_size(path) == 0) {
