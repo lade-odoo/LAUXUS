@@ -183,6 +183,12 @@ int EMUL_EAPI sgx_get_times(const char *path, time_t *atime, time_t *mtime, time
   return FILE_SYSTEM->get_times(path, atime, mtime, ctime);
 }
 
+int EMUL_EAPI sgx_rename(const char *old_path, const char *new_path) {
+  if (FILE_SYSTEM == NULL || FILE_SYSTEM->current_user == NULL)
+    return -EACCES;
+  return FILE_SYSTEM->rename(old_path, new_path);
+}
+
 
 int EMUL_EAPI sgx_file_size(const char *filepath) {
   if (FILE_SYSTEM == NULL || FILE_SYSTEM->current_user == NULL)

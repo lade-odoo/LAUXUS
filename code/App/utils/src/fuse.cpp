@@ -63,6 +63,17 @@ int fuse_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *)
   return fuse_getattr(path, stbuf);
 }
 
+int fuse_rename(const char *old_path, const char *new_path) {
+  string cleaned_old_path = clean_path(old_path);
+  string cleaned_new_path = clean_path(new_path);
+  int ret;
+
+  sgx_status_t sgx_status = sgx_rename(ENCLAVE_ID, &ret, (char*)cleaned_old_path.c_str(), (char*)cleaned_new_path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to rename !"))
+    return -EPROTO;
+  return ret;
+}
+
 
 int fuse_open(const char *filepath, struct fuse_file_info *fi) {
   string path = clean_path(filepath);

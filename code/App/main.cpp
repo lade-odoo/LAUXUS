@@ -29,6 +29,8 @@ void setup_fuse() {
 
   lauxus_oper.getattr = fuse_getattr;
   lauxus_oper.fgetattr = fuse_fgetattr;
+  lauxus_oper.rename = fuse_rename;
+
   lauxus_oper.open = fuse_open;
   lauxus_oper.release = fuse_release;
   lauxus_oper.create = fuse_create;

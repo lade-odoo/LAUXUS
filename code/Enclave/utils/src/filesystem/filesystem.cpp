@@ -91,6 +91,53 @@ int FileSystem::get_times(const string &path, time_t *atime, time_t *mtime, time
   return 0;
 }
 
+int FileSystem::rename(const string &old_path, const string &new_path) {
+  string old_parent_path = sgx_get_directory_path(old_path);
+  string new_parent_path = sgx_get_directory_path(new_path);
+  string old_relative_path = sgx_get_relative_path(old_path);
+  string new_relative_path = sgx_get_relative_path(new_path);
+  if (old_parent_path.compare(new_parent_path) != 0)
+    return -EPROTO;
+
+  Node *parent = this->retrieve_node(old_parent_path);
+  if (parent == NULL)
+    return -ENOENT;
+
+  Node *new_child = this->retrieve_node(new_path);
+  if (new_child != NULL) {
+    this->free_node(new_relative_path);
+    return -EEXIST;
+  }
+
+  auto it = parent->node_entries->find(old_relative_path);
+  if (it == parent->node_entries->end()) {
+    this->free_node(old_parent_path);
+    return -ENOENT;
+  }
+
+  Node *children = this->load_metadata(it->second);
+  if (children == NULL) {
+    this->free_node(old_parent_path);
+    return -ENOENT;
+  }
+
+  lauxus_uuid_t *n_uuid = parent->node_entries->find(old_relative_path)->second;
+  parent->node_entries->erase(old_relative_path);
+  parent->node_entries->insert(pair<string, lauxus_uuid_t*>(new_relative_path, n_uuid));
+
+  children->relative_path = new_relative_path;
+  if (e_write_meta_to_disk(parent) < 0 ||
+      e_write_meta_to_disk(children) < 0) {
+    this->free_node(old_parent_path);
+    delete children;
+    return -EPROTO;
+  }
+
+  this->free_node(old_parent_path);
+  delete children;
+  return 0;
+}
+
 
 int FileSystem::file_size(const string &filepath) {
   Filenode *node = dynamic_cast<Filenode*>(this->retrieve_node(filepath));

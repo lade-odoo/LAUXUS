@@ -36,6 +36,8 @@ void fuse_destroy(void* private_data);
 int fuse_getattr(const char *path, struct stat *stbuf);
 int fuse_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *);
 
+int fuse_rename(const char *path, const char *new_path);
+
 int fuse_open(const char *filepath, struct fuse_file_info *fi);
 int fuse_release(const char *filepath, struct fuse_file_info *fi);
 int fuse_create(const char *filepath, mode_t mode, struct fuse_file_info *);

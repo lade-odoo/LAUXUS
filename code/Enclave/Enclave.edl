@@ -34,6 +34,8 @@ enclave {
     public int sgx_entry_type([in, string] const char *path);
     public int sgx_get_times([in, string] const char *path, [out] time_t *atime, [out] time_t *mtime, [out] time_t *ctime);
 
+    public int sgx_rename([in, string] const char *old_path, [in, string] const char *new_path);
+
     public int sgx_file_size([in, string] const char *filepath);
     public int sgx_open_file([in, string] const char *filepath, lauxus_right_t asked_rights);
     public int sgx_close_file([in, string] const char *filepath);

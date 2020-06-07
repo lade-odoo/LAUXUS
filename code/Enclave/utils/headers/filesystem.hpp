@@ -47,6 +47,7 @@ class FileSystem {
 
     int entry_type(const string &path);
     int get_times(const string &path, time_t *atime, time_t *mtime, time_t *ctime);
+    int rename(const string &old_path, const string &new_path);
 
     int file_size(const string &filepath);
     int open_file(const string &filepath, const lauxus_right_t asked_rights);
