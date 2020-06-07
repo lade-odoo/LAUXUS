@@ -32,7 +32,7 @@ bool Filenode::equals(Filenode *other) {
 }
 
 
-int Filenode::truncate_keys(int new_size) {
+int Filenode::truncate_keys(size_t new_size) {
   // only when new size smaller ATM
   if (new_size > this->content->size)
     return -1;
@@ -44,6 +44,7 @@ int Filenode::truncate_keys(int new_size) {
     this->aes_ctr_ctxs->erase(this->aes_ctr_ctxs->find(index));
     free(ctx);
   }
+  return 0;
 }
 
 
@@ -107,7 +108,7 @@ int Filenode::p_load_sensitive(const size_t buffer_size, const uint8_t *buffer) 
 
   size_t keys_len = 0;
   memcpy(&keys_len, buffer+read, sizeof(size_t)); read += sizeof(size_t);
-  for (int i = 0; i < keys_len; i++) {
+  for (size_t i = 0; i < keys_len; i++) {
     lauxus_ctr_t *context = (lauxus_ctr_t*) malloc(sizeof(lauxus_ctr_t));
     memcpy(context, buffer+read, sizeof(lauxus_ctr_t));
     read += sizeof(lauxus_ctr_t);

@@ -22,10 +22,7 @@ FileSystem::~FileSystem() {
   free(this->audit_root_key);
 
   for (auto it = this->loaded_node->begin(); it != this->loaded_node->end(); ++it)
-    if (it->second->type == LAUXUS_FILENODE)
-      delete (Filenode*)it->second;
-    else if (it->second->type == LAUXUS_FILENODE)
-      delete (Dirnode*)it->second;
+    delete_node(it->second);
 
   delete this->loaded_node;
   delete this->supernode;
@@ -127,15 +124,17 @@ int FileSystem::rename(const string &old_path, const string &new_path) {
 
   children->relative_path = new_relative_path;
   if (e_write_meta_to_disk(parent) < 0 ||
-      e_write_meta_to_disk(children) < 0) {
-    this->free_node(old_parent_path);
-    delete children;
-    return -EPROTO;
-  }
+      e_write_meta_to_disk(children) < 0)
+    goto err;
 
   this->free_node(old_parent_path);
-  delete children;
+  delete_node(children);
   return 0;
+
+err:
+  delete_node(children);
+  this->free_node(old_parent_path);
+  return -EPROTO;
 }
 
 
@@ -207,16 +206,29 @@ int FileSystem::read_file(const string &reason, const string &filepath, const lo
   if (!node->has_user_rights(lauxus_read_right(), this->current_user))
     return -EACCES;
 
-  if (e_append_audit_to_disk(node, reason) < 0 ||
-      this->load_content(node, offset, buffer_size) < 0)
+  size_t loaded = 0;
+  if (e_append_audit_to_disk(node, reason) < 0)
     goto err;
+
+  // must load one block at a time otherwise not enough memory to load all
+  while (loaded < buffer_size) {
+    int step = -1;
+    size_t to_load = (loaded+this->block_size > buffer_size) ? buffer_size-loaded : this->block_size;
+    if (this->load_content(node, offset+loaded, to_load) < 0)
+      goto err;
+    step = node->content->read(offset+loaded, to_load, buffer+loaded);
+    if (step < 0)
+      goto err;
+    node->content->free_loaded();
+    loaded += step;
+    if (step < this->block_size)
+      break;
+  }
 
   node->update_atime();
   if (e_write_meta_to_disk(node) < 0)
     goto err;
-  ret = node->content->read(offset, buffer_size, buffer);
-  node->content->free_loaded();
-  return ret;
+  return loaded;
 
 err:
   return -EPROTO;
@@ -288,7 +300,7 @@ int FileSystem::unlink(const string &reason, const string &filepath) {
   if (children == NULL)
     return -ENOENT;
   if (!children->has_user_rights(lauxus_owner_right(), this->current_user)) {
-    delete children;
+    delete_node(children);
     this->free_node(parent_path);
     return -EACCES;
   }
@@ -301,13 +313,13 @@ int FileSystem::unlink(const string &reason, const string &filepath) {
       e_write_meta_to_disk(parent) < 0)
     goto err;
 
-  delete children;
+  delete_node(children);
   this->free_node(filepath);
   this->free_node(parent_path);
   return 0;
 
 err:
-  delete children;
+  delete_node(children);
   this->free_node(parent_path);
   return -EPROTO;
 }
@@ -323,10 +335,7 @@ vector<string> FileSystem::readdir(const string &path) {
         children->has_user_rights(lauxus_read_right(), this->current_user) ||
         children->has_user_rights(lauxus_write_right(), this->current_user))
       entries.push_back(children->relative_path);
-    if (children->type == LAUXUS_FILENODE)
-      delete (Filenode*)children;
-    else if (children->type == LAUXUS_DIRNODE)
-      delete (Dirnode*)children;
+    delete_node(children);
   }
 
   parent->update_atime();
@@ -361,12 +370,12 @@ int FileSystem::create_directory(const string &reason, const string &dirpath) {
       e_write_meta_to_disk(dirnode) < 0)
     goto err;
 
-  delete dirnode;
+  delete_node(dirnode);
   this->free_node(parent_path);
   return 0;
 
 err:
-  delete dirnode;
+  delete_node(dirnode);
   this->free_node(parent_path);
   return -EPROTO;
 }
@@ -390,12 +399,12 @@ int FileSystem::rm_directory(const string &reason, const string &dirpath) {
     return -ENOENT;
   }
   if (!children->has_user_rights(lauxus_owner_right(), this->current_user)) {
-    delete children; // not loaded with retrieve_node -> not listed in loaded nodes
+    delete_node(children);
     this->free_node(parent_path);
     return -EACCES;
   }
   if (children->node_entries->size() != 0) {
-    delete children; // not loaded with retrieve_node -> not listed in loaded nodes
+    delete_node(children);
     this->free_node(parent_path);
     return -ENOTEMPTY;
   }
@@ -408,12 +417,12 @@ int FileSystem::rm_directory(const string &reason, const string &dirpath) {
       delete_from_disk(children, META_DIR) < 0)
     goto err;
 
-  delete children;
+  delete_node(children);
   this->free_node(parent_path);
   return 0;
 
 err:
-  delete children;
+  delete_node(children);
   this->free_node(parent_path);
   return -EPROTO;
 }

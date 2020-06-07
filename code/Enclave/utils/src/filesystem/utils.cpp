@@ -28,7 +28,7 @@ Node *FileSystem::_retrieve_node(Node *parent, const string &path) {
     if (children == NULL)
       return NULL;
     if (parent->type != LAUXUS_SUPERNODE)
-      delete parent; // only freeing dirnode
+      delete_node(parent); // only freeing dirnode
     return this->_retrieve_node(children, child_path);
   }
 }
@@ -37,11 +37,14 @@ void FileSystem::free_node(const string &path) {
   if (this->supernode->relative_path.compare(path) != 0) {
     auto it = this->loaded_node->find(path);
     if (it != this->loaded_node->end()) {
-      if (it->second->type == LAUXUS_FILENODE)
-        delete (Filenode*)it->second;
-      else if (it->second->type == LAUXUS_FILENODE)
-        delete (Dirnode*)it->second;
+      delete_node(it->second);
       this->loaded_node->erase(it);
     }
   }
+}
+void FileSystem::delete_node(Node *node) {
+  if (node->type == LAUXUS_FILENODE)
+    delete (Filenode*) node;
+  else if (node->type == LAUXUS_DIRNODE)
+    delete (Dirnode*) node;
 }

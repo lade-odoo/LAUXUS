@@ -21,7 +21,7 @@ using namespace std;
 class Metadata {
   public:
     Metadata(lauxus_gcm_t *root_key);
-    ~Metadata();
+    virtual ~Metadata();
 
     size_t e_size();
     int e_dump(const size_t buffer_size, uint8_t *buffer);

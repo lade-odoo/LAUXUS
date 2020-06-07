@@ -74,6 +74,7 @@ class FileSystem {
     Node* retrieve_node(const string &path);
     Node* _retrieve_node(Node *parent, const string &path);
     void free_node(const string &path);
+    void delete_node(Node *node);
 
     // loading metadata
     Node* load_metadata(const lauxus_uuid_t *n_uuid);

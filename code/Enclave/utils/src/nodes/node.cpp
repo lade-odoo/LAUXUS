@@ -212,7 +212,7 @@ int Node::p_load_sensitive(const size_t buffer_size, const uint8_t *buffer) {
   if (this->type != LAUXUS_FILENODE) {
     size_t entries_len = 0;
     memcpy(&entries_len, buffer+read, sizeof(size_t)); read += sizeof(size_t);
-    for (int i = 0; i < entries_len; i++) {
+    for (size_t i = 0; i < entries_len; i++) {
       size_t path_len = 0; string relative_path="";
       lauxus_uuid_t *uuid = (lauxus_uuid_t*) malloc(sizeof(lauxus_uuid_t));
 
@@ -226,7 +226,7 @@ int Node::p_load_sensitive(const size_t buffer_size, const uint8_t *buffer) {
 
   size_t entitlements_len = 0;
   memcpy(&entitlements_len, buffer+read, sizeof(size_t)); read += sizeof(size_t);
-  for (int i = 0; i < entitlements_len; i++) {
+  for (size_t i = 0; i < entitlements_len; i++) {
     lauxus_uuid_t uuid = {0};
     lauxus_right_t rights = {0};
 
@@ -240,9 +240,9 @@ int Node::p_load_sensitive(const size_t buffer_size, const uint8_t *buffer) {
 }
 
 
-int Node::update_atime() { update_time(&(this->atime)); }
-int Node::update_mtime() { update_time(&(this->mtime)); }
-int Node::update_ctime() { update_time(&(this->ctime)); }
+int Node::update_atime() { return update_time(&(this->atime)); }
+int Node::update_mtime() { return update_time(&(this->mtime)); }
+int Node::update_ctime() { return update_time(&(this->ctime)); }
 int Node::update_time(time_t *time) {
   int ret;
   if (ocall_get_current_time(&ret, time) != SGX_SUCCESS)

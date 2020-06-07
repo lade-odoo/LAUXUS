@@ -22,7 +22,7 @@ class Filenode: public Node {
 
     bool equals(Filenode *other);
 
-    int truncate_keys(int new_size);
+    int truncate_keys(size_t new_size);
 
   private:
     map<size_t, lauxus_ctr_t*> *aes_ctr_ctxs; // block_index - key

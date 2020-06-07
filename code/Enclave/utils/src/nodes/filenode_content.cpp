@@ -10,6 +10,7 @@ FilenodeContent::FilenodeContent(size_t block_size, map<size_t, lauxus_ctr_t*> *
 }
 
 FilenodeContent::~FilenodeContent() {
+  this->plain->clear(); this->cipher->clear();
   delete this->plain;
   delete this->cipher;
 }

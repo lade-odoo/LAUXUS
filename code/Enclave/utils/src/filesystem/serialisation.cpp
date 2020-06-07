@@ -30,7 +30,7 @@ int FileSystem::e_load_meta_from_disk(const lauxus_uuid_t *n_uuid, uint8_t **buf
     return -EPROTO;
 
   size_t buffer_size = ret;
-  *buffer = new uint8_t[buffer_size];
+  *buffer = (uint8_t*) malloc(buffer_size);
   if (ocall_load_file(&ret, (char*)this->META_DIR.c_str(), n_uuid, 0, buffer_size, *buffer) != SGX_SUCCESS || ret < 0)
     return -EPROTO;
 
@@ -67,7 +67,7 @@ int FileSystem::e_load_fileblocks_from_disk(const lauxus_uuid_t *n_uuid, const s
 
   if (length == 0)
     return 0;
-  *buffer = new uint8_t[length];
+  *buffer = (uint8_t*) malloc(length);
   if (ocall_load_file(&ret, (char*)this->CONTENT_DIR.c_str(), n_uuid, offset, length, *buffer) != SGX_SUCCESS || ret < 0)
     return -EPROTO;
 

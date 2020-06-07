@@ -127,7 +127,7 @@ int Metadata::e_load_crypto(const size_t buffer_size, const uint8_t *buffer) {
   size_t plain_size = sizeof(lauxus_gcm_t);
   uint8_t plain[plain_size];
   int decrypted = lauxus_gcm_decrypt(this->root_key, buffer+read, cypher_size, NULL, 0, plain);
-  if (decrypted != cypher_size)
+  if ((size_t)decrypted != cypher_size)
     return -1;
   read += decrypted;
 
@@ -183,7 +183,7 @@ int Metadata::e_load_sensitive(const size_t buffer_size, const uint8_t *buffer) 
     return -1;
 
   int decrypted = lauxus_gcm_decrypt(this->aes_gcm_ctx, buffer+read, cypher_size, aad, aad_size, plain);
-  if (decrypted != cypher_size)
+  if ((size_t)decrypted != cypher_size)
     return -1;
   read += decrypted;
 

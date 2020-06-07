@@ -67,7 +67,7 @@ int Supernode::p_load_sensitive(const size_t buffer_size, const uint8_t *buffer)
 
   size_t users_len = 0;
   memcpy(&users_len, buffer+read, sizeof(size_t)); read += sizeof(size_t);
-  for (int i = 0; i < users_len; i++) {
+  for (size_t i = 0; i < users_len; i++) {
     User *user = new User();
     int step = user->load(buffer_size-read, buffer+read);
     if (step < 0)
