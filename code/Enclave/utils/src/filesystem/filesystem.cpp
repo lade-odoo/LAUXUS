@@ -25,8 +25,7 @@ FileSystem::~FileSystem() {
     delete_node(it->second);
 
   delete this->loaded_node;
-  delete this->supernode;
-  delete this->current_user;
+  delete this->supernode; // current user freed here
 }
 
 

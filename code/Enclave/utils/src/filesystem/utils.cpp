@@ -44,7 +44,7 @@ void FileSystem::free_node(const string &path) {
 }
 void FileSystem::delete_node(Node *node) {
   if (node->type == LAUXUS_FILENODE)
-    delete (Filenode*) node;
+    delete dynamic_cast<Filenode*>(node);
   else if (node->type == LAUXUS_DIRNODE)
-    delete (Dirnode*) node;
+    delete dynamic_cast<Dirnode*>(node);
 }
