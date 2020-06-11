@@ -145,6 +145,40 @@ int lauxus_create_quote(string sk_u_path, string sk_eu_path, string pk_eu_path, 
   return 0;
 }
 
+sgx_ec256_public_t *lauxus_verify_quote(string pk_u_path, string user_uuid) {
+  string quotepath(QUOTE_DIR); quotepath.append("/"); quotepath.append(user_uuid); quotepath.append("/quote");
+  int quote_size = file_size(quotepath);
+  if (quote_size < 0)
+    return NULL;
+
+  uint8_t buffer[quote_size];
+  if (load(quotepath, quote_size, buffer) < 0)
+    return NULL;
+
+  sgx_ec256_public_t pk_u;
+  if (load(pk_u_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_u) < 0)
+    return NULL;
+
+  sgx_ec256_signature_t signature;
+  size_t b64_quote_size = quote_size-sizeof(sgx_ec256_signature_t);
+  uint8_t b64_quote[b64_quote_size];
+  memcpy(&signature, buffer, sizeof(sgx_ec256_signature_t));
+  memcpy(b64_quote, buffer+sizeof(sgx_ec256_signature_t), b64_quote_size);
+
+  // check signature
+  int ret = -1;
+  sgx_status_t sgx_status = sgx_validate_signature(ENCLAVE_ID, &ret, b64_quote_size, b64_quote, &pk_u, &signature);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to validate the quote signature !", ret))
+    return NULL;
+
+  // verify quote
+  sgx_ec256_public_t *pk_eo = sgx_verify_quote(b64_quote_size, b64_quote); // pk of the enclave of the other user
+  if (pk_eo == NULL)
+    return NULL;
+
+  return 0;
+}
+
 
 int lauxus_new_keys(string sk_u_path, string pk_u_path) {
   init_enclave();

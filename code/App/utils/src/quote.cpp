@@ -34,3 +34,63 @@ sgx_quote_t* sgx_generate_quote(const sgx_ec256_public_t *pk_eu, uint32_t *quote
 
   return quote;
 }
+
+sgx_ec256_public_t *sgx_verify_quote(uint32_t b64_quote_size, const uint8_t *b64_quote) {
+  string str_b64_quote((char*)b64_quote);
+  CURL *ch;
+  CURLcode rcode;
+  json_object *json;
+  enum json_tokener_error jerr = json_tokener_success;
+
+  struct curl_fetch_st curl_fetch;
+  struct curl_fetch_st *cf = &curl_fetch;
+  struct curl_slist *headers = NULL;
+
+  if ((ch = curl_easy_init()) == NULL)
+    return NULL;
+
+  headers = curl_slist_append(headers, "Accept: application/json");
+  headers = curl_slist_append(headers, "Content-Type: application/json");
+  headers = curl_slist_append(headers, "Ocp-Apim-Subscription-Key: 783ce5d88b6647d2a69db3f5bd6234db");
+
+  json = json_object_new_object();
+  json_object_object_add(json, "isvEnclaveQuote", json_object_new_string(str_b64_quote.c_str()));
+
+  curl_easy_setopt(ch, CURLOPT_CUSTOMREQUEST, "POST");
+  curl_easy_setopt(ch, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(ch, CURLOPT_POSTFIELDS, json_object_to_json_string(json));
+
+  rcode = curl_fetch_url(ch, QUOTE_VERIFY_URL.c_str(), cf);
+  curl_easy_cleanup(ch);
+  curl_slist_free_all(headers);
+  json_object_put(json);
+
+  // check CURL errors
+  if (rcode != CURLE_OK || cf->size < 1 || cf->payload == NULL)
+    return NULL;
+
+  // Parse response to JSON
+  json = json_tokener_parse_verbose(cf->payload, &jerr);
+  free(cf->payload);
+  if (jerr != json_tokener_success)
+    return NULL;
+  else if (lookup_json(json, "statusCode") != NULL || lookup_json(json, "isvEnclaveQuoteBody") == NULL)
+    return NULL;
+
+
+  // Retrieve pk_eu from inside the enclave
+  const char *b64_quoteBody = json_object_get_string(lookup_json(json, "isvEnclaveQuoteBody"));
+
+  // Translate quoteBody from base64 to hex
+  int quoteBody_size = Base64decode_len(b64_quoteBody);
+  uint8_t quoteBody[quoteBody_size];
+  if (Base64decode((char*)quoteBody, b64_quoteBody) < 0)
+    return NULL;
+
+  sgx_ec256_public_t *pk_eo = (sgx_ec256_public_t*) malloc(sizeof(sgx_ec256_public_t));
+  memcpy(pk_eo, quoteBody+quoteBody_size-sizeof(sgx_ec256_public_t), sizeof(sgx_ec256_public_t));
+
+  cout << b64_quoteBody << endl;
+  json_object_put(json);
+  return pk_eo;
+}

@@ -22,6 +22,11 @@ int sgx_sign_message(size_t size, const uint8_t *challenge, const sgx_ec256_priv
   return lauxus_sign_challenge(size, challenge, sk, sig);
 }
 
+int sgx_validate_signature(size_t size, const uint8_t *challenge, sgx_ec256_public_t *pk, sgx_ec256_signature_t *sig) {
+  return lauxus_validate_signature(size, challenge, pk, sig);
+}
+
+
 
 int sgx_generate_sealed_keys(const char *sk_path, const char *pk_path) {
   // Generate ECC keys

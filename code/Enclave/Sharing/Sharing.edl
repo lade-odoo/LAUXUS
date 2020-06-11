@@ -5,6 +5,7 @@ enclave {
   trusted {
     public int sgx_generate_report([in] const sgx_ec256_public_t *pk_eu, [in] const sgx_target_info_t *info, [out] sgx_report_t *report);
     public int sgx_sign_message(size_t size, [in, size=size] const uint8_t *challenge, [in] const sgx_ec256_private_t *sk, [out] sgx_ec256_signature_t *sig);
+    public int sgx_validate_signature(size_t size, [in, size=size] const uint8_t *challenge, [in] sgx_ec256_public_t *pk, [in] sgx_ec256_signature_t *sig);
 
     public int sgx_generate_sealed_keys([in, string] const char *sk_path, [in, string] const char *pk_path);
   };
