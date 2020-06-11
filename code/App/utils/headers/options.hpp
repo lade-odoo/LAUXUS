@@ -11,12 +11,11 @@ using namespace std;
 
 extern string BINARY_PATH;
 
-
 struct lauxus_options {
   int new_fs, new_keys, add_user, remove_user, edit_entitlement, show_help;
-  int create_quote;
+  int create_quote, upload_rk;
 
-  char *sk_u, *pk_u, *sk_a, *pk_a, *sk_eu, *pk_eu, *new_sk_u,  *new_pk_u;
+  char *sk_u, *pk_u, *pk_o, *sk_a, *pk_a, *sk_eu, *pk_eu, *new_sk_u,  *new_pk_u;
   char *u_uuid, *other_u_uuid;
   char *new_username;
   char *edit_path;

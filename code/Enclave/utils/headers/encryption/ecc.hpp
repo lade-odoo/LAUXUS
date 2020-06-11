@@ -19,5 +19,6 @@ int lauxus_sign_challenge(const size_t challenge_size, const uint8_t *challenge,
 int lauxus_validate_signature(const size_t challenge_size, const uint8_t *challenge,
                 sgx_ec256_public_t *pk, sgx_ec256_signature_t *sig);
 
+int lauxus_shared_secret(sgx_ec256_private_t *sk, sgx_ec256_public_t *pk, sgx_ec256_dh_shared_t *shared);
 
 #endif /*__ECC_HPP__*/

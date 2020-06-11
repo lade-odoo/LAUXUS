@@ -1,6 +1,7 @@
 #include "Enclave_t.h"
 #include "sgx_utils.h"
 #include "sgx_tseal.h"
+#include "../utils/headers/encryption/aes_ctr.hpp"
 #include "../utils/headers/encryption/ecc.hpp"
 
 #include <cstring>
@@ -17,6 +18,36 @@ int sgx_generate_report(const sgx_ec256_public_t *pk_eu, const sgx_target_info_t
     return -1;
   return 0;
 }
+
+int sgx_get_shared_rk(size_t e_rk_size, uint8_t *e_rk, sgx_ec256_public_t *pk_eph, size_t saled_rk_size, const sgx_sealed_data_t *sealed_rk, sgx_ec256_public_t *pk_eo) {
+  if (e_rk_size != sizeof(lauxus_gcm_t))
+    return -1;
+
+  // generate ephemeral keys
+  sgx_ec256_private_t sk_eph;
+  if (lauxus_generate_ECC_keys(pk_eph, &sk_eph) < 0)
+    return -1;
+
+  // compute shared secret (sk_eph, pk_eo)
+  sgx_ec256_dh_shared_t shared_eph;
+  if (lauxus_shared_secret(&sk_eph, pk_eph, &shared_eph) < 0)
+    return -1;
+
+  // unseal root key
+  lauxus_gcm_t root_key; uint32_t rk_size = sizeof(lauxus_gcm_t);
+  if (sgx_unseal_data(sealed_rk, NULL, NULL, (uint8_t*)&root_key, &rk_size) != SGX_SUCCESS)
+    return -1;
+
+  // encrypt root key (sgx_ec256_dh_shared_t is 32 bytes -> lauxus_ctr_t also)
+  if (sizeof(sgx_ec256_dh_shared_t) != sizeof(lauxus_ctr_t))
+    return -1;
+  if (lauxus_ctr_encrypt((lauxus_ctr_t*)&shared_eph, (uint8_t*)&root_key, e_rk_size, e_rk) < 0)
+    return -1;
+
+  return 0;
+}
+
+
 
 int sgx_sign_message(size_t size, const uint8_t *challenge, const sgx_ec256_private_t *sk, sgx_ec256_signature_t *sig) {
   return lauxus_sign_challenge(size, challenge, sk, sig);

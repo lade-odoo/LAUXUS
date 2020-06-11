@@ -145,8 +145,8 @@ int lauxus_create_quote(string sk_u_path, string sk_eu_path, string pk_eu_path, 
   return 0;
 }
 
-sgx_ec256_public_t *lauxus_verify_quote(string pk_u_path, string user_uuid) {
-  string quotepath(QUOTE_DIR); quotepath.append("/"); quotepath.append(user_uuid); quotepath.append("/quote");
+sgx_ec256_public_t *lauxus_verify_quote(string pk_o_path, string other_user_uuid) {
+  string quotepath(QUOTE_DIR); quotepath.append("/"); quotepath.append(other_user_uuid); quotepath.append("/quote");
   int quote_size = file_size(quotepath);
   if (quote_size < 0)
     return NULL;
@@ -156,7 +156,7 @@ sgx_ec256_public_t *lauxus_verify_quote(string pk_u_path, string user_uuid) {
     return NULL;
 
   sgx_ec256_public_t pk_u;
-  if (load(pk_u_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_u) < 0)
+  if (load(pk_o_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_u) < 0)
     return NULL;
 
   sgx_ec256_signature_t signature;
@@ -175,7 +175,63 @@ sgx_ec256_public_t *lauxus_verify_quote(string pk_u_path, string user_uuid) {
   sgx_ec256_public_t *pk_eo = sgx_verify_quote(b64_quote_size, b64_quote); // pk of the enclave of the other user
   if (pk_eo == NULL)
     return NULL;
+  return pk_eo;
+}
 
+int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_uuid) {
+  init_enclave(); // load check admin ?
+  sgx_ec256_public_t *pk_eo = lauxus_verify_quote(pk_o_path, other_user_uuid);
+  if (pk_eo == NULL)
+    return -1;
+
+  // load sealed root key
+  size_t rk_seal_size = sizeof(lauxus_gcm_t) + sizeof(sgx_sealed_data_t);
+  uint8_t sealed_rk[rk_seal_size];
+  if (load(RK_PATH, rk_seal_size, sealed_rk) < 0) {
+    free(pk_eo);
+    return -1;
+  }
+
+  int ret = -1;
+  uint8_t e_rk[sizeof(lauxus_gcm_t)];
+  sgx_ec256_public_t pk_eph;
+  sgx_status_t sgx_status = sgx_get_shared_rk(ENCLAVE_ID, &ret, sizeof(lauxus_gcm_t), e_rk, &pk_eph, rk_seal_size, (sgx_sealed_data_t*)sealed_rk, pk_eo);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to generate shared root key !", ret)) {
+    free(pk_eo);
+    return -1;
+  }
+
+  // sign encrypted root key
+  sgx_ec256_private_t sk_u;
+  if (load(sk_u_path, sizeof(sgx_ec256_private_t), (uint8_t*)&sk_u) < 0) {
+    free(pk_eo);
+    return -1;
+  }
+
+  sgx_ec256_signature_t signature;
+  sgx_status = sgx_sign_message(ENCLAVE_ID, &ret, sizeof(lauxus_gcm_t), e_rk, &sk_u, &signature);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to sign the encrypted root key !", ret)) {
+    free(pk_eo);
+    return -1;
+  }
+
+  // construct dumppath
+  string dumpdir(QUOTE_DIR); dumpdir.append("/"); dumpdir.append(other_user_uuid);
+  string dumppath(dumpdir); dumppath.append("/shared_rk");
+
+  // dump to buffer
+  int written = 0;
+  uint8_t dump_buffer[sizeof(sgx_ec256_public_t)+sizeof(sgx_ec256_signature_t)+sizeof(lauxus_gcm_t)];
+  memcpy(dump_buffer+written, &pk_eph, sizeof(sgx_ec256_public_t)); written += sizeof(sgx_ec256_public_t);
+  memcpy(dump_buffer+written, &signature, sizeof(sgx_ec256_signature_t)); written += sizeof(sgx_ec256_signature_t);
+  memcpy(dump_buffer+written, e_rk, sizeof(lauxus_gcm_t)); written += sizeof(lauxus_gcm_t);
+  if (dump(dumppath, written, dump_buffer) < 0) {
+    free(pk_eo);
+    return -1;
+  }
+
+  free(pk_eo);
+  cout << "Shared root key successfully created for user: " << other_user_uuid << " !" << endl;
   return 0;
 }
 

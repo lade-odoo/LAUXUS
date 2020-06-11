@@ -11,9 +11,11 @@ static const struct fuse_opt option_spec[] = {
   OPTION("--remove_user", remove_user),
   OPTION("--edit_entitlement", edit_entitlement),
   OPTION("--create_quote", create_quote),
+  OPTION("--upload_rk", upload_rk),
 
 	OPTION("--sk_u=%s", sk_u),
 	OPTION("--pk_u=%s", pk_u),
+	OPTION("--pk_o=%s", pk_o),
 	OPTION("--sk_eu=%s", sk_eu),
 	OPTION("--pk_eu=%s", pk_eu),
   OPTION("--sk_a=%s", sk_a),
@@ -51,7 +53,7 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
   options->pk_eu = strdup((char*)(BINARY_PATH + "/enclave_ecc-256-public-key.spki").c_str());
   options->pk_a = strdup((char*)(BINARY_PATH + "/auditor_ecc-256-public-key.spki").c_str());
   options->sk_a = strdup((char*)(BINARY_PATH + "/auditor_ecc-256-private-key.p8").c_str());
-  options->u_uuid = options->other_u_uuid = NULL;
+  options->pk_o = options->u_uuid = options->other_u_uuid = NULL;
 
   /* Parse options */
   *result = 0;
@@ -98,6 +100,11 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
       *result = -1;
     else
       *result = lauxus_create_quote(options->sk_u, options->sk_eu, options->pk_eu, options->u_uuid);
+  } else if (options->upload_rk) {
+    if (options->sk_u == NULL || options->pk_o == NULL || options->other_u_uuid == NULL)
+      *result = -1;
+    else
+      *result = lauxus_get_shared_rk(options->sk_u, options->pk_o, options->other_u_uuid);
   } else if (options->show_help) {
     display_help();
   } else {
@@ -109,7 +116,8 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
   if (missing_arg) {
     cout << "Missing mandatory argument !" << endl;
     *result = -1;
-  }
+  } else if (*result == -1)
+    cout << "Operation not successful !" << endl;
 
 
   return args;

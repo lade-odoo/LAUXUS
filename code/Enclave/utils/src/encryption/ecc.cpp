@@ -72,3 +72,27 @@ err:
     sgx_ecc256_close_context(ecc_handle);
   return -1;
 }
+
+int lauxus_shared_secret(sgx_ec256_private_t *sk, sgx_ec256_public_t *pk, sgx_ec256_dh_shared_t *shared) {
+  sgx_ecc_state_handle_t ecc_handle;
+
+  sgx_status_t status = sgx_ecc256_open_context(&ecc_handle);
+  if (status != SGX_SUCCESS)
+    goto err;
+
+  uint8_t result;
+  status = sgx_ecc256_compute_shared_dhkey(sk, pk, shared, ecc_handle);
+  if (status != SGX_SUCCESS)
+    goto err;
+
+  status = sgx_ecc256_close_context(ecc_handle);
+  if (status != SGX_SUCCESS)
+    goto err;
+
+  return 0;
+
+err:
+  if (ecc_handle != NULL)
+    sgx_ecc256_close_context(ecc_handle);
+  return -1;
+}

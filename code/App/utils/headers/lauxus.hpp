@@ -39,6 +39,7 @@ int lauxus_destroy();
 
 int lauxus_create_quote(string sk_u_path, string sk_eu_path, string pk_eu_path, string user_uuid);
 sgx_ec256_public_t *lauxus_verify_quote(string pk_u_path, string user_uuid);
+int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_uuid);
 
 int lauxus_new_keys(string sk_u_path, string pk_u_path);
 
