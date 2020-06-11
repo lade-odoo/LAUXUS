@@ -33,10 +33,9 @@ bool Filenode::equals(Filenode *other) {
 
 
 int Filenode::truncate_keys(size_t new_size) {
-  // only when new size smaller ATM
-  if (new_size > this->content->size)
+  // only when new size is 0 ATM
+  if (new_size > this->content->size || new_size != 0)
     return -1;
-  this->content->size = new_size;
 
   map<string, size_t> block_required = FilenodeContent::block_required(this->content->block_size, 0, new_size);
   for (size_t index=this->aes_ctr_ctxs->size()-1; index > block_required["end_block"]; index--) {

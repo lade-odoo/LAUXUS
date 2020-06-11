@@ -268,14 +268,34 @@ int FileSystem::truncate_file(const string &filepath, const long new_size) {
   if (!node->has_user_rights(lauxus_write_right(), this->current_user))
     return -EACCES;
 
-  if (node->truncate_keys(new_size) < 0)
-    return -EPROTO;
-
   node->update_mtime(); node->update_ctime();
-  if (e_write_meta_to_disk(node, true) < 0 ||
-      e_truncate_file_to_disk(node, new_size) < 0)
-    goto err;
+  if (new_size > node->content->size) {
+    // ------ no need to write blank data -----------
+    // size_t old_size = node->content->size;
+    // size_t size_to_write = new_size-node->content->size;
+    // uint8_t to_write[size_to_write]; memset(to_write, 0, size_to_write);
+    // if (node->content->write(node->content->size, size_to_write, to_write) < 0)
+    //   return -1;
+    // node->content->free_loaded();
+    //
+    // node->content->size = new_size;
+    // if (e_write_meta_to_disk(node) < 0 ||
+    //     e_write_file_to_disk(node, old_size, size_to_write) < 0)
+    //   goto err;
+    node->content->size = new_size;
+    if (e_write_meta_to_disk(node) < 0)
+      goto err;
+  } else {
+    if (node->truncate_keys(new_size) < 0)
+      return -EPROTO;
+    node->content->size = new_size;
 
+    if (e_write_meta_to_disk(node, true) < 0 ||
+        e_truncate_file_to_disk(node, new_size) < 0)
+      goto err;
+  }
+
+  node->content->free_loaded();
   return 0;
 
 err:

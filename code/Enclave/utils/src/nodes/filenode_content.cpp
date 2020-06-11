@@ -40,8 +40,8 @@ int FilenodeContent::write(const long offset, const size_t data_size, const uint
       size_to_write = this->block_size - offset_in_block;
       this->size += this->block_size - block.size();
       block.resize(this->block_size);
-    } else {
-      this->size += offset_in_block + size_to_write - block.size();
+    } else if (block.size() < offset_in_block+size_to_write) { // only change block size if block increase
+      this->size += offset_in_block+size_to_write - block.size();
       block.resize(offset_in_block + size_to_write);
     }
     memcpy(&(block)[0]+offset_in_block, data+written, size_to_write);
