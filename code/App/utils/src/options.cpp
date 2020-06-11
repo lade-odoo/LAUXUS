@@ -10,9 +10,12 @@ static const struct fuse_opt option_spec[] = {
   OPTION("--add_user", add_user),
   OPTION("--remove_user", remove_user),
   OPTION("--edit_entitlement", edit_entitlement),
+  OPTION("--create_quote", create_quote),
 
 	OPTION("--sk_u=%s", sk_u),
 	OPTION("--pk_u=%s", pk_u),
+	OPTION("--sk_eu=%s", sk_eu),
+	OPTION("--pk_eu=%s", pk_eu),
   OPTION("--sk_a=%s", sk_a),
 	OPTION("--pk_a=%s", pk_a),
 	OPTION("--new_sk_u=%s", new_sk_u),
@@ -44,6 +47,8 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
 	   values are specified */
 	options->pk_u = strdup((char*)(BINARY_PATH + "/ecc-256-public-key.spki").c_str());
   options->sk_u = strdup((char*)(BINARY_PATH + "/ecc-256-private-key.p8").c_str());
+  options->sk_eu = strdup((char*)(BINARY_PATH + "/enclave_ecc-256-private-key.p8").c_str());
+  options->pk_eu = strdup((char*)(BINARY_PATH + "/enclave_ecc-256-public-key.spki").c_str());
   options->pk_a = strdup((char*)(BINARY_PATH + "/auditor_ecc-256-public-key.spki").c_str());
   options->sk_a = strdup((char*)(BINARY_PATH + "/auditor_ecc-256-private-key.p8").c_str());
   options->u_uuid = options->other_u_uuid = NULL;
@@ -87,6 +92,12 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
     else
       *result = lauxus_edit_user_entitlement(options->edit_path, options->other_u_uuid,
                 options->owner_right, options->read_right, options->write_right, options->exec_right);
+  } else if (options->create_quote) {
+    if (options->sk_u == NULL || options->sk_eu == NULL ||
+        options->pk_eu == 0 || options->u_uuid == NULL)
+      *result = -1;
+    else
+      *result = lauxus_create_quote(options->sk_u, options->sk_eu, options->pk_eu, options->u_uuid);
   } else if (options->show_help) {
     display_help();
   } else {

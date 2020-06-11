@@ -5,6 +5,8 @@ enclave {
   include "../Enclave/utils/headers/encryption/aes_gcm.hpp"
   include "../Enclave/utils/headers/uuid.hpp"
 
+  from "Sharing/Sharing.edl" import *;
+
   trusted {
     /************************ Control Plane related ECALLS ************************/
     public int sgx_new_user_keys([out] sgx_ec256_public_t *pk_u, [out] sgx_ec256_private_t *sk_u);

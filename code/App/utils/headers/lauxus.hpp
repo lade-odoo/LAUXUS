@@ -14,6 +14,8 @@
 #   include "Enclave_u.h"
 #endif
 
+#include "base64.h"
+#include "quote.hpp"
 #include "serialisation.hpp"
 #include "../../sgx_utils/sgx_utils.h"
 
@@ -21,7 +23,7 @@ using namespace std;
 
 extern sgx_enclave_id_t ENCLAVE_ID;
 extern string NEXUS_DIR;
-extern string CONTENT_DIR, META_DIR, AUDIT_DIR;
+extern string CONTENT_DIR, META_DIR, AUDIT_DIR, QUOTE_DIR;
 extern string RK_PATH, ARK_PATH, SUPERNODE_PATH;
 
 
@@ -34,6 +36,8 @@ int lauxus_new();
 int lauxus_load();
 int lauxus_login(string sk_u_path, string str_uuid);
 int lauxus_destroy();
+
+int lauxus_create_quote(string sk_u_path, string sk_eu_path, string pk_eu_path, string user_uuid);
 
 int lauxus_new_keys(string sk_u_path, string pk_u_path);
 

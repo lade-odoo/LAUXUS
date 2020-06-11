@@ -14,7 +14,7 @@ void destroy_enclave() {
 
 
 int lauxus_new() {
-  if (create_directory(CONTENT_DIR) < 0 || create_directory(META_DIR) < 0 || create_directory(AUDIT_DIR) < 0) {
+  if (create_directory(CONTENT_DIR) < 0 || create_directory(META_DIR) < 0 || create_directory(AUDIT_DIR) < 0 || create_directory(QUOTE_DIR) < 0) {
     cout << "Failed to create required directories !" << endl;
     return -1;
   }
@@ -86,6 +86,62 @@ int lauxus_destroy() {
     return -1;
 
   destroy_enclave();
+  return 0;
+}
+
+
+int lauxus_create_quote(string sk_u_path, string sk_eu_path, string pk_eu_path, string user_uuid) {
+  init_enclave();
+  int ret = -1;
+
+  // gen sealed enclave keys (only private sealed)
+  sgx_status_t sgx_status = sgx_generate_sealed_keys(ENCLAVE_ID, &ret, (char*)sk_eu_path.c_str(), (char*)pk_eu_path.c_str());
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to generate sealed keys !", ret))
+    return -1;
+
+  // load pk_eu
+  sgx_ec256_public_t pk_eu;
+  if (load(pk_eu_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_eu) < 0)
+    return -1;
+
+  uint32_t quote_size = -1;
+  sgx_quote_t* quote = sgx_generate_quote(&pk_eu, &quote_size);
+  if (quote == NULL)
+    return -1;
+
+  // transform quote into base64
+  size_t b64_quote_size = Base64encode_len(quote_size);
+  uint8_t b64_quote[b64_quote_size];
+  if (Base64encode((char*)b64_quote, (char*)quote, quote_size) < 0)
+    return -1;
+
+  // sign quote
+  sgx_ec256_private_t sk_u;
+  if (load(sk_u_path, sizeof(sgx_ec256_private_t), (uint8_t*)&sk_u) < 0)
+    return -1;
+
+  sgx_ec256_signature_t signature;
+  sgx_status = sgx_sign_message(ENCLAVE_ID, &ret, b64_quote_size, b64_quote, &sk_u, &signature);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to sign the quote !", ret))
+    return -1;
+
+  // construct dumppath
+  string dumpdir(QUOTE_DIR); dumpdir.append("/"); dumpdir.append(user_uuid);
+  string dumppath(dumpdir); dumppath.append("/quote");
+
+  // create directory
+  if (create_directory(dumpdir) < 0)
+    return -1;
+
+  // dump to buffer
+  uint8_t dump_buffer[sizeof(sgx_ec256_signature_t)+b64_quote_size];
+  memcpy(dump_buffer, &signature, sizeof(sgx_ec256_signature_t));
+  memcpy(dump_buffer+sizeof(sgx_ec256_signature_t), b64_quote, b64_quote_size);
+  if (dump(dumppath, sizeof(sgx_ec256_signature_t)+b64_quote_size, dump_buffer) < 0)
+    return -1;
+
+  free(quote);
+  cout << "User quote successfully created !" << endl;
   return 0;
 }
 
