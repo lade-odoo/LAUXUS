@@ -12,6 +12,7 @@ static const struct fuse_opt option_spec[] = {
   OPTION("--edit_entitlement", edit_entitlement),
   OPTION("--create_quote", create_quote),
   OPTION("--upload_rk", upload_rk),
+  OPTION("--download_rk", download_rk),
 
 	OPTION("--sk_u=%s", sk_u),
 	OPTION("--pk_u=%s", pk_u),
@@ -105,6 +106,12 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
       *result = -1;
     else
       *result = lauxus_get_shared_rk(options->sk_u, options->pk_o, options->other_u_uuid);
+  } else if (options->download_rk) {
+    if (options->sk_eu == NULL || options->u_uuid == NULL ||
+        options->pk_o == NULL || options->other_u_uuid == NULL)
+      *result = -1;
+    else
+      *result = lauxus_retrieve_shared_rk(options->sk_eu, options->u_uuid, options->pk_o, options->other_u_uuid);
   } else if (options->show_help) {
     display_help();
   } else {

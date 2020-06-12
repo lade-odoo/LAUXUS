@@ -88,7 +88,7 @@ sgx_ec256_public_t *sgx_verify_quote(uint32_t b64_quote_size, const uint8_t *b64
     return NULL;
 
   sgx_ec256_public_t *pk_eo = (sgx_ec256_public_t*) malloc(sizeof(sgx_ec256_public_t));
-  memcpy(pk_eo, quoteBody+quoteBody_size-sizeof(sgx_ec256_public_t), sizeof(sgx_ec256_public_t));
+  memcpy(pk_eo, quoteBody+quoteBody_size-sizeof(sgx_ec256_public_t)-1, sizeof(sgx_ec256_public_t));
 
   json_object_put(json);
   return pk_eo;

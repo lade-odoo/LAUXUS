@@ -235,6 +235,57 @@ int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_u
   return 0;
 }
 
+int lauxus_retrieve_shared_rk(string sk_eu_path, string user_uuid, string pk_o_path, string other_user_uuid) {
+  init_enclave(); // check other is admin ?
+  sgx_ec256_public_t *pk_eo = lauxus_verify_quote(pk_o_path, other_user_uuid);
+  if (pk_eo == NULL)
+    return -1;
+  free(pk_eo);
+
+  // load pk_eph, signature, e_rk
+  string shared_rk_path(QUOTE_DIR); shared_rk_path.append("/"); shared_rk_path.append(user_uuid); shared_rk_path.append("/shared_rk");
+  int shared_rk_size = file_size(shared_rk_path);
+  if (shared_rk_size < 0)
+    return -1;
+
+  uint8_t buffer[shared_rk_size];
+  if (load(shared_rk_path, shared_rk_size, buffer) < 0)
+    return -1;
+
+  int read = 0;
+  sgx_ec256_public_t pk_eph;
+  sgx_ec256_signature_t e_rk_signature;
+  size_t e_rk_size = shared_rk_size - sizeof(sgx_ec256_public_t) - sizeof(sgx_ec256_signature_t);
+  uint8_t e_rk[e_rk_size];
+  memcpy(&pk_eph, buffer+read, sizeof(sgx_ec256_public_t)); read += sizeof(sgx_ec256_public_t);
+  memcpy(&e_rk_signature, buffer+read, sizeof(sgx_ec256_signature_t)); read += sizeof(sgx_ec256_signature_t);
+  memcpy(e_rk, buffer+read, e_rk_size); read += e_rk_size;
+
+  // verify signature of shared rk
+  sgx_ec256_public_t pk_o;
+  if (load(pk_o_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_o) < 0)
+    return -1;
+
+  int ret = -1;
+  sgx_status_t sgx_status = sgx_validate_signature(ENCLAVE_ID, &ret, e_rk_size, e_rk, &pk_o, &e_rk_signature);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to validate signature of shared rk !", ret))
+    return -1;
+
+  // load secret key of enclave of user to recompute shared secret (which is sealed)
+  size_t sealed_sk_eu_size = sizeof(sgx_ec256_private_t) + sizeof(sgx_sealed_data_t);
+  uint8_t sealed_sk_eu[sealed_sk_eu_size];
+  if (load(sk_eu_path, sealed_sk_eu_size, sealed_sk_eu) < 0)
+    return -1;
+
+  // retrieve shared key (wich dump the sealed root key)
+  sgx_status = sgx_retrieve_shared_rk(ENCLAVE_ID, &ret, (char*)RK_PATH.c_str(), e_rk_size, e_rk, &pk_eph, sealed_sk_eu_size, (sgx_sealed_data_t*)sealed_sk_eu);
+  if (!is_ecall_successful(sgx_status, "[SGX] Fail to retrieve shared root key !", ret))
+    return -1;
+
+  cout << "Shared root key successfully retrieved and sealed from user: " << other_user_uuid << " !" << endl;
+  return 0;
+}
+
 
 int lauxus_new_keys(string sk_u_path, string pk_u_path) {
   init_enclave();
