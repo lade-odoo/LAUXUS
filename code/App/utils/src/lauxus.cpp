@@ -305,16 +305,22 @@ int lauxus_new_keys(string sk_u_path, string pk_u_path) {
 }
 
 
-int lauxus_add_user(string username, string pk_u_path) {
-  lauxus_load();
+int lauxus_add_user(string other_username, string pk_o_path, string sk_u_path, string user_uuid) {
+  if (lauxus_load() < 0)
+    return -1;
+  if (sk_u_path.compare("") != 0 && user_uuid.compare("") != 0) {
+    if (lauxus_login(sk_u_path, user_uuid) < 0)
+      return -1;
+  }
+
   sgx_ec256_public_t pk_u;
-  if (load(pk_u_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_u) < 0)
+  if (load(pk_o_path, sizeof(sgx_ec256_public_t), (uint8_t*)&pk_u) < 0)
     return -1;
 
 
   int ret;
   lauxus_uuid_t u_uuid = {0};
-  sgx_status_t sgx_status = sgx_add_user(ENCLAVE_ID, &ret, (char*)username.c_str(), &pk_u, &u_uuid);
+  sgx_status_t sgx_status = sgx_add_user(ENCLAVE_ID, &ret, (char*)other_username.c_str(), &pk_u, &u_uuid);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to add new users !", ret))
     return -1;
 
@@ -325,8 +331,13 @@ int lauxus_add_user(string username, string pk_u_path) {
   return 0;
 }
 
-int lauxus_remove_user(string str_uuid) {
-  if (str_uuid.length() < sizeof(lauxus_uuid_t))
+int lauxus_remove_user(string str_uuid, string sk_u_path, string user_uuid) {
+  if (lauxus_load() < 0)
+    return -1;
+  if (lauxus_login(sk_u_path, user_uuid) < 0)
+    return -1;
+
+  if (str_uuid.length()+1 < sizeof(lauxus_uuid_t))
     return -1;
   lauxus_uuid_t u_uuid = {0};
   memcpy(u_uuid.v, str_uuid.c_str(), sizeof(lauxus_uuid_t));
@@ -341,15 +352,18 @@ int lauxus_remove_user(string str_uuid) {
   return 0;
 }
 
-int lauxus_edit_user_entitlement(string path, string str_uuid,
-              int owner_right, int read_right, int write_right, int exec_right) {
-  lauxus_load();
-  cout << "Updating user entitlement ..." << endl;
+int lauxus_edit_user_entitlement(string path, string other_user_uuid,
+              int owner_right, int read_right, int write_right, int exec_right,
+              string sk_u_path, string user_uuid) {
+  if (lauxus_load() < 0)
+    return -1;
+  if (lauxus_login(sk_u_path, user_uuid) < 0)
+    return -1;
 
-  if (str_uuid.length() < sizeof(lauxus_uuid_t))
+  if (other_user_uuid.length()+1 < sizeof(lauxus_uuid_t))
     return -1;
   lauxus_uuid_t u_uuid = {0};
-  memcpy(u_uuid.v, str_uuid.c_str(), sizeof(lauxus_uuid_t));
+  memcpy(u_uuid.v, other_user_uuid.c_str(), sizeof(lauxus_uuid_t));
 
   lauxus_right_t right;
   right.owner = (owner_right > 0) ? 1 : 0;

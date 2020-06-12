@@ -82,7 +82,7 @@ bool Node::has_user_rights(const lauxus_right_t min_rights, User *user) {
 }
 
 int Node::edit_user_rights(const lauxus_right_t rights, User *user) {
-  if (user->is_root() || this->type == LAUXUS_SUPERNODE)
+  if (this->type == LAUXUS_SUPERNODE)
     return -1;
 
   string str_uuid = string(user->u_uuid->v);

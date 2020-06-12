@@ -82,23 +82,25 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
     else
       *result = lauxus_new_keys(options->new_sk_u, options->new_pk_u);
   } else if (options->add_user) {
-    if (options->new_username == NULL || options->pk_o == NULL)
+    if (options->new_username == NULL || options->pk_o == NULL || options->sk_u == NULL || options->u_uuid == NULL)
       *result = -1;
     else
-      *result = lauxus_add_user(options->new_username, options->pk_o);
+      *result = lauxus_add_user(options->new_username, options->pk_o, options->sk_u, options->u_uuid);
   } else if (options->remove_user) {
-    if (options->other_u_uuid == NULL)
+    if (options->other_u_uuid == NULL || options->sk_u == NULL || options->u_uuid == NULL)
       *result = -1;
     else
-      *result = lauxus_remove_user(options->other_u_uuid);
+      *result = lauxus_remove_user(options->other_u_uuid, options->sk_u, options->u_uuid);
   } else if (options->edit_entitlement) {
     if (options->edit_path == NULL || options->other_u_uuid == NULL ||
-        options->owner_right >= 0 || options->read_right >= 0 ||
-        options->write_right >= 0 || options->exec_right >= 0)
+        options->owner_right < 0 || options->read_right < 0 ||
+        options->write_right < 0 || options->exec_right < 0 ||
+        options->sk_u == NULL || options->u_uuid == NULL)
       *result = -1;
     else
       *result = lauxus_edit_user_entitlement(options->edit_path, options->other_u_uuid,
-                options->owner_right, options->read_right, options->write_right, options->exec_right);
+                options->owner_right, options->read_right, options->write_right, options->exec_right,
+                options->sk_u, options->u_uuid);
   } else if (options->create_quote) {
     if (options->sk_u == NULL || options->sk_eu == NULL ||
         options->pk_eu == 0 || options->u_uuid == NULL)

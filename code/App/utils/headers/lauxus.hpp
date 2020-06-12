@@ -44,10 +44,11 @@ int lauxus_retrieve_shared_rk(string sk_eu_path, string user_uuid, string pk_o_p
 
 int lauxus_new_keys(string sk_u_path, string pk_u_path);
 
-int lauxus_add_user(string username, string pk_u_path);
-int lauxus_remove_user(string str_uuid);
-int lauxus_edit_user_entitlement(string path, string str_uuid,
-              int owner_right, int read_right, int write_right, int exec_right);
+int lauxus_add_user(string other_username, string pk_o_path, string sk_u_path="", string user_uuid="");
+int lauxus_remove_user(string str_uuid, string sk_u_path, string user_uuid);
+int lauxus_edit_user_entitlement(string path, string other_user_uuid,
+              int owner_right, int read_right, int write_right, int exec_right,
+              string sk_u_path, string user_uuid);
 
 
 #endif /*__LAUXUS_HPP__*/
