@@ -50,11 +50,15 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
 	   values are specified */
 	options->pk_u = strdup((char*)(BINARY_PATH + "/ecc-256-public-key.spki").c_str());
   options->sk_u = strdup((char*)(BINARY_PATH + "/ecc-256-private-key.p8").c_str());
+  options->new_pk_u = strdup((char*)(BINARY_PATH + "/ecc-256-public-key.spki").c_str());
+  options->new_sk_u = strdup((char*)(BINARY_PATH + "/ecc-256-private-key.p8").c_str());
+  options->pk_o = strdup((char*)(BINARY_PATH + "/other_ecc-256-public-key.spki").c_str());
   options->sk_eu = strdup((char*)(BINARY_PATH + "/enclave_ecc-256-private-key.p8").c_str());
   options->pk_eu = strdup((char*)(BINARY_PATH + "/enclave_ecc-256-public-key.spki").c_str());
   options->pk_a = strdup((char*)(BINARY_PATH + "/auditor_ecc-256-public-key.spki").c_str());
   options->sk_a = strdup((char*)(BINARY_PATH + "/auditor_ecc-256-private-key.p8").c_str());
-  options->pk_o = options->u_uuid = options->other_u_uuid = NULL;
+  options->u_uuid = options->other_u_uuid = NULL;
+  options->owner_right = options->read_right = options->write_right = options->exec_right = 0;
 
   /* Parse options */
   *result = 0;
@@ -78,10 +82,10 @@ struct fuse_args parse_args(int argc, char **argv, struct lauxus_options *option
     else
       *result = lauxus_new_keys(options->new_sk_u, options->new_pk_u);
   } else if (options->add_user) {
-    if (options->new_username == NULL || options->new_pk_u == NULL)
+    if (options->new_username == NULL || options->pk_o == NULL)
       *result = -1;
     else
-      *result = lauxus_add_user(options->new_username, options->new_pk_u);
+      *result = lauxus_add_user(options->new_username, options->pk_o);
   } else if (options->remove_user) {
     if (options->other_u_uuid == NULL)
       *result = -1;

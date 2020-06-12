@@ -15,7 +15,7 @@
 #include "utils/headers/options.hpp"
 
 sgx_enclave_id_t ENCLAVE_ID;
-string BINARY_PATH, NEXUS_DIR;
+string BINARY_PATH, LAUXUS_DIR;
 string CONTENT_DIR, META_DIR, AUDIT_DIR, QUOTE_DIR;
 string RK_PATH, ARK_PATH, SUPERNODE_PATH;
 static struct fuse_operations lauxus_oper;
@@ -47,14 +47,14 @@ void setup_fuse() {
 int main(int argc, char **argv) {
   setup_fuse();
   BINARY_PATH = get_directory_path(argv[0]);
-  NEXUS_DIR = BINARY_PATH + "/.lauxus";
-  RK_PATH = NEXUS_DIR + "/sealed_rk";
-  ARK_PATH = NEXUS_DIR + "/sealed_ark";
-  META_DIR = NEXUS_DIR + "/metadata";
+  LAUXUS_DIR = BINARY_PATH + "/.lauxus";
+  RK_PATH = LAUXUS_DIR + "/sealed_rk";
+  ARK_PATH = LAUXUS_DIR + "/sealed_ark";
+  META_DIR = LAUXUS_DIR + "/metadata";
   SUPERNODE_PATH = META_DIR + "/0000-00-00-00-000000";
-  CONTENT_DIR = NEXUS_DIR + "/content";
-  AUDIT_DIR = NEXUS_DIR + "/audit";
-  QUOTE_DIR = NEXUS_DIR + "/quotes";
+  CONTENT_DIR = LAUXUS_DIR + "/content";
+  AUDIT_DIR = LAUXUS_DIR + "/audit";
+  QUOTE_DIR = LAUXUS_DIR + "/quotes";
 
   struct lauxus_options *options = (struct lauxus_options*) malloc(sizeof(struct lauxus_options));
   int main_mount = 0;

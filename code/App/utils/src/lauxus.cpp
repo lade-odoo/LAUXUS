@@ -2,8 +2,8 @@
 
 
 int init_enclave() {
-  string path_token = NEXUS_DIR + "/enclave.token";
-  string path_so = NEXUS_DIR + "/enclave.signed.so";
+  string path_token = BINARY_PATH + "/enclave.token";
+  string path_so = BINARY_PATH + "/enclave.signed.so";
   int initialized = initialize_enclave(&ENCLAVE_ID, path_token, path_so);
   return initialized;
 }

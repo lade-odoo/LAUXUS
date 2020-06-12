@@ -22,7 +22,7 @@
 using namespace std;
 
 extern sgx_enclave_id_t ENCLAVE_ID;
-extern string NEXUS_DIR;
+extern string BINARY_PATH, LAUXUS_DIR;
 extern string CONTENT_DIR, META_DIR, AUDIT_DIR, QUOTE_DIR;
 extern string RK_PATH, ARK_PATH, SUPERNODE_PATH;
 

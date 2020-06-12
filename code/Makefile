@@ -138,8 +138,8 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 
 Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o)
 
-Enclave_Name := .lauxus/enclave.so
-Signed_Enclave_Name := .lauxus/enclave.signed.so
+Enclave_Name := enclave.so
+Signed_Enclave_Name := enclave.signed.so
 Enclave_Config_File := Enclave/Enclave.config.xml
 
 ifeq ($(SGX_MODE), HW)
@@ -249,3 +249,4 @@ test: tests/main.o $(Tests_Exec_Files)
 clean:
 	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Tests_Exec_Files)
 	@rm -rf .lauxus
+	@rm -f *ecc-256-private-key.p8 *ecc-256-public-key.spki
