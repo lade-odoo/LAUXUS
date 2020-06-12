@@ -178,7 +178,7 @@ sgx_ec256_public_t *lauxus_verify_quote(string pk_o_path, string other_user_uuid
   return pk_eo;
 }
 
-int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_uuid) {
+int lauxus_get_shared_rk(bool is_ark, string sk_u_path, string pk_o_path, string other_user_uuid) {
   init_enclave(); // load check admin ?
   sgx_ec256_public_t *pk_eo = lauxus_verify_quote(pk_o_path, other_user_uuid);
   if (pk_eo == NULL)
@@ -187,10 +187,18 @@ int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_u
   // load sealed root key
   size_t rk_seal_size = sizeof(lauxus_gcm_t) + sizeof(sgx_sealed_data_t);
   uint8_t sealed_rk[rk_seal_size];
-  if (load(RK_PATH, rk_seal_size, sealed_rk) < 0) {
-    free(pk_eo);
-    return -1;
+  if (is_ark) {
+    if (load(ARK_PATH, rk_seal_size, sealed_rk) < 0) {
+      free(pk_eo);
+      return -1;
+    }
+  } else {
+    if (load(RK_PATH, rk_seal_size, sealed_rk) < 0) {
+      free(pk_eo);
+      return -1;
+    }
   }
+
 
   int ret = -1;
   uint8_t e_rk[sizeof(lauxus_gcm_t)];
@@ -217,7 +225,11 @@ int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_u
 
   // construct dumppath
   string dumpdir(QUOTE_DIR); dumpdir.append("/"); dumpdir.append(other_user_uuid);
-  string dumppath(dumpdir); dumppath.append("/shared_rk");
+  string dumppath(dumpdir);
+  if (is_ark)
+    dumppath.append("/shared_ark");
+  else
+    dumppath.append("/shared_rk");
 
   // dump to buffer
   int written = 0;
@@ -231,11 +243,14 @@ int lauxus_get_shared_rk(string sk_u_path, string pk_o_path, string other_user_u
   }
 
   free(pk_eo);
-  cout << "Shared root key successfully created for user: " << other_user_uuid << " !" << endl;
+  if (is_ark)
+    cout << "Shared audit root key successfully created for user: " << other_user_uuid << " !" << endl;
+  else
+    cout << "Shared root key successfully created for user: " << other_user_uuid << " !" << endl;
   return 0;
 }
 
-int lauxus_retrieve_shared_rk(string sk_eu_path, string user_uuid, string pk_o_path, string other_user_uuid) {
+int lauxus_retrieve_shared_rk(bool is_ark, string sk_eu_path, string user_uuid, string pk_o_path, string other_user_uuid) {
   init_enclave(); // check other is admin ?
   sgx_ec256_public_t *pk_eo = lauxus_verify_quote(pk_o_path, other_user_uuid);
   if (pk_eo == NULL)
@@ -243,7 +258,11 @@ int lauxus_retrieve_shared_rk(string sk_eu_path, string user_uuid, string pk_o_p
   free(pk_eo);
 
   // load pk_eph, signature, e_rk
-  string shared_rk_path(QUOTE_DIR); shared_rk_path.append("/"); shared_rk_path.append(user_uuid); shared_rk_path.append("/shared_rk");
+  string shared_rk_path(QUOTE_DIR); shared_rk_path.append("/"); shared_rk_path.append(user_uuid);
+  if (is_ark)
+    shared_rk_path.append("/shared_ark");
+  else
+    shared_rk_path.append("/shared_rk");
   int shared_rk_size = file_size(shared_rk_path);
   if (shared_rk_size < 0)
     return -1;
@@ -278,11 +297,17 @@ int lauxus_retrieve_shared_rk(string sk_eu_path, string user_uuid, string pk_o_p
     return -1;
 
   // retrieve shared key (wich dump the sealed root key)
-  sgx_status = sgx_retrieve_shared_rk(ENCLAVE_ID, &ret, (char*)RK_PATH.c_str(), e_rk_size, e_rk, &pk_eph, sealed_sk_eu_size, (sgx_sealed_data_t*)sealed_sk_eu);
+  if (is_ark)
+    sgx_status = sgx_retrieve_shared_rk(ENCLAVE_ID, &ret, (char*)ARK_PATH.c_str(), e_rk_size, e_rk, &pk_eph, sealed_sk_eu_size, (sgx_sealed_data_t*)sealed_sk_eu);
+  else
+    sgx_status = sgx_retrieve_shared_rk(ENCLAVE_ID, &ret, (char*)RK_PATH.c_str(), e_rk_size, e_rk, &pk_eph, sealed_sk_eu_size, (sgx_sealed_data_t*)sealed_sk_eu);
   if (!is_ecall_successful(sgx_status, "[SGX] Fail to retrieve shared root key !", ret))
     return -1;
 
-  cout << "Shared root key successfully retrieved and sealed from user: " << other_user_uuid << " !" << endl;
+  if (is_ark)
+    cout << "Shared root key successfully retrieved from user: " << other_user_uuid << " !" << endl;
+  else
+    cout << "Shared audit root key successfully retrieved from user: " << other_user_uuid << " !" << endl;
   return 0;
 }
 

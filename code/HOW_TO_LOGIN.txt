@@ -1,0 +1,12 @@
+1 - Admin) make clean && make SGX_MODE=HW SGX_PRERELEASE=1 && ./lauxus --new_fs && ./lauxus --create_quote --u_uuid=0000-00-00-00-000000
+2 - User)  make clean && make SGX_MODE=HW SGX_PRERELEASE=1 && ./lauxus --new_keys && cp ecc-256-public-key.spki ../lauxus/other_ecc-256-public-key.spki
+3 - Admin) ./lauxus --u_uuid=0000-00-00-00-000000 --add_user --new_username=demo && cp -r .lauxus/* ../lauxus2/.lauxus/
+4 - User)  ./lauxus --create_quote --u_uuid=ed5a-f3-e1-9b-70b5d9 && cp -r .lauxus/* ../lauxus/.lauxus/
+4 - Admin) ./lauxus --upload_rk --other_u_uuid=ed5a-f3-e1-9b-70b5d9 && cp -r .lauxus/* ../lauxus2/.lauxus/ && cp ecc-256-public-key.spki ../lauxus2/other_ecc-256-public-key.spki
+5 - User)  ./lauxus --download_rk --u_uuid=ed5a-f3-e1-9b-70b5d9 --other_u_uuid=0000-00-00-00-000000
+
+6 - Admin) ./lauxus -s --u_uuid=0000-00-00-00-000000 -f mount
+6 - User)  ./lauxus -s --u_uuid=ed5a-f3-e1-9b-70b5d9 -f mount
+
+7 - Admin) ./lauxus --edit_entitlement --u_uuid=0000-00-00-00-000000 --edit_path=/test.txt --other_u_uuid=ed5a-f3-e1-9b-70b5d9 --read_right=1 && cp -r .lauxus/* ../lauxus2/.lauxus/
+8 - User)  ./lauxus -s --u_uuid=ed5a-f3-e1-9b-70b5d9 -f mount

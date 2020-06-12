@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
   setup_fuse();
   BINARY_PATH = get_directory_path(argv[0]);
   LAUXUS_DIR = BINARY_PATH + "/.lauxus";
-  RK_PATH = LAUXUS_DIR + "/sealed_rk";
-  ARK_PATH = LAUXUS_DIR + "/sealed_ark";
+  RK_PATH = BINARY_PATH + "/sealed_rk";
+  ARK_PATH = BINARY_PATH + "/sealed_ark";
   META_DIR = LAUXUS_DIR + "/metadata";
   SUPERNODE_PATH = META_DIR + "/0000-00-00-00-000000";
   CONTENT_DIR = LAUXUS_DIR + "/content";
