@@ -1,11 +1,14 @@
 % EPL master thesis covers template
 \documentclass{covers/EPL-master-thesis-covers-EN}
 \usepackage{graphicx}
+\usepackage{rotating}
 \usepackage{caption}
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{blindtext}
+\usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{appendix}
+\usepackage[stable]{footmisc}
 \graphicspath{{images/}{../images/}}
 
 \newcommand\blankpage{%
@@ -15,7 +18,7 @@
     \newpage
 }
 \newcommand*{\captionsource}[2]{%
-  \caption[{#1}]{%
+  \caption[{#1}]{%†
     #1%
     \\\hspace{\linewidth}%
     \textbf{Source:} #2%
@@ -26,7 +29,7 @@
 
 % Please fill in the following boxes
 % Title of the thesis
-\title{Building a secure and auditable DropBox equivalent}
+\title{Building a secure and auditable Personal Cloud}
 
 % Subtitle - remove this line if not applicable
 % \subtitle{Optional subtitle}
@@ -57,13 +60,13 @@
 
 % Name of the supervisor(s)
 \supervisor{Etienne \textsc{Riviere}}
-\secondsupervisor{Axel \textsc{Legay}}		% remove if not applicable
+%\secondsupervisor{Firstname \textsc{Lastname}}		% remove if not applicable
 %\thirdsupervisor{Firstname \textsc{Lastname}}		% remove if not applicable
 
 % Name of the reader(s)
-\readerone{Igor \textsc{Zavalyshyn}}
-\readertwo{Michal \textsc{Krol}}			% remove if not applicable
-%\readerthree{Firstname \textsc{Lastname}}			% remove if not applicable
+\readerone{Axel \textsc{Legay}}
+\readertwo{Igor \textsc{Zavalyshyn}}
+\readerthree{Michal \textsc{Krol}}			% remove if not applicable
 %\readerfour{Firstname \textsc{Lastname}}			% remove if not applicable
 %\readerfive{Firstname \textsc{Lastname}}			% remove if not applicable
 

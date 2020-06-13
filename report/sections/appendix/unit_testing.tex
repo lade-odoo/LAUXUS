@@ -1,0 +1,9 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\par To diagnose, debug and prove that our software was working well, we used, as anticipated, the unit testing. In more details, we used the C++ \href{https://github.com/catchorg/Catch2}{Catch2} framework.
+\par The unit testing was mandatory in our work to prove that there were no memory leaks. Indeed, as we discussed in the report, SGX Enclaves are using a limited amount of memory. Furthermore, as the filesystem might be running for a long time, even a very small memory leak can become disastrous. Not only small leaks but also bigger ones, as we are handling huge amount of data, not freeing them would make our software unusable.
+\par Upon a lot of research, I wasn't able to find a framework to do some unit testing directly inside the Enclave. Thus, I simulated the minimum required calls to test my code. Of course, this means that when we are using the unit testing we don't obtain the same results as when we are using the Enclave (e.g: simulated encryption is rudimental). This doesn't matter because this simulation layer is only important to prove that our code works and that there are no memory leaks. As long as our simulation layer works like the Enclave (in term of return results and memory usage), the unit tests are relevant.
+
+\end{document}

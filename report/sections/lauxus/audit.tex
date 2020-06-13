@@ -4,9 +4,9 @@
 
 \section{Auditing Management}
 \label{section:lauxus:audit}
-\par The idea of having an auditing file is to record the purpose of each critical action of the authorised users (reading or writing a file). The challenge is that each record (each purpose) of an auditing file must be protected and be self-standing (can be encrypted and decrypted without any other information than those present inside the record).
+\par The idea of having an auditing file is to record the purpose of each critical action of the authorised users (reading or writing a file). The challenge is that each record (each purpose) of an auditing file must be protected and be self-standing (can be encrypted and decrypted without any other information than those present inside the record). Having this property, it also increases our performance and memory usage as we don't need to load information from untrusted memory into memory to encrypt an entry (which means we don't need to decrypt another content to encrypt an entry. Not like the metadata structure of a Filenode or a Dirnode).
 \par Each auditing file is linked to a single file in the filesystem and is composed of multiple independent records.
-\par In order to solve these challenges, we simply consider an audit entry to be like a metadata (cfr. Section \ref{section:lauxus:metadata}). In this context, the metadata secured section is composed of: the purpose of the action, the time and the user who initiated the action. Each record are then chained requiring no additional encryption. Indeed, the cryptographic context of each record (metadata) is secured thanks to the audit root key.
+\par To solve these challenges, we simply consider an audit entry to be like a metadata (cfr. Section \ref{section:lauxus:metadata}). In this context, the metadata secured section is composed of: the purpose of the action, the time and the user who initiated the action. Each record is then chained requiring no additional encryption. Indeed, the cryptographic context of each record (metadata) is secured thanks to the audit root key.
 
 
 \end{document}

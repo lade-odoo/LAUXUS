@@ -2,24 +2,14 @@
 
 \begin{document}
 
-\subsection{Writing time VS Block size}
+\subsection{Writing time VS offset}
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{images/appendix/perf_write_per_block_size}
+    \includegraphics[width=\textwidth]{images/appendix/per_offset_write}
     
-    \caption{A 1KB File writing time VS block size}
-    \label{appendix:figure:perf_time_per_block_size}
+    \caption{Small offset edition into a 15MB file at different index}
+    \label{appendix:figure:per_offset_write}
 \end{figure}
-\par As we are using a stateless model (no session) for writing the encrypted file to the remote storage, the more we increase the block size, the more we are efficient (to a certain threshold). By stateless model, we just mean that on each write, we open the file on the remote storage. A more efficient approach would be to open the file at the same time the end user opens it. However this should not highly change the performance as the writing time is mainly governed by the encryption time.
-
-\subsection{Block Writing time throughout an entire file write}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{images/appendix/perf_write_per_block_time}
-    
-    \caption{Evolution of the block writing time for a 20MB File}
-    \label{appendix:figure:perf_time_per_block}
-\end{figure}
-\par As we can see from the Figure \ref{appendix:figure:perf_time_per_block}, the write time is not constant throughout an full write operation. This explains why we don't have a perfect linear evolution in the Figure \ref{}. The reason for this behaviour is that on every write operation, we are writing the entire metadata structure to the remote storage. We need to do so as we are creating a new content block and thus we must create a new key. As the metadata structure becomes bigger and bigger, it takes more and more time to encrypt and write it. This is way we don't have a constant time.
+\par From analysing the Section \ref{section:analysis:write_offset_overhead}, we want to be sure that our implementation is correct. In more details, we want to be sure that, for fixed file size, writing a few bytes takes the same amount of time no matter the offset. This expectation seems trivial by analysing our theoretical model but an incorrect implementation could end up giving different results. By analysing the Figure \ref{appendix:figure:per_offset_write}, we clearly see that our implementation is correct (for this functionality at least).
 
 \end{document}

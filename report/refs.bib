@@ -132,6 +132,28 @@
   note="[Online; accessed 20-April-2020]"
 }
 
+@inproceedings {234843,
+author = {Supreeth Shastri and Melissa Wasserman and Vijay Chidambaram},
+title = {The Seven Sins of Personal-Data Processing Systems under {GDPR}},
+booktitle = {11th {USENIX} Workshop on Hot Topics in Cloud Computing (HotCloud 19)},
+year = {2019},
+address = {Renton, WA},
+url = {https://www.usenix.org/conference/hotcloud19/presentation/shastri},
+publisher = {{USENIX} Association},
+month = jul,
+}
+
+@inproceedings {234729,
+author = {Aashaka Shah and Vinay Banakar and Supreeth Shastri and Melissa Wasserman and Vijay Chidambaram},
+title = {Analyzing the Impact of {GDPR} on Storage Systems},
+booktitle = {11th {USENIX} Workshop on Hot Topics in Storage and File Systems (HotStorage 19)},
+year = {2019},
+address = {Renton, WA},
+url = {https://www.usenix.org/conference/hotstorage19/presentation/banakar},
+publisher = {{USENIX} Association},
+month = jul,
+}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%  STRIDE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 @misc{wiki:stride,
@@ -184,11 +206,120 @@
 }
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%  STRIDE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%  FUSE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 @misc{fuseExamples,
   author="{libfuse}",
   title="FUSE Filesystem example",
   url="https://github.com/libfuse/libfuse/wiki/Filesystems",
   note="[Online; accessed 10-May-2020]"
+}
+
+@inproceedings{vangoor2017fuse,
+  title={To $\{$FUSE$\}$ or Not to $\{$FUSE$\}$: Performance of User-Space File Systems},
+  author={Vangoor, Bharath Kumar Reddy and Tarasov, Vasily and Zadok, Erez},
+  booktitle={15th $\{$USENIX$\}$ Conference on File and Storage Technologies ($\{$FAST$\}$ 17)},
+  pages={59--72},
+  year={2017}
+}
+
+@inproceedings{10.1145/1774088.1774130,
+author = {Rajgarhia, Aditya and Gehani, Ashish},
+title = {Performance and Extension of User Space File Systems},
+year = {2010},
+isbn = {9781605586397},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1774088.1774130},
+doi = {10.1145/1774088.1774130},
+booktitle = {Proceedings of the 2010 ACM Symposium on Applied Computing},
+pages = {206–213},
+numpages = {8},
+keywords = {language binding, performance, FUSE, user space, Java},
+location = {Sierre, Switzerland},
+series = {SAC ’10}
+}
+
+@INPROCEEDINGS{8590996,
+  author={D. {Burihabwa} and P. {Felber} and H. {Mercier} and V. {Schiavoni}},
+  booktitle={2018 IEEE International Conference on Cloud Computing Technology and Science (CloudCom)},
+  title={SGX-FS: Hardening a File System in User-Space with Intel SGX}, 
+  year={2018},
+  volume={},
+  number={},
+  pages={67-72},
+}
+
+@inproceedings{10.1145/3078468.3078480,
+author = {Pontes, Rog\'{e}rio and Burihabwa, Dorian and Maia, Francisco and Paulo, Jo\~{a}o and Schiavoni, Valerio and Felber, Pascal and Mercier, Hugues and Oliveira, Rui},
+title = {SafeFS: A Modular Architecture for Secure User-Space File Systems: One FUSE to Rule Them All},
+year = {2017},
+isbn = {9781450350358},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3078468.3078480},
+doi = {10.1145/3078468.3078480},
+booktitle = {Proceedings of the 10th ACM International Systems and Storage Conference},
+articleno = {9},
+numpages = {12},
+keywords = {privacy at rest, FUSE, software defined storage, data confidentiality},
+location = {Haifa, Israel},
+series = {SYSTOR ’17}
+}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%  MORE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@misc{ wiki:drm,
+    author = "{Wikipedia contributors}",
+    title = "Digital rights management --- {Wikipedia}{,} The Free Encyclopedia",
+    year = "2020",
+    url = "https://en.wikipedia.org/w/index.php?title=Digital_rights_management&oldid=958607985",
+    note = "[Online; accessed 3-June-2020]"
+}
+
+@misc{ wiki:dropboxcritisism,
+    author = "{Wikipedia contributors}",
+    title = "Criticism of Dropbox --- {Wikipedia}{,} The Free Encyclopedia",
+    year = "2019",
+    url = "https://en.wikipedia.org/w/index.php?title=Criticism_of_Dropbox&oldid=919553113",
+    note = "[Online; accessed 8-June-2020]"
+  }
+  
+@inproceedings{10.1145/1655008.1655020,
+author = {Chow, Richard and Golle, Philippe and Jakobsson, Markus and Shi, Elaine and Staddon, Jessica and Masuoka, Ryusuke and Molina, Jesus},
+title = {Controlling Data in the Cloud: Outsourcing Computation without Outsourcing Control},
+year = {2009},
+isbn = {9781605587844},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1655008.1655020},
+doi = {10.1145/1655008.1655020},
+booktitle = {Proceedings of the 2009 ACM Workshop on Cloud Computing Security},
+pages = {85–90},
+numpages = {6},
+keywords = {security, cloud computing, privacy},
+location = {Chicago, Illinois, USA},
+series = {CCSW ’09}
+}
+
+@article{10.1145/2831347.2831354,
+author = {Garcia Lopez, Pedro and Montresor, Alberto and Epema, Dick and Datta, Anwitaman and Higashino, Teruo and Iamnitchi, Adriana and Barcellos, Marinho and Felber, Pascal and Riviere, Etienne},
+title = {Edge-Centric Computing: Vision and Challenges},
+year = {2015},
+issue_date = {October 2015},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {45},
+number = {5},
+issn = {0146-4833},
+url = {https://doi.org/10.1145/2831347.2831354},
+doi = {10.1145/2831347.2831354},
+journal = {SIGCOMM Comput. Commun. Rev.},
+month = sep,
+pages = {37–42},
+numpages = {6},
+keywords = {cloud computing, fog computing, decentralized systems, peer-to-peer}
 }

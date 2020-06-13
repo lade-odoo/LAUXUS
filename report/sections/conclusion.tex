@@ -2,13 +2,11 @@
 
 \begin{document}
 
-% gdpr results
-% strong potential security and privacy level. malware level
-% proved that it is possible without causing overhead. altough still need some work before being an end user product
-% shows need special back end for better efficiency as normal file pattern are a bit disturbed due to block size
-% interesting sgx application
+\par This work brought LAUXUS: an auditable and secure Personal Storage that allows lambda users to protect their information against not just the Cloud itself but also malware. We developed and tested a client software that protects personal and private information while still leveraging the advantages of personal cloud technologies. This in itself is already a very interesting application and a good example of the power of SGX Enclaves.
+\par On top of the cited security benefits, LAUXUS embeds innovative technologies to track the user interaction with the Filesystem. The idea is that LAUXUS transform a filesystem into a GDPR compliant one thanks to its purpose aware access that can't be avoided (which means no access can be done without being audited). Furthermore, it provides some strong and fined grained control access policies. As a concrete application example, we used the hospital analogy where the doctors handle so much personal information from the patients. Unfortunately using current technologies and by analysing the current state of the art, it's hard to use a software that proves that these documents are securely stored and are GDPR compliant (only used for legal purposes). This is especially in this situation that LAUXUS comes to the rescue.
 
-% diff between nexus and lauxus
-% small talk about nexus and what could have been different if we had the code
+\medbreak
+\par We analysed our model against a lot of possible threats at many different levels considering nearly every party as a potentially malicious user. The only trusted point in the model is the Intel SGX Enclave. The model proved to have really strong security and privacy level that even protects against Man-In-The-Computer attacks. Furthermore, our implementation proved to be able to transparently make all of this possible (especially tracking which user has access which files at what time).
+\par On top of that, we implemented our whole model to check its performance. Even though performance is not the primary concern of our work, we wanted to see if it would be a viable solution. We proved that it had a reasonable overhead compared to using the classical Linux filesystem. By reasonable overhead, we mean that even though it is two times slower than classical Linux filesystem, it doesn't make the filesystem non-usable or feeling slow when used. Although the implementation and the model are not perfect, it is already an advanced work that can, with reasonable work, be transformed into a real, user-friendly software useable by anyone with the correct hardware.
 
 \end{document}
