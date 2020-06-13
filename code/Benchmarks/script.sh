@@ -2,7 +2,7 @@
 mount_dir=../mount
 lauxus_exec=../lauxus
 passthrough_exec=./fuse_passthrough
-c=../mount/tmp/
+passthrough_target_dir=../mount/tmp/
 
 
 activate_LAUXUS() {
@@ -21,7 +21,7 @@ activate_PASSTHROUGH() {
   gcc -Wall fuse_passthrough.c `pkg-config fuse --cflags --libs` -o fuse_passthrough
 
   echo "LAUNCHING the Filesystem ..."
-  $lauxus_exec -s -f $mount_dir &
+  $passthrough_exec -s -f $mount_dir &
   sleep 5
 }
 deactivate_FUSE() {

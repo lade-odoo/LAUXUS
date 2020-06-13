@@ -47,7 +47,7 @@ def per_block_test(prefix):
         'Time [s]', [i for i in range(len(block_times))], block_times)
 
 
-def per_size_test(prefix, max_iteration=20, max_seconds=30):
+def per_size_test(prefix, max_iteration=100, max_seconds=30):
     sizes = [S_FILE, M_FILE, L_FILE, XL_FILE]
     file_times = []
     for file_size in sizes:
@@ -63,7 +63,7 @@ def per_size_test(prefix, max_iteration=20, max_seconds=30):
             'Time [s]', sizes, file_times)
 
 
-def per_block_size_test(prefix, max_iteration=50, max_seconds=30):
+def per_block_size_test(prefix, max_iteration=100, max_seconds=30):
     block_sizes = [ONE_KB, 10*ONE_KB, 50*ONE_KB, 100*ONE_KB]
     block_size_times = []
     for block_size in block_sizes:
@@ -106,7 +106,7 @@ def per_offset_write_test(prefix):
             'Time [s]', offset_pos, offset_pos_times)
 
 
-def per_folder_depth_test(prefix, max_iteration=50, max_seconds=30):
+def per_folder_depth_test(prefix, max_iteration=100, max_seconds=30):
     per_folder_depth_times = []
     depths = [1, 5, 10, 50, 100]
     for i in [1, 5, 10, 50, 100]:
@@ -132,7 +132,7 @@ def per_folder_depth_test(prefix, max_iteration=50, max_seconds=30):
             'Time [s]', depths, per_folder_depth_times)
 
 
-def per_file_size_small_write_test(prefix, max_iteration=20, max_seconds=30):
+def per_file_size_small_write_test(prefix, max_iteration=100, max_seconds=30):
     sizes = [S_FILE, M_FILE, L_FILE, XL_FILE]
     small_write_times = []
     for file_size in sizes:
