@@ -2,8 +2,83 @@
 
 \begin{document}
 
-% a. Etat de l'art sur les technologies Trusted Execution (petite introduction sur les TEE).
-% A. Exemples d'utilisation récentes.
-% b. Fonctionnement d'une Enclave SGX: secured execution, sealing process, remote attestation, etc (coeur du chapitre sur la théorie).
+\section{Trusted Execution Environment}
+\label{section:theoric:tee}
+% What is it ? -> global definiton
+% What does it protect from ? -> threat model
+% What has it already been used ? ->
+% TEE solutions ?
+    % comparison between trustzone and sgx
+    % SGX functionnalities used later in the paper on top of secure
+        % sealing capabilities
+        % qutoing capabilities
+
+
+\subsection{Definition}
+\label{section:theoric:tee_definition}
+% secure area main processor
+% creates isolated environment running in parrarel with os 
+% isolated execution
+% guarantees confidentiality code, data,runtime state
+% guarantees code authenticity
+% bring secure storage
+% -------
+% __________ integritty runtime state
+\par A Trusted Execution Environment (TEE) is a secure area of the main processor which grants isolated environment running in parallel to the main operating system. This isolation allows secure computation which means that: the code, the static data and the run-time states (CPU registers, memory, etc) are kept confidential. On top of confidentiality, TEE guarantees code and static data authenticity. Logically, it embeds a secure storage and remote attestation capabilities in order to prove its trustworthiness to third parties applications.
+
+\subsection{Security requirements}
+\label{section:theoric:tee_security}
+% resists all software attacks
+% exploiting backdoor security flaws are impossible
+% separation kernel
+%   requirements ?
+% its tcb limited to the size of the code run inside tee itself
+\par Following the above definition, it means that TEE must resists to all software attacks and physical attacks on the main memory. Furthermore, exploiting backdoor security flows must be impossible.
+\par The foundation of a Trusted Execution Environment is the separation Kernel. The goal of a separation Kernel is to allow the coexistence of systems of different security requirement on a same platform. In a nutshell, a separation Kernel divides the platform in multiple partitions guaranteeing isolation between each one of them. The only exception is the inter-partition interface enabling inter-partition communication. As stated in \cite{Sabt2015TrustedEE}, the separation Kernel has the following security requirement:
+\begin{itemize}
+    \item Data separation: data within one partition cannot be read or modified by other partitions.
+    \item Temporal separation: shared resources can't be used to leak information to other partitions.
+    \item Control of information flow: Communication between partitions can't occur unless previously permitted.
+    \item Fault isolation: Security breaches in one partition should not affect the others.
+\end{itemize}
+\par TEE security is described by its Trusted Computing Base (TCB). This TCB is in fact the size of the code run inside the TEE. Further discussions about TEE and their building blocks is beyond the scope of this work and can be found in \cite{Sabt2015TrustedEE}.
+
+
+% \subsection{Applications}
+% \label{section:theoric:tee_applications}
+%     % vpfs | plutus | sirius | obliviate
+
+
+\subsection{Intel SGX Enclaves}
+\label{section:theoric:intel_sgx}
+\par Intel SGX Enclaves\footnote{An enclave is a: "a portion of territory surrounded by a larger territory whose inhabitants are culturally or ethnically distinct."} are a type of TEE developed by Intel. It works by providing a set of security-related instructions into modern Intel CPUs. This allows the creation of an encrypted and secure memory region called an Enclave. This region is protected from any other user on the platform. In a nutshell, an Enclave consider that everyone else is a threat except the Enclave itself.
+\par SGX implementation is based on a very simple principle: there are two worlds, a trusted one and an untrusted one.  Each of these two worlds posess its own data and code. Every exchange between these two must be precisely described through an interface. Intel defines two words to descibre these interactions: either an ECALL (a function call into the secure world) or an OCALL (a function call into the insecure world). This interface defines the TCB of the application. This means that ideally, we wish this to be as minimal as possible.
+
+\subsubsection{Memory Management}
+\label{section:theoric:memory_management}
+\par Information inside an Enclave are store inside the EPC (Enclave Page Cache) which uses the MME (Memory Encryption Engine) in order to encrypt the pages. This MME is a new and dedicated chip for this purpose. This means that reading information on the memory bus of the result will only result in observing raw encrypted data. The EPC can only be decrypted inside the processor core thanks to keys generated at the Enclave creation.
+
+\subsubsection{Trust establishment}
+\label{section:theoric:trust_establishment}
+\par In order to establish trust with an Enclave there are three main activities:
+\begin{itemize}
+    \item \textbf{Enclave Measurement:} Enclaves are packed with a self-signed certificate provided from the enclave author allowing the Enclave to detect whether any portion of the Enclave code has been tampered with. Unfortunately, this is not enough as it only authenticates the initial state of the Enclave, not the running state. To cope with this, two more information are packed inside the certificate.
+    \par Firstly, a measurement 256 bit hash that identifies the code and the initial data loaded inside the Enclave. When the Enclave code and data pages are placed inside the EPC, the CPU calculates this measurement. Lastly, there is also a hash of the Enclave Author's Public Key. This last information allows enclave authenticated with the same public key to securely speak to each other.
+    \item \textbf{Data sealing:} When an enclave is instantiated, as discussed above, its data and code is protected inside the Enclave. Unfortunately, they can't stay forever, when the Enclave stops, it must be able to securely save these information into an untrusted storage. This process is called the sealing procedure and in most cases, the untrusted storage is the hard-disk of the computer. SGX Enclaves use a sealing key that can be derived even if the Enclave is stopped at some point in time. There are 2 manner to derive it: either using the Enclave Identity (the Enclave measurement) or by using the Signer Identity (the hash of hash of the Enclave Author's Public Key). In both cases, two enclaves two distinct enclaves will derive two different keys. The main difference is that by using the Signer Identity, two version of an Enclave share the same key and thus can read the sealed data of each other. On the contrary, using Enclave Identity the above operation is impossible but may be an advantage as it disables the migration of data between multiple Enclaves.
+    \item \textbf{Enclave attestation:} An Enclave may need to prove to a third party that it is legit. Intel developed two ways: either local attestation (to another process on the same computer) or remote attestation (to a remote server). We will only focus on the second attestation procedure as the first one is not relevant in our work. To prove its identity, an Enclave produces a quote which is a credential that reflects the enclave and the platform state. This can be done thanks to an architectural Enclave build by Intel called the Quoting Enclave (QE). This quote can then be verified by Intel web-service to check its authenticity. A quote is composed of many information including the Enclave measurement, a user defined data and others. All of this is powered by an anonymous technique known as the Intel(R) Enhanced Privacy ID (Intel(R) EPID). This custom scheme allows a verifies to use a single private key to check the authenticity of any number of signer in a group (which each uses a different private key). This process means that the verifier doesn't know which member of the group signed a quote but can verify its correctness. Obviously, in the SGX context, this EPID group is the collection of SGX enabled platforms.
+\end{itemize}
+
+
+\subsection{ARM TrustZone and Intel SGX Enclave}
+\label{section:theoric:tee_trustzone_vs_sgx}
+% Among TEE the most widespread techs are trustzone and sgx enclaves
+% main difference comes from the architecture they run on
+% trustzone more oriented for mobile devices and micro controller devices
+% sgx oriented multi-purpose chips where the system purpose is not known at chip design time.
+% main difference comes from:
+    %  ARM is historically associated with single-purpose systems -> just one TrustZone
+    %  SGX has the potential for multiple enclaves in a system
+\par Among TEE technologies, the two most widespread are ARM TrustZone and SGX Enclaves. The following comparison helped us choose which TEE technology choose for our solution. Both are quite different and the main difference is the architecture they can run on. Concerning TrustZone, it is designed only for ARM architectures which is mainly use for mobile and micro-controller devices. Historically, it is associated to single-purpose systems (only one TrustZone per device). On the contrary, SGX Enclaves were designed for multi-purpose chips where the system's purpose wasn't known at chip design time. This design choice allowed SGX to have the potential to run multiple enclaves (with each a different purpose) on a same system.
+\par The latter technology was chosen to create our solution thanks to its multi-purpose ability enabling an end-user to run other Enclave if he wishes so.
 
 \end{document} 

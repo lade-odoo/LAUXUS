@@ -1,6 +1,5 @@
-\documentclass[a4paper]{report}
-\usepackage[utf8]{inputenc}
-\usepackage[english]{babel}
+% EPL master thesis covers template
+\documentclass{covers/EPL-master-thesis-covers-EN}
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{amsmath,amsfonts,amssymb}
@@ -9,67 +8,78 @@
 \usepackage{appendix}
 \graphicspath{{images/}{../images/}}
 
-\usepackage{blindtext}
+\newcommand\blankpage{%
+    \null
+    \thispagestyle{empty}%
+    \addtocounter{page}{-1}%
+    \newpage
+}
+\newcommand*{\captionsource}[2]{%
+  \caption[{#1}]{%
+    #1%
+    \\\hspace{\linewidth}%
+    \textbf{Source:} #2%
+  }%
+}
 
 \usepackage{subfiles} % Best loaded last in the preamble
 
-\pagestyle{fancy}
-\renewcommand{\footrulewidth}{0pt}
-\fancyhead[L]{Desausoi Laurent}
-\fancyhead[R]{Building a Secure and Auditable DropBox}
-\fancyfoot[L]{LINGI2990}
-\fancyfoot[C]{Page \thepage}
-\fancyfoot[R]{June 2020}
+% Please fill in the following boxes
+% Title of the thesis
+\title{Building a secure and auditable DropBox equivalent}
 
+% Subtitle - remove this line if not applicable
+% \subtitle{Optional subtitle}
 
+% Name of the student author(s)
+\author{Laurent \textsc{Desausoi}}
+%\secondauthor{Firstname \textsc{Lastname}}		% remove if not applicable
+%\thirdauthor{Firstname \textsc{Lastname}}			% remove if not applicable
+
+% Official title of the master degree (copy/paste from list below)
+% Master [120] in Biomedical Engineering
+% Master [120] in Chemical and Materials Engineering
+% Master [120] in Civil Engineering
+% Master [120] in Computer Science
+% Master [120] in Computer Science and Engineering
+% Master [120] in Cybersecurity
+% Master [120] in Data Sciences Engineering
+% Master [120] in Data Science: Information technology
+% Master [120] in Electrical Engineering
+% Master [120] in Electro-mechanical Engineering
+% Master [120] in Mathematical Engineering
+% Master [120] in Mechanical Engineering
+% Master [120] in Physical Engineering
+% Master [60] in Computer Science
+% Specialised master in nanotechnologies
+% Specialised master in nuclear engineering
+\degreetitle{Master [120] in Computer Science}
+
+% Name of the supervisor(s)
+\supervisor{Etienne \textsc{Riviere}}
+\secondsupervisor{Axel \textsc{Legay}}		% remove if not applicable
+%\thirdsupervisor{Firstname \textsc{Lastname}}		% remove if not applicable
+
+% Name of the reader(s)
+\readerone{Igor \textsc{Zavalyshyn}}
+\readertwo{Michal \textsc{Krol}}			% remove if not applicable
+%\readerthree{Firstname \textsc{Lastname}}			% remove if not applicable
+%\readerfour{Firstname \textsc{Lastname}}			% remove if not applicable
+%\readerfive{Firstname \textsc{Lastname}}			% remove if not applicable
+
+% Academic year (update if necessary)
+\years{2019--2020}
+
+% Document
 \begin{document}
-
-\tableofcontents
-\newpage
-
-\chapter{Introduction}
-\label{chapter:introduction}
-\subfile{sections/introduction}
-
-
-\chapter{Problem Description}
-\label{chapter:problem}
-\subfile{sections/problem/overview}
-\subfile{sections/problem/use_case}
-\subfile{sections/problem/design_goals}
-\subfile{sections/problem/why_a_challenge}
-\subfile{sections/problem/threat_model}
-
-\chapter{Theoretical Background}
-\label{chapter:theoric}
-% as explained previous chapter in order to solve our problem we need a new technology for keeping secret and layer for sys call. This is what we will discuss here ....
-
-% This huge vulnerability can be solved thanks to Trusted Execution Environment (TEE) allowing, in this situation, the users to manipulate the encryption keys without knowing them. They are handled and saved inside the TEE that certifies that no users on this computer can retrieve them, even the root user of the computer. More specifically, in this project, we chose to leverage SGX Enclave as TEE.
-% \subfile{sections/theoric/tee}
-% \subfile{sections/theoric/fuse}
-
-\chapter{LAUXUS}
-\label{chapter:lauxus}
-\subfile{sections/lauxus/approach}
-\subfile{sections/lauxus/architecture}
-\subfile{sections/lauxus/filesystem}
-\subfile{sections/lauxus/metadata}
-\subfile{sections/lauxus/audit}
-\subfile{sections/lauxus/user_management}
-\subfile{sections/lauxus/remote_sharing}
-
-
-\addcontentsline{toc}{chapter}{Bibliography}
-\nocite{*}
-\bibliographystyle{acm}
-\bibliography{refs}
-
-
-\appendix
-\section*{Appendices}
-\addcontentsline{toc}{chapter}{Appendices}
-\renewcommand{\thesection}{\Alph{section}}
-\subfile{appendices}
-
+  % Front cover page
+  \maketitle
+  \blankpage
+  
+  \tableofcontents
+  \subfile{main_body}
+    
+  % Back cover page
+  \backcoverpage
 
 \end{document}

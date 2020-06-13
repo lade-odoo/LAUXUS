@@ -2,8 +2,11 @@
 
 \begin{document}
 
-\section{Trusted Execution Environment}
+\section{\textit{FUSE}}
+\label{section:theoric:fuse}
 
-% c. FUSE library: FUSE kernel module, basic file system operation (petite section car ce n'est pas le plus important)
+\par \textit{FUSE} stands for Filesystem in User Space. It consists of a Kernel module and a user-space library. It is uses in order to override the classical comportment of the UNIX Filesystem. It works by forwarding the system calls from the kernel into the user-space library for custom behaviour. Many Filesystem have already been implemented as can be seen in \cite{fuseExamples} (e.g: turning all the filenames to lower case, etc). A great advantage of using \textit{FUSE} is that they can be used on top of each other (e.g: combine a filesystem that turns the path in lower case and one that create a directory when the filename is composed of a "-"). Another often favoured advantage is that it is very easy for a lambda developer to create a custom Filesystem thanks to its user-friendly user-space library.
+\par Lastly, we can note that there are two version of user-space library: either a low level one or a high level one. The main difference is that the first one works with inode whereas the latter one works with filenames.
 
-\end{document} 
+
+\end{document}

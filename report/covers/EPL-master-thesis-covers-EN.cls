@@ -46,7 +46,7 @@
     
     % background
     \noindent \hspace{-3cm} 
-    \includegraphics{_frontbanner_EPL-master-thesis.pdf}\\
+    \includegraphics{covers/_frontbanner_EPL-master-thesis.pdf}\\
     \vspace*{-\textheight}
     
     % Font
@@ -122,7 +122,7 @@
   \newpage
   \thispagestyle{empty}
   \newgeometry{top=0cm,bottom=0cm,left=0cm,right=0cm}
-  \includegraphics{_backbanner_EPL-master-thesis.pdf}
+  \includegraphics{covers/_backbanner_EPL-master-thesis.pdf}
 
 }
 

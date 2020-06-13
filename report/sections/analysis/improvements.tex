@@ -1,0 +1,17 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+
+\section{Improvements}
+\label{section:analysis:improvements}
+\par Lastly, and even though we talk about it in the two previous Sections, we will look at the improvements that can still be brought to LAUXUS in order to make it more efficient and more user-friendly.
+\begin{itemize}
+    \item \textbf{Inherit user entitlement:} This improvement will ease the work of the owner user when assigning new rights to an authorised user. The idea is that a Node inherits the user entitlement of its parent Node. This would mean that if an authorised user has a read right on a Dirnode, he will have a read right on all the Filenode inside the specific Dirnode. Of course, this inheritance can be overridden in anyway the owner user wish (allowing the authorised user to write a specific file in the above Dirnode).
+    \item \textbf{On-demand audit files:} Currently, an audit file is automatically created for each file created on the Filesystem (along with the corresponding purpose prompt). This can be rather annoying because of temporary files (e.g: when we open a file in vim, vim created a \textit{.swp} file to store this historic of changes). Imagine if the user must provide the purpose of the action every time his user-space application creates a temporary file. The idea would be to disable by default the audit files and the auditor must choose which file must be audited and which shouldn't (based on the names of the files).
+    \item \textbf{User management through Filesystem interface:} With more development, it should be possible to manage the user entitlement and user management by simply editing a file. Indeed, as LAUXUS can control each IO call interaction, we could create an XML file for the user entitlement. By correctly implementing the back end, we could intercept the information we want and update accordingly the nodes metadata structure. This process would mean that depending on the user role, the Filesystem interface can be very different (e.g: the authorised user sees the content, the owner user sees the user entitlement and the administrator only see the user database).
+    \item \textbf{Forensic Analysis:} Lastly, as discussed in the two previous sections, there is a huge opportunity for forensic analysis thanks to the Authenticated Encryption algorithms. The idea would be to alert the administrator when someone wrongly modify a file or a metadata structure. Furthermore, the different ECC keys used helps forensic to exactly pinpoint which user and on which computer the action has been done.
+\end{itemize}
+
+    
+\end{document}

@@ -1,62 +1,72 @@
 enclave {
-    from "Sealing/Sealing.edl" import *;
+  include "time.h"
+  include "sgx_tseal.h"
+  include "../utils/headers/rights.hpp"
+  include "../Enclave/utils/headers/encryption/aes_gcm.hpp"
+  include "../Enclave/utils/headers/uuid.hpp"
 
-    trusted {
-        /* define ECALLs here. */
-        public int sgx_init_new_filesystem([in, string] const char *supernode_path);
-        public void sgx_init_dumping_folders([in, string] const char *content_dir, [in, string] const char* meta_dir, [in, string] const char *audit_dir);
-        public int sgx_init_existing_filesystem(size_t rk_sealed_size, [in, size=rk_sealed_size] const char *sealed_rk,
-                                                size_t ark_sealed_size, [in, size=ark_sealed_size] const char *sealed_ark);
-        public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path);
+  from "Sharing/Sharing.edl" import *;
 
-        public int sgx_login([in, string] const char *sk_path, [in, string] const char *user_uuid, [in, string] const char *supernode_path);
-        public int sgx_sign_message(size_t challenge_size, [in, size=challenge_size] const char *challenge,
-                                    size_t sk_size, [in, size=sk_size] const char *sk, size_t sig_size, [out, size=sig_size] char *sig);
+  trusted {
+    /************************ Control Plane related ECALLS ************************/
+    public int sgx_new_user_keys([out] sgx_ec256_public_t *pk_u, [out] sgx_ec256_private_t *sk_u);
 
-        public int sgx_create_user([in, string] const char *username, [in, string] const char *pk_path, [in, string] const char *sk_path);
-        public int sgx_add_user([in, string] const char *username, size_t pk_size, [in, size=pk_size] const char *pk);
-        public int sgx_remove_user([in, string] const char *user_uuid);
+    public int sgx_new_filesystem([in, string] const char *content_dir, [in, string] const char* meta_dir, [in, string] const char *audit_dir);
+    public int sgx_load_filesystem([in, size=rk_sealed_size] const sgx_sealed_data_t* rk_sealed_data, size_t rk_sealed_size,
+                  [in, size=ark_sealed_size] const sgx_sealed_data_t* ark_sealed_data, size_t ark_sealed_size,
+                  [in, size=e_supernode_size] const uint8_t *e_supernode, size_t e_supernode_size,
+                  [in, string] const char *content_dir, [in, string] const char* meta_dir, [in, string] const char *audit_dir);
+    public int sgx_destroy_filesystem([in, string] const char *rk_path, [in, string] const char *ark_path);
 
-        public int sgx_edit_user_entitlement([in, string] const char *path, unsigned char rights, [in, string] const char *user_uuid);
 
-        public int sgx_ls_buffer_size([in, string] const char *path);
-        public int sgx_readdir([in, string] const char *path, char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
+    public int sgx_login([in] const sgx_ec256_private_t *sk_u, [in] const lauxus_uuid_t *u_uuid);
 
-        public int sgx_entry_type([in, string] const char *path);
-        public int sgx_get_rights([in, string] const char *path);
-        public int sgx_get_times([in, string] const char *path, size_t times_size, [out, size=times_size] char *times);
 
-        public int sgx_file_size([in, string] const char *filepath);
-        public int sgx_open_file([in, string] const char *filepath, int asked_rights);
-        public int sgx_create_file([in, string] const char *reason, [in, string] const char *filepath);
-        public int sgx_read_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t buffer_size, [out, size=buffer_size] char *buffer);
-        public int sgx_write_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t data_size, [in, size=data_size] const char *data);
-        public int sgx_truncate_file([in, string] const char *reason);
-        public int sgx_unlink([in, string] const char *reason, [in, string] const char *filepath);
+    public int sgx_add_user([in, string] const char *username, [in] const sgx_ec256_public_t *pk_u, [out] lauxus_uuid_t *u_uuid);
+    public int sgx_remove_user([in] const lauxus_uuid_t *u_uuid);
+    public int sgx_edit_user_entitlement([in, string] const char *path, lauxus_right_t rights, [in] const lauxus_uuid_t *u_uuid);
 
-        public int sgx_opendir([in, string] const char *dirpath, int asked_rights);
-        public int sgx_mkdir([in, string] const char *reason, [in, string] const char *dirpath);
-        public int sgx_rmdir([in, string] const char *reason, [in, string] const char *dirpath);
-    };
 
-    untrusted {
-        /* define OCALLs here. */
-        void ocall_print([in, string] const char *str);
+    /*********************** Data Plane related ECALLS ***********************/
+    public int sgx_get_user_entitlement([in, string] const char *path, [out] lauxus_right_t *rights);
 
-        int ocall_dump([in, string] const char *path, size_t size, [in, size=size] const char *buffer);
-        int ocall_dump_in_dir([in, string] const char *dir, [in, string] const char *file, size_t size, [in, size=size] const char *buffer);
-        int ocall_dump_append_in_dir([in, string] const char *dir, [in, string] const char *file, size_t size, [in, size=size] const char *buffer);
-        int ocall_dump_with_offset_in_dir([in, string] const char *dir, [in, string] const char *file, long offset, size_t size, [in, size=size] const char *buffer);
+    public int sgx_ls_buffer_size([in, string] const char *path);
+    public int sgx_readdir([in, string] const char *path, char separator, size_t buffer_size, [out, size=buffer_size] char *buffer);
 
-        int ocall_delete_from_dir([in, string] const char *dir, [in, string] const char *uuid);
+    public int sgx_entry_type([in, string] const char *path);
+    public int sgx_get_times([in, string] const char *path, [out] time_t *atime, [out] time_t *mtime, [out] time_t *ctime);
 
-        int ocall_file_size([in, string] const char *dir, [in, string] const char *uuid);
-        int ocall_load_file([in, string] const char *dir, [in, string] const char *uuid, long offset, size_t size, [out, size=size] char *buffer);
+    public int sgx_rename([in, string] const char *old_path, [in, string] const char *new_path);
 
-        int ocall_get_current_time(size_t time_size, [out, size=time_size] char *b_time);
+    public int sgx_file_size([in, string] const char *filepath);
+    public int sgx_open_file([in, string] const char *filepath, lauxus_right_t asked_rights);
+    public int sgx_close_file([in, string] const char *filepath);
+    public int sgx_create_file([in, string] const char *reason, [in, string] const char *filepath);
+    public int sgx_read_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t buffer_size, [out, size=buffer_size] uint8_t *buffer);
+    public int sgx_write_file([in, string] const char *reason, [in, string] const char *filepath, long offset, size_t data_size, [in, size=data_size] const uint8_t *data);
+    public int sgx_truncate_file([in, string] const char *filepath, long size);
+    public int sgx_unlink([in, string] const char *reason, [in, string] const char *filepath);
 
-        int ocall_sign_challenge([in, string] const char *sk_path, size_t nonce_size, [in, size=nonce_size] const char *nonce,
-                                size_t sig_size, [out, size=sig_size] char *sig,
-                                size_t e_supernode_size, [out, size=e_supernode_size] char *e_supernode) allow(sgx_sign_message);
-    };
+    public int sgx_mkdir([in, string] const char *reason, [in, string] const char *dirpath);
+    public int sgx_rmdir([in, string] const char *reason, [in, string] const char *dirpath);
+  };
+
+  untrusted {
+    void ocall_print([in, string] const char *str);
+
+    int ocall_get_current_time([out] time_t *atime);
+
+    int ocall_dump([in, string] const char *path, size_t size, [in, size=size] const uint8_t *content);
+    int ocall_dump_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, size_t size, [in, size=size] const uint8_t *content);
+    int ocall_dump_trunc_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, size_t size, [in, size=size] const uint8_t *content);
+    int ocall_dump_append_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, size_t size, [in, size=size] const uint8_t *content);
+    int ocall_dump_with_offset_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, long offset, size_t size, [in, size=size] const uint8_t *content);
+    int ocall_truncate_file_in_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, long new_size);
+
+    int ocall_load_file([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid, long offset, size_t size, [out, size=size] uint8_t *content);
+
+    int ocall_file_size([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid);
+
+    int ocall_delete_from_dir([in, string] const char *dir, [in] const lauxus_uuid_t *n_uuid);
+  };
 };

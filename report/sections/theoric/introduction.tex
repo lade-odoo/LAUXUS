@@ -1,0 +1,9 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+% This huge vulnerability can be solved thanks to Trusted Execution Environment (TEE) allowing, in this situation, the users to manipulate the encryption keys without knowing them. They are handled and saved inside the TEE that certifies that no users on this computer can retrieve them, even the root user of the computer. More specifically, in this project, we chose to leverage SGX Enclave as TEE.
+\par As stated in the previous chapter, in order to solve our problem we must look at newer technologies that are not currently widespread. The two technologies we need are: one for creating some sort of secure environment inside our computer (in order to securely manipulate cryptographic material), and the other one is a layer being able to intercept filesystem operation to change their behaviour.
+\par The above discussed technologies are respectively TEE (Trusted Execution Environment) and FUSE (Filesystem in Userspace).
+
+\end{document} 

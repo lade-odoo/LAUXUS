@@ -29,7 +29,7 @@ With \textit{ECDH\_SECRET} being a know algorithm in the Elliptic Curve domain.
 
 
 \medbreak
-\par As terminology, we will use the same user as in the Figure \ref{figure:lauxus:approach}. This means that Alice will share the root key with Carl. In a nutshell, the protocol will be splitted in 4 phases:
+\par As terminology, we will use the same users as in the Figure \ref{figure:lauxus:approach}. This means that Alice will share the root key with Carl. In a nutshell, the protocol will be splitted in 4 phases:
 \begin{enumerate}
     \item Alice and Carl will create a message attesting that they are using a valid SGX Enclave. This message will also binds the user to its machine. This message will be called: the \textit{authenticity message}.
     \item Alice will checks the authenticity and the validity of the \textit{authenticity message} created by Carl.
@@ -38,6 +38,7 @@ With \textit{ECDH\_SECRET} being a know algorithm in the Elliptic Curve domain.
     \item Carl will derive the same shared secret as Alice and will then be able to decrypt the root key before sealing it on his computer.
 \end{enumerate}
 \par What this all means is that: Alice will encrypt the root key that only Carl can decrypt. This encryption key is unique and bind to both users and both users computer. This means that every time Carl is using a different computer, the protocol must be re-run.
+\par In order to avoid using a third party server, the above messages will be stored on the remote storage. We this in mind, we created a hidden folder inside the Filesystem containing one directory per user. Each user directory will contain the different message required to add the specific user to the Filesystem.
 
 
 \subsubsection{Phase 1 - Creating the \textit{authenticity message}}
@@ -51,7 +52,7 @@ With \textit{ECDH\_SECRET} being a know algorithm in the Elliptic Curve domain.
 \par The Figure \ref{figure:lauxus:create_quote} explains the first Phase and is based on the Quoting capability of SGX Enclaves (cfr. Chapter \ref{chapter:theoric}). In order to bind the user to his computer, we create another key-pair\footnote{pk\_eu stands for the public key of the user U's Enclave - similar notation with the secret key} inside the Enclave and seal them. The quote bears the Enclave public key and the quote is signed using the user private key for authentication.
 
 \subsubsection{Phase 2 - Verifying the \textit{authenticity message}}
-\begin{figure}[ht]
+\begin{figure}[h]
     \centering
     \includegraphics[width=.75\textwidth]{../../images/lauxus/verify_quote}
     
@@ -61,7 +62,7 @@ With \textit{ECDH\_SECRET} being a know algorithm in the Elliptic Curve domain.
 \par The Figure \ref{figure:lauxus:verify_quote} explains the second Phase and is based on the remote Intel Attestation Service furnished by Intel (cfr. Chapter \ref{chapter:theoric}). Upon success, the initiator will be sure that this specific user is using a valid SGX Enclave.
 
 \subsubsection{Phase 3 - Encrypting the root key for sharing}
-\begin{figure}[ht]
+\begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{../../images/lauxus/upload_rk}
     
@@ -71,14 +72,14 @@ With \textit{ECDH\_SECRET} being a know algorithm in the Elliptic Curve domain.
 \par The Figure \ref{figure:lauxus:upload_rk} explains the third Phase which is made by the administrator one time for each other user (if the other user never changes his computer). As explained in the Sequence Diagram, Alice creates an ephemeral key-pair\footnote{pk\_eph stands for ephemeral key-pair - similar notation with the secret key}. The encrypted root key is signed with Alice private key in order to testify authenticity.
 
 \subsubsection{Phase 4 - Decrypting the shared root key}
-\begin{figure}[ht]
+\begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{../../images/lauxus/download_rk}
     
     \caption{Phase 4 Sequence Diagram}
     \label{figure:lauxus:download_rk}
 \end{figure}
-\par The Figure \ref{figure:lauxus:download_rk} explains the fourth and final Phase which is straightforward knowing the third Phase. We just need to do the opposite operation. The shared secret reconstructed thanks to the ephemeral public key.
+\par The Figure \ref{figure:lauxus:download_rk} explains the fourth and final Phase which is straighforward knowing the third Phase. We just need to do the opposite operation. The shared secret reconstructed thanks to the ephemeral public key.
 
 
 
