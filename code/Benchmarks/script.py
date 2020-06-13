@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 
 # PER BLOCK SIZE #
@@ -97,7 +98,7 @@ plt.legend()
 plt.savefig('charts/per_size.png')
 
 
-# OTHER USAGE - Manually measured #
+# MEMORY + CPU usage - Manually measured #
 data = {'File Size':  [0, 0.9, 5, 11, 18.7],
         'Stack peak': [7, 18, 79, 155, 232],
         'Heap peak': [36, 64, 172, 304, 436],
@@ -118,3 +119,24 @@ h1, l1 = ax1.get_legend_handles_labels()
 h2, l2 = ax2.get_legend_handles_labels()
 ax1.legend(h1+h2, l1+l2, loc=2)
 plt.savefig('charts/memory_cpu_usage.png')
+
+
+plt.clf()
+# ZIP scenario - Manually measured #
+copy = (47, 8, 35)
+unzip = (334, 34, 62)
+tree = (84, 7, 26)
+delete = (131, 8, 45); delete2 = (465, 57, 168)
+dataset = [copy, unzip, tree, delete]
+ind = np.arange(3)    # the x locations for the groups
+
+p1 = plt.bar(ind, copy)
+p2 = plt.bar(ind, unzip, bottom=np.array(copy))
+p3 = plt.bar(ind, tree, bottom=np.array(copy)+np.array(unzip))
+p4 = plt.bar(ind, delete, bottom=np.array(copy)+np.array(unzip)+np.array(tree))
+
+plt.ylabel('Time [ms]')
+plt.xlabel('Filesystem used')
+plt.xticks(ind, ('LAUXUS', 'ext4', 'FUSE passthrough'))
+plt.legend((p1[0], p2[0], p3[0], p4[0]), ('Copy', 'Unzip', 'List', 'Delete'))
+plt.savefig('charts/zip.png')
