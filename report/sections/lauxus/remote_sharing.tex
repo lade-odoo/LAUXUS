@@ -40,7 +40,7 @@ With $\mathit{ECDH\_SECRET}$ being a known algorithm in the Elliptic Curve domai
     \caption{Phase 1 Sequence Diagram}
     \label{figure:lauxus:create_quote}
 \end{figure}
-\par The Figure \ref{figure:lauxus:create_quote} explains the first Phase and is based on the Quoting capability of SGX Enclaves (cfr. Chapter \ref{chapter:theoric}). To bind the user to his computer, we create another key-pair\footnote{pk\_eu stands for the public key of the user U's Enclave - similar notation with the secret key} inside the Enclave and seal them. The quote bears the Enclave public key and the quote is signed using the user private key for authentication.
+\par The Figure \ref{figure:lauxus:create_quote} explains the first Phase and is based on the Quoting capability of SGX Enclaves (cfr. Chapter \ref{chapter:theoric}). To bind the user to his computer, we create another key-pair\footnote{pk\_eu stands for the public key of the user U's Enclave - similar notation with the secret key.} inside the Enclave and seal them. The quote bears the Enclave public key and the quote is signed using the user private key for authentication.
 
 \subsubsection{Phase 2 - Verifying the \textit{authenticity message}}
 \begin{figure}[h]

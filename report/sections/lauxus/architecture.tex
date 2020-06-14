@@ -41,10 +41,10 @@
 
 \subsection{Management plane}
 \label{section:lauxus:architecture_mgmntplane}
-\par This plane is using an \textit{Application} facade to interact with the core of the application. This facade partially allows the administrator and the owner users to manage the user database (user registration/revocation and/or user entitlement). This facade is also used for the authentication process but will be discussed in Section \ref{section:lauxus:login}. As the data plane, it is composed of multiple APIs:
+\par This plane is using an \textit{Application} facade to interact with the core of the application. This facade partially allows the administrator and the owner users to manage the user database (user registration/revocation and/or user entitlement). This facade is also used for the authentication process but will be discussed in Section \ref{section:lauxus:login}. As the data plane, the management plane is composed of multiple APIs:
 \begin{itemize}
     \item User Authentication API: It is used to authenticate users into the filesystem. This login will set up a state inside LAUXUS that will be used by the Filesystem API to check the user entitlement.
-    \item User Management API: Holds the state of the currently connected user and is used to edit the user database. Interaction with the Users Database is secured with the encryption API.
+    \item User Management API: It holds the state of the currently connected user and is used to edit the user database. Interaction with the Users Database is secured with the encryption API.
 \end{itemize}
 
 \end{document} 

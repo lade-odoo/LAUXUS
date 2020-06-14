@@ -4,7 +4,7 @@
 
 \section{Filesystem}
 \label{section:lauxus:filesystem}
-\par Now that we have seen the different components of our solution. We can start to look in more details into one of the components of the Data Plane: the Filesystem. The filesystem we designed in this section can have some similar features with the \textbf{ext2} Linux Kernel filesystem (inode being similar with nodes described below).
+\par Now that we have seen the different components of our solution, we can start to look in more details into one of the components of the Data Plane: the Filesystem. The filesystem we designed in this section can have some similar features with the \textbf{ext2} Linux Kernel filesystem (inode being similar with nodes described below).
 % how close to ext2/ext3
 
 \subsection{Nodes hierarchy}
@@ -40,7 +40,7 @@
 \begin{enumerate}
     \item Find the corresponding file's UUID: When mounted, the user sees the filenames in clear. However, they must be obfuscated before storing them on the remote storage. This means that to retrieve the correct file, we must first find the UUID corresponding to the given clear filename.
     \item Check file existence: Once the UUID is known, we must check if the file still exists on the remote storage (in case it has been deleted by a malicious user).
-    \item Check the entitlement: Before processing \textit{FUSE} request, we must first check if the current user can execute the \textit{FUSE} action\footnote{Corresponds to a system call: READ, WRITE, UNLINK, GETATTR, etc} on this specific file.
+    \item Check the entitlement: Before processing \textit{FUSE} request, we must first check if the current user can execute the \textit{FUSE} action\footnote{Corresponds to a system call: READ, WRITE, UNLINK, GETATTR, etc.} on this specific file.
 \end{enumerate}
 
 \end{document}
