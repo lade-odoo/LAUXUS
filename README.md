@@ -1,0 +1,3 @@
+# Master Thesis - Building a secure and GDPR-compliant secure Dropbox leveraging SGX Enclave
+
+By leveraging TEE (Trusted Execution Environment) and Intel SGX Technologies, the goal was to create a transparent encryption filesystem layer (based on [FUSE](https://en.wikipedia.org/wiki/Filesystem_in_Userspace)). The project was implemented in C++ (~5K LoC). It would intercept all IO operations and encrypt on-the-fly payloads within the SGX memory. To ensure security, multiple encryption encapsulation (AES CTR / GCM / GCM SIV) were used. Encrypted content would then be dumped to the main filesystem to later be synched with a Cloud Provider (e.g.: DropBox).
